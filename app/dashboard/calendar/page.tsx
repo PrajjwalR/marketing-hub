@@ -52,48 +52,48 @@ function CalendarContent() {
     }
 
     return (
-        <div className="w-full max-w-7xl mx-auto -mt-7">
-            {/* Header Area - centered, two groups with clear space between */}
-            <div className="flex items-center justify-between gap-4 py-3 border-b border-zinc-200">
+        <div className="w-full -mt-7">
+            {/* Header Area - enlarged, full width */}
+            <div className="flex items-center justify-between gap-6 py-5 border-b border-zinc-200">
                 {/* Left group: nav + title */}
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-0.5 bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200">
                         <button
                             onClick={goPrev}
-                            className="h-7 w-7 rounded-md hover:bg-white text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center"
+                            className="h-10 w-10 rounded-lg hover:bg-white text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center"
                             aria-label="Previous"
                         >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-5 w-5" />
                         </button>
                         <button
                             onClick={goToday}
-                            className="px-2 h-7 rounded-md hover:bg-white text-zinc-700 hover:text-zinc-900 transition-colors text-xs font-bold"
+                            className="px-4 h-10 rounded-lg hover:bg-white text-zinc-700 hover:text-zinc-900 transition-colors text-sm font-bold"
                         >
                             Today
                         </button>
                         <button
                             onClick={goNext}
-                            className="h-7 w-7 rounded-md hover:bg-white text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center"
+                            className="h-10 w-10 rounded-lg hover:bg-white text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center"
                             aria-label="Next"
                         >
-                            <ChevronRight className="h-4 w-4" />
+                            <ChevronRight className="h-5 w-5" />
                         </button>
                     </div>
-                    <h1 className="text-base sm:text-lg font-semibold text-zinc-900 flex items-center gap-2">
-                        {displayMode === 'list' && <Calendar className="h-4 w-4 text-zinc-500" />}
+                    <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-3">
+                        {displayMode === 'list' && <Calendar className="h-6 w-6 text-zinc-500" />}
                         {title}
                     </h1>
                 </div>
 
                 {/* Right group: view switcher + Add New */}
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-zinc-100 p-0.5 rounded-lg border border-zinc-200">
+                <div className="flex items-center gap-4">
+                    <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
                         {(['list', 'week', 'month'] as const).map(mode => (
                             <button
                                 key={mode}
                                 onClick={() => setDisplayMode(mode)}
                                 className={cn(
-                                    "px-3 py-1.5 text-xs font-bold rounded-md transition-all capitalize",
+                                    "px-5 py-2.5 text-sm font-bold rounded-lg transition-all capitalize",
                                     displayMode === mode
                                         ? "bg-white text-zinc-900 shadow-sm"
                                         : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50"
@@ -105,16 +105,16 @@ function CalendarContent() {
                     </div>
                     <Button
                         onClick={() => openCreateDialog()}
-                        className="bg-amber-300 hover:bg-amber-400 text-zinc-900 font-bold h-8 px-4 shadow-sm transition-all active:scale-95 gap-1.5 rounded-lg border border-amber-200 text-sm"
+                        className="bg-amber-300 hover:bg-amber-400 text-zinc-900 font-bold h-11 px-6 shadow-sm transition-all active:scale-95 gap-2 rounded-xl border border-amber-200 text-base"
                     >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-5 w-5" />
                         Add New
                     </Button>
                 </div>
             </div>
 
             {/* Calendar View Area */}
-            <div className="w-full pt-3">
+            <div className="w-full pt-4">
                 {displayMode === 'list' && <ListView />}
                 {displayMode === 'week' && <WeekView />}
                 {displayMode === 'month' && <MonthView />}

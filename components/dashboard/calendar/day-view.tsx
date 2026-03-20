@@ -44,6 +44,7 @@ export function DayView() {
                         const isPast = cellDate < new Date();
                         
                         const cellEvents = events.filter(e => {
+                            if ((e.type || '').toLowerCase() === 'note') return false;
                             const eventDate = parseISO(e.scheduled_at);
                             return isSameDay(eventDate, currentDate) && eventDate.getHours() === hour;
                         });
