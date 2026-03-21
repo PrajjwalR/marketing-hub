@@ -591,7 +591,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-6xl mx-auto">
+        <div className="w-full space-y-8">
             {/* Welcome Banner */}
             <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-6 py-4">
                 <div className="flex items-center gap-3">

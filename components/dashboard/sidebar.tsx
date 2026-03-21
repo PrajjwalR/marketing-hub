@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-    Home, Search, Send, DollarSign, Wrench, ArrowDownLeft,
+    LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
     LayoutGrid
@@ -33,8 +33,8 @@ const WhatsappIcon = ({ className }: { className?: string }) => (
 
 const sidebarData = [
     {
-        name: 'Home',
-        icon: Home,
+        name: 'Dashboard',
+        icon: LayoutDashboard,
         href: '/dashboard',
         hasBorderBottom: true,
     },
