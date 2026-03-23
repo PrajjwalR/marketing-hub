@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Header } from "@/components/dashboard/header";
+import { DashboardRightRail } from "@/components/dashboard/dashboard-right-rail";
 import { UserSync } from "@/components/dashboard/user-sync";
 import { PageWrapper } from "@/components/dashboard/page-wrapper";
 
@@ -15,13 +15,15 @@ export default function DashboardLayout({
                 <Sidebar />
             </div>
 
-            <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto overflow-x-hidden bg-zinc-50/30 p-8 [scrollbar-gutter:stable]">
+            <div className="flex min-w-0 flex-1 overflow-hidden">
+                <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#F4F5F7] px-3 pb-6 pt-0 sm:px-4 [scrollbar-gutter:stable]">
                     <PageWrapper>
                         {children}
                     </PageWrapper>
                 </main>
+                <div className="hidden md:block">
+                    <DashboardRightRail />
+                </div>
             </div>
         </div>
     );
