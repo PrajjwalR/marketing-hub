@@ -167,7 +167,7 @@ export function Sidebar() {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
         sidebarData.reduce((acc, section) => {
             if (section.items) {
-                acc[section.name] = section.defaultExpanded ?? false;
+                acc[section.name] = false;
             }
             return acc;
         }, {} as Record<string, boolean>)
@@ -198,20 +198,6 @@ export function Sidebar() {
         }
         setExpandedSections(prev => ({ ...prev, [name]: !prev[name] }));
     };
-
-    // Auto-expand section if a sub-item is active
-    useEffect(() => {
-        sidebarData.forEach(section => {
-            if (section.items) {
-                const hasActiveChild = section.items.some(item => 
-                    pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-                );
-                if (hasActiveChild) {
-                    setExpandedSections(prev => ({ ...prev, [section.name]: true }));
-                }
-            }
-        });
-    }, [pathname]);
 
     // On navigation: expand on dashboard home only; otherwise collapse.
     useEffect(() => {
