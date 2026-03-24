@@ -52,6 +52,7 @@ export function CalendarModal() {
     const [formType, setFormType] = useState('event');
     const [formAccountId, setFormAccountId] = useState('');
     const [formColor, setFormColor] = useState('indigo');
+    const [formStatus, setFormStatus] = useState<'draft' | 'scheduled' | 'published' | 'cancelled'>('scheduled');
     const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [formTime, setFormTime] = useState('09:00');
     const [formEndDate, setFormEndDate] = useState('');
@@ -160,6 +161,7 @@ export function CalendarModal() {
         setFormType('event');
         setFormAccountId('');
         setFormColor('indigo');
+        setFormStatus('scheduled');
         setFormDate(format(currentDate, 'yyyy-MM-dd'));
         setFormTime('09:00');
         setFormEndDate('');
@@ -175,6 +177,7 @@ export function CalendarModal() {
                 setFormType(editingEvent.type || 'event');
                 setFormAccountId(editingEvent.account_id || '');
                 setFormColor(editingEvent.color || 'indigo');
+                setFormStatus(((editingEvent.status as 'draft' | 'scheduled' | 'published' | 'cancelled') || 'scheduled'));
                 setFormMediaUrl(editingEvent.media_url || '');
                 const scheduled = parseISO(editingEvent.scheduled_at);
                 setFormDate(format(scheduled, 'yyyy-MM-dd'));
@@ -270,15 +273,16 @@ export function CalendarModal() {
             type: formType,
             account_id: formType === 'post' ? (formAccountId || null) : null,
             platform: formType === 'post' && selectedAccount ? selectedAccount.platform : null,
+            platforms: formType === 'post' && selectedAccount ? [selectedAccount.platform] : [],
             color: formColor,
             scheduled_at,
             end_at,
             label_ids: selectedLabelIds,
         };
 
-        // If it's a social post, ensure status is reset to 'scheduled' so it actually runs
         if (formType === 'post') {
-            payload.status = 'scheduled';
+            payload.status = formStatus;
+            payload.published_at = formStatus === 'published' ? new Date().toISOString() : null;
         }
 
         try {
@@ -321,6 +325,27 @@ export function CalendarModal() {
             await handleDelete(editingEvent.id);
             setDeleteConfirmOpen(false);
             setIsCreateOpen(false);
+        }
+    };
+
+    const handlePublishNow = async () => {
+        if (!editingEvent) return;
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/schedule/${editingEvent.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'publish_now' }),
+            });
+            if (!res.ok) throw new Error('Failed to publish');
+            toast.success('Post published');
+            setFormStatus('published');
+            setIsCreateOpen(false);
+            fetchEvents();
+        } catch {
+            toast.error('Failed to publish now');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -414,6 +439,32 @@ export function CalendarModal() {
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {formType === 'post' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-zinc-500">Publishing Status</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['draft', 'scheduled', 'published'] as const).map((status) => {
+                                            const selected = formStatus === status;
+                                            return (
+                                                <button
+                                                    key={status}
+                                                    type="button"
+                                                    onClick={() => setFormStatus(status)}
+                                                    className={cn(
+                                                        'rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors',
+                                                        selected
+                                                            ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
+                                                    )}
+                                                >
+                                                    {status}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
 
@@ -920,6 +971,15 @@ export function CalendarModal() {
 
                     {/* Footer Actions */}
                     <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 shrink-0">
+                        {editingEvent && formType === 'post' && formStatus !== 'published' && (
+                            <Button
+                                onClick={handlePublishNow}
+                                disabled={isSubmitting}
+                                className="h-11 px-6 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                Publish now
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             onClick={() => setIsCreateOpen(false)}
@@ -929,12 +989,12 @@ export function CalendarModal() {
                         </Button>
                         <Button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !formTitle.trim() || !formDate || (formType === 'post' && !formAccountId)}
+                            disabled={isSubmitting || !formTitle.trim() || !formDate || (formType === 'post' && formStatus !== 'draft' && !formAccountId)}
                             className="h-11 px-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                            ) : editingEvent ? 'Save Changes' : (formType === 'post' ? 'Schedule Post' : 'Add to Calendar')}
+                            ) : editingEvent ? 'Save Changes' : (formType === 'post' ? (formStatus === 'draft' ? 'Save Draft' : formStatus === 'published' ? 'Publish Post' : 'Schedule Post') : 'Add to Calendar')}
                         </Button>
                     </div>
                 </DialogContent>

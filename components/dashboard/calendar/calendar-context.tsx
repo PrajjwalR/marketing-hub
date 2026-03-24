@@ -15,6 +15,8 @@ export interface CalendarEvent {
     scheduled_at: string;
     end_at: string | null;
     status: string;
+    published_at?: string | null;
+    platforms?: string[];
     created_at: string;
     video_id: string | null;
     series_id: string | null;

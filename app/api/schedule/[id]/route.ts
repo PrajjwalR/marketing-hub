@@ -15,13 +15,23 @@ export async function PATCH(
         const { id } = await params;
         const body = await req.json();
         const { label_ids } = body;
+        const action = typeof body?.action === 'string' ? body.action : null;
 
-        const allowedFields = ['title', 'description', 'media_url', 'type', 'platform', 'account_id', 'color', 'scheduled_at', 'end_at', 'status', 'video_id', 'series_id'];
+        const allowedFields = ['title', 'description', 'media_url', 'type', 'platform', 'platforms', 'account_id', 'color', 'scheduled_at', 'end_at', 'status', 'published_at', 'video_id', 'series_id'];
         const updates: Record<string, any> = {};
         for (const key of allowedFields) {
             if (body[key] !== undefined) {
                 updates[key] = body[key];
             }
+        }
+
+        if (action === 'publish_now') {
+            updates.status = 'published';
+            updates.published_at = new Date().toISOString();
+        } else if (updates.status === 'published' && updates.published_at === undefined) {
+            updates.published_at = new Date().toISOString();
+        } else if (updates.status && updates.status !== 'published' && updates.published_at === undefined) {
+            updates.published_at = null;
         }
 
         if (Object.keys(updates).length === 0) {

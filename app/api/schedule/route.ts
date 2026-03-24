@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, description, media_url, type, platform, account_id, color, scheduled_at, end_at, video_id, series_id, label_ids } = body;
+        const { title, description, media_url, type, platform, platforms, account_id, color, scheduled_at, end_at, status, published_at, video_id, series_id, label_ids } = body;
 
         if (!title || !scheduled_at) {
             return NextResponse.json(
@@ -77,9 +77,11 @@ export async function POST(req: NextRequest) {
                 color: color || 'indigo',
                 scheduled_at,
                 end_at: end_at || null,
+                platforms: Array.isArray(platforms) ? platforms : (platform ? [platform] : []),
+                published_at: published_at || null,
                 video_id: video_id || null,
                 series_id: series_id || null,
-                status: 'scheduled',
+                status: status || 'scheduled',
             })
             .select()
             .single();
