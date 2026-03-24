@@ -76,6 +76,10 @@ export function CalendarModal() {
     const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
     const [newLabelName, setNewLabelName] = useState('');
     const [isSavingLabel, setIsSavingLabel] = useState(false);
+    const [reviewers, setReviewers] = useState<Array<{ user_id: string; name: string | null; email: string | null }>>([]);
+    const [selectedReviewerIds, setSelectedReviewerIds] = useState<string[]>([]);
+    const [approvalRequired, setApprovalRequired] = useState(false);
+    const [approvalStatus, setApprovalStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested'>('none');
 
     const selectedAccount = socialConnections.find(c => c.id === formAccountId);
 
@@ -88,6 +92,17 @@ export function CalendarModal() {
             }
         } catch (error) {
             toast.error('Failed to load labels');
+        }
+    };
+
+    const fetchReviewers = async () => {
+        try {
+            const res = await fetch('/api/approvals/reviewers');
+            if (!res.ok) return;
+            const data = await res.json();
+            setReviewers(data || []);
+        } catch {
+            // no-op
         }
     };
 
@@ -167,6 +182,9 @@ export function CalendarModal() {
         setFormEndDate('');
         setFormEndTime('');
         setFormMediaUrl('');
+        setApprovalRequired(false);
+        setApprovalStatus('none');
+        setSelectedReviewerIds([]);
     };
 
     useEffect(() => {
@@ -188,6 +206,8 @@ export function CalendarModal() {
                     setFormEndTime(format(end, 'HH:mm'));
                 }
                 setSelectedLabelIds((editingEvent.labels || []).map((label) => label.id));
+                setApprovalRequired(!!editingEvent.approval_required);
+                setApprovalStatus((editingEvent.approval_status as any) || 'none');
             } else {
                 resetForm();
                 if (currentDate) {
@@ -196,8 +216,29 @@ export function CalendarModal() {
                 setSelectedLabelIds([]);
             }
             fetchLabels();
+            fetchReviewers();
         }
     }, [isCreateOpen, editingEvent, currentDate]);
+
+    useEffect(() => {
+        if (!isCreateOpen || !editingEvent || (editingEvent.type || '').toLowerCase() !== 'post') {
+            return;
+        }
+        let cancelled = false;
+        setSelectedReviewerIds([]);
+        fetch(`/api/approvals/post/${editingEvent.id}`)
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((data: { reviewerIds?: string[] }) => {
+                if (cancelled) return;
+                setSelectedReviewerIds(Array.isArray(data.reviewerIds) ? data.reviewerIds : []);
+            })
+            .catch(() => {
+                if (!cancelled) setSelectedReviewerIds([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isCreateOpen, editingEvent?.id, editingEvent?.type]);
 
     const handleCreateLabel = async () => {
         if (!newLabelName.trim()) return;
@@ -278,11 +319,26 @@ export function CalendarModal() {
             scheduled_at,
             end_at,
             label_ids: selectedLabelIds,
+            approval_required: approvalRequired,
         };
 
         if (formType === 'post') {
             payload.status = formStatus;
             payload.published_at = formStatus === 'published' ? new Date().toISOString() : null;
+        }
+
+        if (
+            editingEvent &&
+            formType === 'post' &&
+            approvalRequired &&
+            approvalStatus === 'pending'
+        ) {
+            if (selectedReviewerIds.length === 0) {
+                toast.error('Pick at least one reviewer while approval is pending.');
+                setIsSubmitting(false);
+                return;
+            }
+            payload.reviewer_ids = selectedReviewerIds;
         }
 
         try {
@@ -297,7 +353,8 @@ export function CalendarModal() {
                     setIsCreateOpen(false);
                     fetchEvents();
                 } else {
-                    toast.error('Failed to update');
+                    const data = await res.json().catch(() => ({}));
+                    toast.error(data?.error || 'Failed to update');
                 }
             } else {
                 const res = await fetch('/api/schedule', {
@@ -310,7 +367,8 @@ export function CalendarModal() {
                     setIsCreateOpen(false);
                     fetchEvents();
                 } else {
-                    toast.error('Failed to create');
+                    const data = await res.json().catch(() => ({}));
+                    toast.error(data?.error || 'Failed to create');
                 }
             }
         } catch (error) {
@@ -337,13 +395,48 @@ export function CalendarModal() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'publish_now' }),
             });
-            if (!res.ok) throw new Error('Failed to publish');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.error || 'Failed to publish');
             toast.success('Post published');
             setFormStatus('published');
             setIsCreateOpen(false);
             fetchEvents();
-        } catch {
-            toast.error('Failed to publish now');
+        } catch (error: any) {
+            const message = error?.message || 'Failed to publish now';
+            toast.error(message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSubmitForApproval = async () => {
+        if (!editingEvent) return;
+        if (!approvalRequired) {
+            toast.error('Enable approval required before submitting.');
+            return;
+        }
+        if (selectedReviewerIds.length === 0) {
+            toast.error('Pick at least one reviewer.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/approvals/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    postId: editingEvent.id,
+                    reviewerIds: selectedReviewerIds,
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.error || 'Failed to submit for approval');
+            toast.success('Submitted for approval');
+            setApprovalStatus('pending');
+            setIsCreateOpen(false);
+            fetchEvents();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to submit for approval');
         } finally {
             setIsSubmitting(false);
         }
@@ -465,6 +558,60 @@ export function CalendarModal() {
                                             );
                                         })}
                                     </div>
+                                </div>
+                            )}
+
+                            {formType === 'post' && (
+                                <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-zinc-700">Approval Workflow</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setApprovalRequired((prev) => !prev)}
+                                            className={cn(
+                                                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                approvalRequired
+                                                    ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                    : "border-zinc-200 bg-white text-zinc-600"
+                                            )}
+                                        >
+                                            {approvalRequired ? 'Required' : 'Optional'}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-zinc-500">
+                                        Current status: <span className="font-semibold uppercase">{approvalStatus}</span>
+                                    </p>
+                                    {approvalRequired && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-zinc-500">Reviewers</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {reviewers.map((reviewer) => {
+                                                    const selected = selectedReviewerIds.includes(reviewer.user_id);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={reviewer.user_id}
+                                                            onClick={() =>
+                                                                setSelectedReviewerIds((prev) =>
+                                                                    prev.includes(reviewer.user_id)
+                                                                        ? prev.filter((id) => id !== reviewer.user_id)
+                                                                        : [...prev, reviewer.user_id]
+                                                                )
+                                                            }
+                                                            className={cn(
+                                                                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                                selected
+                                                                    ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                                    : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                                                            )}
+                                                        >
+                                                            {reviewer.name || reviewer.email || reviewer.user_id}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
@@ -974,10 +1121,19 @@ export function CalendarModal() {
                         {editingEvent && formType === 'post' && formStatus !== 'published' && (
                             <Button
                                 onClick={handlePublishNow}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || (approvalRequired && approvalStatus !== 'approved')}
                                 className="h-11 px-6 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
                             >
                                 Publish now
+                            </Button>
+                        )}
+                        {editingEvent && formType === 'post' && approvalRequired && approvalStatus !== 'pending' && approvalStatus !== 'approved' && (
+                            <Button
+                                onClick={handleSubmitForApproval}
+                                disabled={isSubmitting || selectedReviewerIds.length === 0}
+                                className="h-11 px-6 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                Submit for approval
                             </Button>
                         )}
                         <Button

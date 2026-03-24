@@ -36,6 +36,7 @@ export async function GET(req: Request) {
             .order('scheduled_at', { ascending: true });
 
         if (error) {
+            console.error("[SCHEDULE_POST_INSERT_ERROR]", error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
@@ -55,12 +56,19 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, description, media_url, type, platform, platforms, account_id, color, scheduled_at, end_at, status, published_at, video_id, series_id, label_ids } = body;
+        const { title, description, media_url, type, platform, platforms, account_id, color, scheduled_at, end_at, status, published_at, video_id, series_id, label_ids, approval_required } = body;
 
         if (!title || !scheduled_at) {
             return NextResponse.json(
                 { error: "Title and scheduled date are required" },
                 { status: 400 }
+            );
+        }
+
+        if (approval_required && status === 'published') {
+            return NextResponse.json(
+                { error: "Post requires approval before publishing" },
+                { status: 409 }
             );
         }
 
@@ -79,6 +87,8 @@ export async function POST(req: NextRequest) {
                 end_at: end_at || null,
                 platforms: Array.isArray(platforms) ? platforms : (platform ? [platform] : []),
                 published_at: published_at || null,
+                approval_required: !!approval_required,
+                approval_status: 'none',
                 video_id: video_id || null,
                 series_id: series_id || null,
                 status: status || 'scheduled',
@@ -100,6 +110,7 @@ export async function POST(req: NextRequest) {
                 .from('post_labels')
                 .upsert(rows, { onConflict: 'user_id,post_id,label_id' });
             if (labelError) {
+                console.error("[SCHEDULE_POST_LABELS_ERROR]", labelError);
                 return NextResponse.json({ error: labelError.message }, { status: 500 });
             }
         }
@@ -120,6 +131,7 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (refetchError) {
+            console.error("[SCHEDULE_POST_REFETCH_ERROR]", refetchError);
             return NextResponse.json({ error: refetchError.message }, { status: 500 });
         }
 

@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { format, addDays, isSameDay, parseISO, startOfWeek, isFirstDayOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock } from 'lucide-react';
+import { EventApprovalBadge } from './event-approval-badge';
 import { useMemo } from 'react';
 
 const PLATFORM_CONFIG: Record<string, {
@@ -146,11 +147,12 @@ export function ListView() {
                                                     {account?.profile_name ? getInitials(account.profile_name) : '?'}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <PlatformIcon className="h-5 w-5 text-zinc-600 shrink-0" />
                                                         <span className="font-bold text-zinc-900 truncate text-base">
                                                             {account?.profile_name || event.title}
                                                         </span>
+                                                        <EventApprovalBadge event={event} />
                                                     </div>
                                                     <div className="text-sm text-zinc-500 mt-1">
                                                         {cfg.label} {account?.platform ? '•' : ''} {statusLabel}

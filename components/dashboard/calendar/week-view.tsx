@@ -4,6 +4,7 @@ import { useCalendar } from './calendar-context';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { PlatformPreviewCard } from './platform-preview';
+import { EventApprovalBadge } from './event-approval-badge';
 import {
     Megaphone,
     Plus,
@@ -163,10 +164,15 @@ export function WeekView() {
                                                 key={event.id}
                                                 onClick={() => openEditDialog(event)}
                                                 className={cn(
-                                                    'w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all hover:shadow-md hover:border-amber-300 overflow-hidden',
+                                                    'relative w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all hover:shadow-md hover:border-amber-300 overflow-hidden',
                                                     event.status === 'cancelled' ? 'opacity-50 border-zinc-200' : 'border-zinc-200'
                                                 )}
                                             >
+                                                <EventApprovalBadge
+                                                    event={event}
+                                                    compact
+                                                    className="absolute right-2 top-2 z-20 shadow-sm"
+                                                />
                                                 <PlatformPreviewCard
                                                     platformKey={platformKey}
                                                     whenLabel={whenLabel}

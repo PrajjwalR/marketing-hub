@@ -15,6 +15,11 @@ export interface CalendarEvent {
     scheduled_at: string;
     end_at: string | null;
     status: string;
+    approval_required?: boolean;
+    approval_status?: 'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested';
+    approved_by?: string | null;
+    approved_at?: string | null;
+    submitted_for_approval_at?: string | null;
     published_at?: string | null;
     platforms?: string[];
     created_at: string;

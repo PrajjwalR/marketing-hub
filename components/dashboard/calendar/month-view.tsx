@@ -5,6 +5,7 @@ import { format, startOfMonth, startOfWeek, addDays, isSameMonth, isSameDay, par
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { PlatformPreviewCard } from './platform-preview';
+import { EventApprovalBadge } from './event-approval-badge';
 
 export function MonthView() {
     const { currentDate, setCurrentDate, events, openCreateDialog, openEditDialog, socialConnections } = useCalendar();
@@ -75,8 +76,13 @@ export function MonthView() {
                                             <div
                                                 key={event.id}
                                                 onClick={(e) => { e.stopPropagation(); openEditDialog(event); }}
-                                                className="w-full rounded-xl border-2 border-zinc-200 bg-white shadow-sm hover:border-amber-300 hover:shadow-md transition-all overflow-hidden"
+                                                className="relative w-full rounded-xl border-2 border-zinc-200 bg-white shadow-sm hover:border-amber-300 hover:shadow-md transition-all overflow-hidden"
                                             >
+                                                <EventApprovalBadge
+                                                    event={event}
+                                                    compact
+                                                    className="absolute right-1.5 top-1.5 z-20 shadow-sm"
+                                                />
                                                 <PlatformPreviewCard
                                                     platformKey={platformKey}
                                                     whenLabel={whenLabel}
