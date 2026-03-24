@@ -14,6 +14,7 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await req.json();
+        const { label_ids } = body;
 
         const allowedFields = ['title', 'description', 'media_url', 'type', 'platform', 'account_id', 'color', 'scheduled_at', 'end_at', 'status', 'video_id', 'series_id'];
         const updates: Record<string, any> = {};
@@ -39,7 +40,53 @@ export async function PATCH(
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json(data);
+        if (Array.isArray(label_ids)) {
+            const { error: removeError } = await supabaseAdmin
+                .from('post_labels')
+                .delete()
+                .eq('user_id', userId)
+                .eq('post_id', id);
+
+            if (removeError) {
+                return NextResponse.json({ error: removeError.message }, { status: 500 });
+            }
+
+            if (label_ids.length > 0) {
+                const rows = label_ids.map((labelId: string) => ({
+                    user_id: userId,
+                    post_id: id,
+                    label_id: labelId,
+                }));
+                const { error: insertError } = await supabaseAdmin
+                    .from('post_labels')
+                    .insert(rows);
+                if (insertError) {
+                    return NextResponse.json({ error: insertError.message }, { status: 500 });
+                }
+            }
+        }
+
+        const { data: withLabels, error: refetchError } = await supabaseAdmin
+            .from('calendar_events')
+            .select(`
+                *,
+                post_labels (
+                    label:labels (
+                        id,
+                        name,
+                        color
+                    )
+                )
+            `)
+            .eq('id', id)
+            .eq('user_id', userId)
+            .single();
+
+        if (refetchError) {
+            return NextResponse.json({ error: refetchError.message }, { status: 500 });
+        }
+
+        return NextResponse.json(withLabels);
     } catch (error) {
         console.error("[SCHEDULE_PATCH]", error);
         return new NextResponse("Internal Error", { status: 500 });

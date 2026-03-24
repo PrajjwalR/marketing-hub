@@ -1,13 +1,13 @@
 'use client';
 
-import { useCalendar, CalendarEvent, SocialConnection } from './calendar-context';
+import { useCalendar, CalendarEvent, SocialConnection, LabelItem } from './calendar-context';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText } from 'lucide-react';
+import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -71,8 +71,24 @@ export function CalendarModal() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [labels, setLabels] = useState<LabelItem[]>([]);
+    const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+    const [newLabelName, setNewLabelName] = useState('');
+    const [isSavingLabel, setIsSavingLabel] = useState(false);
 
     const selectedAccount = socialConnections.find(c => c.id === formAccountId);
+
+    const fetchLabels = async () => {
+        try {
+            const res = await fetch('/api/labels');
+            if (res.ok) {
+                const data = await res.json();
+                setLabels(data || []);
+            }
+        } catch (error) {
+            toast.error('Failed to load labels');
+        }
+    };
 
     const fetchLibrary = async () => {
         try {
@@ -168,14 +184,72 @@ export function CalendarModal() {
                     setFormEndDate(format(end, 'yyyy-MM-dd'));
                     setFormEndTime(format(end, 'HH:mm'));
                 }
+                setSelectedLabelIds((editingEvent.labels || []).map((label) => label.id));
             } else {
                 resetForm();
                 if (currentDate) {
                     setFormDate(format(currentDate, 'yyyy-MM-dd'));
                 }
+                setSelectedLabelIds([]);
             }
+            fetchLabels();
         }
     }, [isCreateOpen, editingEvent, currentDate]);
+
+    const handleCreateLabel = async () => {
+        if (!newLabelName.trim()) return;
+        setIsSavingLabel(true);
+        try {
+            const res = await fetch('/api/labels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newLabelName.trim() }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.error || 'Failed to create label');
+            }
+            const created = await res.json();
+            setLabels((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+            setSelectedLabelIds((prev) => [...prev, created.id]);
+            setNewLabelName('');
+            toast.success('Label created');
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to create label');
+        } finally {
+            setIsSavingLabel(false);
+        }
+    };
+
+    const handleDeleteLabel = async (labelId: string) => {
+        try {
+            const res = await fetch(`/api/labels/${labelId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete label');
+            setLabels((prev) => prev.filter((label) => label.id !== labelId));
+            setSelectedLabelIds((prev) => prev.filter((id) => id !== labelId));
+            toast.success('Label deleted');
+        } catch {
+            toast.error('Failed to delete label');
+        }
+    };
+
+    const handleRenameLabel = async (label: LabelItem) => {
+        const name = window.prompt('Rename label', label.name)?.trim();
+        if (!name || name === label.name) return;
+        try {
+            const res = await fetch(`/api/labels/${label.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            if (!res.ok) throw new Error('Failed to rename label');
+            const updated = await res.json();
+            setLabels((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            toast.success('Label renamed');
+        } catch {
+            toast.error('Failed to rename label');
+        }
+    };
 
     const handleSubmit = async () => {
         if (!formTitle.trim() || !formDate) {
@@ -199,6 +273,7 @@ export function CalendarModal() {
             color: formColor,
             scheduled_at,
             end_at,
+            label_ids: selectedLabelIds,
         };
 
         // If it's a social post, ensure status is reset to 'scheduled' so it actually runs
@@ -257,7 +332,7 @@ export function CalendarModal() {
                 }
             }}>
                 <DialogContent className={cn("rounded-[12px] border border-zinc-200 bg-white p-0 overflow-hidden text-zinc-900 shadow-2xl flex flex-col transition-all duration-300", formType === 'post' ? "min-w-7xl w-[95vw] h-[85vh]" : "max-w-xl w-[95vw] h-auto max-h-[85vh]")}>
-                    <DialogHeader className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 flex-shrink-0">
+                    <DialogHeader className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 shrink-0">
                         <DialogTitle className="text-lg font-black text-zinc-900 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <CalendarDays className="h-5 w-5 text-indigo-600" />
@@ -341,6 +416,77 @@ export function CalendarModal() {
                                     )}
                                 </div>
                             )}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-zinc-500 flex items-center gap-2">
+                                    <Tags className="h-4 w-4" />
+                                    Content Labels
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        placeholder="Add new label..."
+                                        value={newLabelName}
+                                        onChange={(e) => setNewLabelName(e.target.value)}
+                                        className="rounded-xl h-10 bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-indigo-600"
+                                    />
+                                    <Button
+                                        type="button"
+                                        onClick={handleCreateLabel}
+                                        disabled={isSavingLabel || !newLabelName.trim()}
+                                        variant="outline"
+                                        className="rounded-xl h-10 border-zinc-200 bg-white font-bold"
+                                    >
+                                        {isSavingLabel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                {labels.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {labels.map((label) => {
+                                            const selected = selectedLabelIds.includes(label.id);
+                                            return (
+                                                <div key={label.id} className="inline-flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedLabelIds((prev) =>
+                                                                prev.includes(label.id)
+                                                                    ? prev.filter((id) => id !== label.id)
+                                                                    : [...prev, label.id]
+                                                            );
+                                                        }}
+                                                        className={cn(
+                                                            "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                            selected
+                                                                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                                : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                                                        )}
+                                                    >
+                                                        {label.name}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRenameLabel(label)}
+                                                        className="text-zinc-400 hover:text-zinc-700 text-xs"
+                                                        aria-label={`Rename ${label.name}`}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteLabel(label.id)}
+                                                        className="text-zinc-400 hover:text-red-500 text-xs"
+                                                        aria-label={`Delete ${label.name}`}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-zinc-500">No labels yet. Create your first label.</p>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-zinc-500">Title *</label>
@@ -773,7 +919,7 @@ export function CalendarModal() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 flex-shrink-0">
+                    <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 shrink-0">
                         <Button
                             variant="outline"
                             onClick={() => setIsCreateOpen(false)}
