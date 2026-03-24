@@ -80,6 +80,9 @@ interface SocialConnection {
     id: string;
     platform: 'youtube' | 'instagram' | 'tiktok' | 'linkedin' | 'facebook';
     profile_name?: string;
+    status?: 'connected' | 'disconnected' | 'error';
+    connected_at?: string | null;
+    last_sync_at?: string | null;
 }
 
 const COMING_SOON_PLATFORMS = [
@@ -595,8 +598,20 @@ function SettingsForm() {
 }
 
 function SocialPlatformCard({ platform, Icon, color, bgColor, connections, customIntegrations, onConnect, onDisconnect, allowCustomApp, onManageCredentials, comingSoon, highlighted }: any) {
-    const isConnected = connections && connections.length > 0;
+    const activeConnections = (connections || []).filter((conn: SocialConnection) => (conn.status ?? 'connected') === 'connected');
+    const isConnected = activeConnections.length > 0;
     const [showCredentialsModal, setShowCredentialsModal] = useState(false);
+    const formatLastSync = (value?: string | null) => {
+        if (!value) return 'Not synced yet';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Not synced yet';
+        return new Intl.DateTimeFormat(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        }).format(date);
+    };
 
     return (
         <Card className={cn(
@@ -618,7 +633,7 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                             )}
                         </div>
                         <p className="text-[10px] uppercase font-black tracking-widest text-zinc-400 mt-1">
-                            {comingSoon ? "Coming Soon" : isConnected ? `${connections.length} Connected` : "Disconnected"}
+                            {comingSoon ? "Coming Soon" : isConnected ? `${activeConnections.length} Connected` : "Disconnected"}
                         </p>
                     </div>
 
@@ -640,8 +655,14 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                         <>
                     {isConnected && (
                         <div className="w-full space-y-3">
-                            {connections.map((conn: any) => (
+                            {activeConnections.map((conn: SocialConnection) => (
                                 <div key={conn.id} className="space-y-2 pb-2 border-b border-zinc-100 last:border-0 last:pb-0">
+                                    <div className="flex items-center justify-between">
+                                        <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">Connected</Badge>
+                                        <span className="text-[10px] font-semibold text-zinc-500">
+                                            Last sync {formatLastSync(conn.last_sync_at ?? conn.connected_at)}
+                                        </span>
+                                    </div>
                                     <div className="p-2.5 rounded-xl bg-zinc-50 border border-zinc-100 text-[11px] font-medium text-zinc-600 truncate">
                                         {conn.profile_name || 'Account'}
                                     </div>

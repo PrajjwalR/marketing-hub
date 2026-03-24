@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { getAuthUser } from "@/lib/auth-helpers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { encryptSocialToken } from "@/lib/token-crypto";
 
 export async function GET(req: Request) {
     // Use forwarded headers (ngrok/proxy) so redirect goes to ngrok URL, not localhost
@@ -76,6 +77,8 @@ export async function GET(req: Request) {
         const profileImage = channel?.snippet?.thumbnails?.default?.url || '';
 
         const channelId = channel?.id || '';
+        const encryptedAccess = encryptSocialToken(tokens.access_token);
+        const encryptedRefresh = encryptSocialToken(tokens.refresh_token);
 
         // Store in Supabase
         const { error: upsertError } = await supabaseAdmin
@@ -84,8 +87,12 @@ export async function GET(req: Request) {
                 user_id: userId,
                 integration_id: integrationId,
                 platform: 'youtube',
-                access_token: tokens.access_token,
-                refresh_token: tokens.refresh_token,
+                access_token: encryptedAccess.value,
+                refresh_token: encryptedRefresh.value,
+                token_encrypted: encryptedAccess.encrypted,
+                status: 'connected',
+                connected_at: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 expires_at: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
                 profile_name: profileName,
                 profile_image: profileImage,
