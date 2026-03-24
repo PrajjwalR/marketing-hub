@@ -550,8 +550,8 @@ function ResourceLink({
         <Link
             href={item.href}
             className={cn(
-                "flex w-fit items-center gap-1.5 text-xs font-semibold text-[#2D66C3] transition-colors hover:text-[#2557a8]",
-                underlined && "underline decoration-[#2D66C3] underline-offset-2 hover:decoration-[#2557a8]"
+                "flex w-fit items-center gap-1.5 text-[14px] font-bold text-[#0f4ca7] transition-colors hover:text-[#0A336F]",
+                underlined && "underline decoration-[#0C3F89] underline-offset-2 hover:decoration-[#0A336F]"
             )}
         >
             {item.label}
