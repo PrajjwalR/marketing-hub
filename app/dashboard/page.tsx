@@ -249,7 +249,7 @@ const EXTRA_TOOLS: ToolItem[] = [
         description: 'Analyze and improve paid ad campaigns.',
         icon: Megaphone,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/ad-insights',
         accent: '#ff68b0',
         soft: '#fff0f7',
     },

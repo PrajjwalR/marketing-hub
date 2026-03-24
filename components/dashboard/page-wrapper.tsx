@@ -8,7 +8,8 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
     const isFullWidth =
         pathname === '/dashboard' ||
         pathname === '/dashboard/calendar' ||
-        pathname === '/dashboard/inbox-activity';
+        pathname === '/dashboard/inbox-activity' ||
+        pathname === '/dashboard/ad-insights';
     const isDashboardHome =
         pathname === '/dashboard' || pathname === '/dashboard/';
 
