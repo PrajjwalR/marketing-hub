@@ -146,7 +146,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Automatically schedule best post times.',
         icon: Clock3,
         tag: 'Core',
-        href: '/dashboard/calendar',
+        href: '/dashboard/optimal-send-times',
         accent: '#2f80ed',
         soft: '#dff0ff',
     },

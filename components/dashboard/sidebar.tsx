@@ -111,6 +111,7 @@ const sidebarData = [
         items: [
             { name: 'Workflows', href: '/dashboard/workflows' },
             { name: 'Analytics', href: '/dashboard/analytics' },
+            { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
         ]
     },
     {
