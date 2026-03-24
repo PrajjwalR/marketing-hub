@@ -173,7 +173,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Your overall social performance.',
         icon: PieChart,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/analytics',
         accent: '#31c667',
         soft: '#defbe7',
         artwork: 'analytics',
