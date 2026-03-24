@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-    Home, Search, Send, DollarSign, Wrench, ArrowDownLeft,
+    LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
     LayoutGrid
@@ -33,8 +33,8 @@ const WhatsappIcon = ({ className }: { className?: string }) => (
 
 const sidebarData = [
     {
-        name: 'Home',
-        icon: Home,
+        name: 'Dashboard',
+        icon: LayoutDashboard,
         href: '/dashboard',
         hasBorderBottom: true,
     },
@@ -144,21 +144,30 @@ const sidebarData = [
     }
 ];
 
+const isDashboardHomePath = (p: string) => p === '/dashboard' || p === '/dashboard/';
+
+/** Expanded rail width (collapsed stays icon-only). */
+const SIDEBAR_W_EXPANDED = 'w-[256px]';
+const SIDEBAR_BG = 'bg-[#273333]';
+const SIDEBAR_SECONDARY_BG = 'bg-[#273333]';
+
 export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const { currentPlan } = usePlanLimits();
     const showUpgrade = false; // All features enabled
 
-    // Sidebar should start collapsed and expand only on hover.
-    const [isCollapsed, setIsCollapsed] = useState(true);
+    // Default: collapsed except on dashboard home (expanded like Sprout reference).
+    const [isCollapsed, setIsCollapsed] = useState(
+        () => !isDashboardHomePath(pathname)
+    );
     const [activeSectionName, setActiveSectionName] = useState<string | null>(null);
     const [showSecondary, setShowSecondary] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
         sidebarData.reduce((acc, section) => {
             if (section.items) {
-                acc[section.name] = section.defaultExpanded ?? false;
+                acc[section.name] = false;
             }
             return acc;
         }, {} as Record<string, boolean>)
@@ -190,23 +199,9 @@ export function Sidebar() {
         setExpandedSections(prev => ({ ...prev, [name]: !prev[name] }));
     };
 
-    // Auto-expand section if a sub-item is active
+    // On navigation: expand on dashboard home only; otherwise collapse.
     useEffect(() => {
-        sidebarData.forEach(section => {
-            if (section.items) {
-                const hasActiveChild = section.items.some(item => 
-                    pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
-                );
-                if (hasActiveChild) {
-                    setExpandedSections(prev => ({ ...prev, [section.name]: true }));
-                }
-            }
-        });
-    }, [pathname]);
-
-    // Requirement: on any page navigation, sidebar should auto-collapse.
-    useEffect(() => {
-        setIsCollapsed(true);
+        setIsCollapsed(!isDashboardHomePath(pathname));
         setShowSecondary(false);
         setActiveSectionName(null);
         setSearchTerm("");
@@ -248,22 +243,21 @@ export function Sidebar() {
             <aside 
             onMouseEnter={() => setIsCollapsed(false)}
             onMouseLeave={() => {
+                if (isDashboardHomePath(pathname)) return;
                 setIsCollapsed(true);
                 setShowSecondary(false);
                 setActiveSectionName(null);
                 setSearchTerm("");
             }}
             className={cn(
-                "flex h-screen flex-col border-r border-zinc-200 bg-white transition-all duration-300 overflow-hidden",
-                isCollapsed ? "w-14" : "w-[240px]"
+                "font-sans flex h-screen flex-col overflow-hidden border-r border-white/[0.07] text-white transition-all duration-300",
+                SIDEBAR_BG,
+                isCollapsed ? "w-14" : SIDEBAR_W_EXPANDED
             )}
-            style={{ 
-                fontFamily: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' 
-            }}
         >
             {/* Header / Logo and Toggle */}
             <div className={cn(
-                "flex items-center shrink-0 border-b border-zinc-100",
+                "flex shrink-0 items-center border-b border-white/[0.07]",
                 isCollapsed ? "flex-col h-auto py-4 space-y-4 px-0 items-center justify-center" : "h-14 justify-between px-4 gap-3"
             )}>
                 <div className={cn(
@@ -271,7 +265,7 @@ export function Sidebar() {
                     isCollapsed ? "justify-center gap-0" : "justify-start gap-3"
                 )}>
                     <div className={cn(
-                        "flex items-center justify-center rounded-lg bg-emerald-100 overflow-hidden shrink-0 shadow-sm transition-all duration-300",
+                        "flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-all duration-300 rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none bg-emerald-100/90",
                         isCollapsed ? "h-7 w-7" : "h-8 w-8"
                     )}>
                         <Image 
@@ -282,16 +276,20 @@ export function Sidebar() {
                             className={cn("transition-all duration-300 object-cover", !isCollapsed && "scale-125")} 
                         />
                     </div>
-                    <span className={cn(
-                        "font-bold text-zinc-900 truncate tracking-tight text-sm transition-all duration-300",
-                        isCollapsed ? "opacity-0 invisible w-0 -translate-x-2" : "opacity-100 visible w-auto translate-x-0"
-                    )}>
-                        Agent Elephant
-                    </span>
+                    <div
+                        className={cn(
+                            "flex min-w-0 items-center gap-0 whitespace-nowrap text-xl tracking-tight lowercase transition-all duration-300",
+                            isCollapsed ? "invisible w-0 -translate-x-2 overflow-hidden opacity-0" : "visible w-auto translate-x-0 opacity-100"
+                        )}
+                        aria-label="Agent Elephant"
+                    >
+                        <span className="font-bold text-white">Agent</span>
+                        <span className="font-extralight text-white">Elephant</span>
+                    </div>
                 </div>
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="p-1.5 rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors cursor-pointer shrink-0"
+                    className="shrink-0 cursor-pointer rounded-md p-1.5 text-white/75 transition-colors hover:bg-white/10 hover:text-white"
                     title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                 >
                     {isCollapsed ? <Menu className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
@@ -312,18 +310,15 @@ export function Sidebar() {
                             <button
                                 onClick={() => toggleSection(section.name, section.items)}
                                 className={cn(
-                                    "group flex items-center rounded-md text-[12px] font-bold transition-colors cursor-pointer",
+                                    "group flex cursor-pointer items-center text-[14px] font-bold transition-colors",
                                     // isCollapsed ? "justify-center w-8 h-8 p-0 mx-auto" : "justify-between w-full px-2 py-2 my-1",
-                                    isCollapsed ? "justify-center w-8 h-8 p-0 mx-auto my-1.5" : "justify-between w-full px-2 py-2 my-1",
-                                    // (isCollapsed && activeSectionName === section.name && showSecondary) 
-                                    //     ? "bg-zinc-900 text-white shadow-md"
-                                    //     : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                                    isCollapsed ? "mx-auto my-1.5 h-8 w-8 justify-center p-0" : "my-1 w-full justify-between px-2 py-2",
                                     (isCollapsed && (
                                         activeSectionName === section.name && showSecondary ||
                                         section.items?.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
                                     ))
-                                        ? "bg-zinc-900 text-white shadow-md" 
-                                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                                        ? "rounded-2xl bg-white/20 text-white shadow-md" 
+                                        : "rounded-xl text-white/90 hover:bg-white/10 hover:text-white"
                                 )}
                             >
                                 <div className={cn("flex items-center overflow-hidden", isCollapsed ? "gap-0" : "gap-2.5")}>
@@ -337,7 +332,7 @@ export function Sidebar() {
                                             section.items?.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
                                         ))
                                             ? "text-white"
-                                            : "text-zinc-500 group-hover:text-zinc-900"
+                                            : "text-white/85 group-hover:text-white"
                                     )} strokeWidth={2} />
                                     <span className={cn(
                                         "transition-all duration-300 truncate",
@@ -351,9 +346,9 @@ export function Sidebar() {
                                     isCollapsed ? "opacity-0 scale-0 invisible w-0" : "opacity-100 scale-100 visible w-auto"
                                 )}>
                                     {isExpanded ? (
-                                        <ChevronDown className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
+                                        <ChevronDown className="h-4 w-4 text-white/65 group-hover:text-white/90" />
                                     ) : (
-                                        <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:text-zinc-600" />
+                                        <ChevronRight className="h-4 w-4 text-white/65 group-hover:text-white/90" />
                                     )}
                                 </div>
                             </button>
@@ -373,8 +368,8 @@ export function Sidebar() {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className={cn(
-                                                        "flex items-center rounded-md px-3 py-1.5 text-[12px] transition-all duration-300 justify-between cursor-pointer",
-                                                        "text-zinc-500 font-medium hover:bg-zinc-100 hover:text-zinc-900"
+                                                        "flex cursor-pointer items-center justify-between rounded-xl px-3 py-1.5 text-[14px] transition-all duration-300",
+                                                        "font-semibold text-white/90 hover:bg-white/10 hover:text-white"
                                                     )}
                                                 >
                                                     <span className={cn(
@@ -390,10 +385,11 @@ export function Sidebar() {
                                                 key={item.name}
                                                 href={item.href}
                                                 className={cn(
-                                                    isCollapsed ? "justify-center w-8 h-8 p-0 my-0.5 mx-auto" : "flex items-center rounded-md px-3 py-1.5 text-[12px] transition-all duration-300 justify-between cursor-pointer my-0.5",
+                                                    isCollapsed ? "mx-auto my-0.5 h-8 w-8 justify-center p-0" : "my-0.5 flex cursor-pointer items-center justify-between px-3 py-1.5 text-[14px] transition-all duration-300",
+                                                    isActive ? "rounded-2xl" : "rounded-xl",
                                                     isActive
-                                                        ? "bg-zinc-800 text-white font-bold shadow-sm"
-                                                        : "text-zinc-500 font-medium hover:bg-zinc-100 hover:text-zinc-900"
+                                                        ? "bg-white/15 font-bold text-white shadow-sm"
+                                                        : "font-semibold text-white/90 hover:bg-white/10 hover:text-white"
                                                 )}
                                             >
                                                 <span className={cn(
@@ -402,7 +398,7 @@ export function Sidebar() {
                                                 )}>{item.name}</span>
                                                 {(item as any).badge && (
                                                     <span className={cn(
-                                                        "text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
+                                                        "text-[11px] uppercase tracking-wider bg-emerald-500/20 text-emerald-200 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
                                                         isCollapsed ? "opacity-0 scale-0 invisible w-0" : "opacity-100 scale-100 visible w-auto"
                                                     )}>
                                                         {(item as any).badge}
@@ -426,7 +422,7 @@ export function Sidebar() {
                                         side="right"
                                         sideOffset={4}
                                         showArrow={false}
-                                        className="bg-white text-zinc-600 border border-zinc-200 shadow-sm px-3 py-1.5 text-xs font-medium rounded-md animate-in fade-in zoom-in-95 duration-500"
+                                        className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
                                     >
                                         {section.name}
                                     </TooltipContent>
@@ -447,22 +443,19 @@ export function Sidebar() {
                     );
 
                     const linkClasses = cn(
-                        "group flex items-center transition-colors my-0 cursor-pointer",
-                        // isCollapsed
-                        //     ? "justify-center w-8 h-8 p-0 rounded-md my-1 mx-auto"
-                        //     : "w-full justify-between px-2 py-2 text-[12px] font-bold my-1",
+                        "group my-0 flex cursor-pointer items-center transition-colors",
                         isCollapsed
-                            ? "justify-center w-8 h-8 p-0 rounded-md my-1.5 mx-auto"
-                            : "w-full justify-between px-2 py-2 text-[12px] font-bold my-1",
+                            ? "mx-auto my-1.5 h-8 w-8 justify-center rounded-xl p-0"
+                            : "my-1 w-full justify-between px-2 py-2 text-[14px] font-bold",
                         isActive
-                            ? "bg-zinc-800 text-white rounded-md shadow-sm"
-                            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded-md",
+                            ? "rounded-2xl bg-white/15 text-white shadow-sm"
+                            : "rounded-xl text-white/90 hover:bg-white/10 hover:text-white",
                     );
 
                     const linkContent = (
                         <>
                             <div className={cn("flex items-center overflow-hidden", isCollapsed ? "gap-0" : "gap-2.5")}>
-                                <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isActive ? "text-white" : "text-zinc-500 group-hover:text-zinc-900")} strokeWidth={isActive ? 2.5 : 2} />
+                                <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isActive ? "text-white" : "text-white/85 group-hover:text-white")} strokeWidth={isActive ? 2.5 : 2} />
                                 <span className={cn(
                                     "transition-all duration-300 truncate",
                                     isCollapsed ? "opacity-0 invisible w-0 -translate-x-2" : "opacity-100 visible w-auto translate-x-0"
@@ -472,13 +465,13 @@ export function Sidebar() {
                             </div>
                             <ChevronRight className={cn(
                                 "h-4 w-4 shrink-0 transition-all duration-300",
-                                (isCollapsed || !section.hasArrow) ? "opacity-0 invisible w-0" : (isActive ? "text-zinc-300 opacity-100" : "text-zinc-400 opacity-0 group-hover:opacity-100")
+                                (isCollapsed || !section.hasArrow) ? "opacity-0 invisible w-0" : (isActive ? "text-white/90 opacity-100" : "text-white/75 opacity-0 group-hover:opacity-100")
                             )} />
                         </>
                     );
 
                     const singleLinkItem = (
-                        <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "border-b border-zinc-200 pb-2 mb-2")}>
+                        <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
                             {(section as any).external ? (
                                 <a
                                     href={section.href!}
@@ -511,7 +504,7 @@ export function Sidebar() {
                                     side="right"
                                     sideOffset={4}
                                     showArrow={false}
-                                    className="bg-white text-zinc-600 border border-zinc-200 shadow-sm px-3 py-1.5 text-xs font-medium rounded-md animate-in fade-in zoom-in-95 duration-500"
+                                    className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
                                 >
                                     {section.name}
                                 </TooltipContent>
@@ -521,13 +514,13 @@ export function Sidebar() {
                 })}
             </div>
 
-                <div className="h-4 border-t border-zinc-200 mt-auto bg-zinc-50" />
+                <div className="mt-auto h-4 border-t border-white/[0.07] bg-black/25" />
 
                 <style jsx global>{`
                     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 4px; }
-                    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: #d4d4d8; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 4px; }
+                    .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.28); }
                 `}</style>
             </aside>
 
@@ -535,32 +528,34 @@ export function Sidebar() {
             {isCollapsed && showSecondary && activeSection && (
                 <div 
                     className={cn(
-                        "w-[240px] border-r border-zinc-200 bg-white h-screen flex flex-col transition-all duration-300 animate-in slide-in-from-left-4",
+                        "font-sans flex h-screen flex-col border-r border-white/[0.07] text-white transition-all duration-300 animate-in slide-in-from-left-4",
+                        SIDEBAR_W_EXPANDED,
+                        SIDEBAR_SECONDARY_BG,
                     )}
                 >
                     {/* Secondary Header */}
-                    <div className="h-14 flex items-center px-6 border-b border-zinc-100 shrink-0">
-                        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+                    <div className="flex h-14 shrink-0 items-center border-b border-white/[0.07] px-6">
+                        <span className="text-xs font-bold uppercase tracking-widest text-white/70">
                             {activeSection.name}
                         </span>
                     </div>
 
                     {/* Secondary Search */}
-                    <div className="px-4 py-4 shrink-0">
-                        <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 group-focus-within:text-zinc-900 transition-colors" />
+                    <div className="shrink-0 px-4 py-4">
+                        <div className="group relative">
+                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/55 transition-colors group-focus-within:text-white" />
                             <input
                                 type="text"
                                 placeholder="Search..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-zinc-50 border-none rounded-md py-2 pl-9 pr-3 text-[12px] focus:ring-1 focus:ring-zinc-200 transition-all placeholder:text-zinc-400"
+                                className="w-full rounded-xl border-none bg-white/10 py-2 pl-9 pr-3 text-[13px] text-white placeholder:text-white/45 transition-all focus:ring-1 focus:ring-white/25"
                             />
                         </div>
                     </div>
 
                     {/* Secondary Links Scroll Area */}
-                    <div className="flex-1 overflow-y-auto px-3 space-y-0.5 custom-scrollbar pb-6">
+                    <div className="custom-scrollbar flex-1 space-y-0.5 overflow-y-auto px-3 pb-6">
                         {filteredItems.map((item) => {
                             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                             
@@ -569,20 +564,20 @@ export function Sidebar() {
                                     key={item.name}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center rounded-md px-3 py-2 text-[12px] transition-all duration-200 cursor-pointer my-1",
+                                        "my-1 flex cursor-pointer items-center px-3 py-2 text-[13px] transition-all duration-200",
                                         isActive
-                                            ? "bg-zinc-800 text-white font-bold shadow-sm"
-                                            : "text-zinc-500 font-medium hover:bg-zinc-100 hover:text-zinc-900"
+                                            ? "rounded-2xl bg-white/15 font-bold text-white shadow-sm"
+                                            : "rounded-xl font-medium text-white/85 hover:bg-white/10 hover:text-white"
                                     )}
                                 >
                                     <span className="truncate">{item.name}</span>
-                                    {isActive && <div className="ml-auto w-1 h-1 rounded-full bg-white/40" />}
+                                    {isActive && <div className="ml-auto h-1 w-1 rounded-full bg-white/40" />}
                                 </Link>
                             );
                         })}
                         {filteredItems.length === 0 && (
                             <div className="px-3 py-8 text-center">
-                                <p className="text-[11px] text-zinc-400">No items found</p>
+                                <p className="text-xs text-white/55">No items found</p>
                             </div>
                         )}
                     </div>

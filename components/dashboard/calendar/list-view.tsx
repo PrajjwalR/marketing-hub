@@ -4,7 +4,7 @@ import { useCalendar } from './calendar-context';
 import { useAuth } from '@/lib/auth-context';
 import { format, addDays, isSameDay, parseISO, startOfWeek, isFirstDayOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { List, PenSquare, SquarePlus, Tag, Copy, Eye, Pencil, StickyNote, Instagram, Linkedin, Youtube, Facebook, Clock, User } from 'lucide-react';
+import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock } from 'lucide-react';
 import { useMemo } from 'react';
 
 const PLATFORM_CONFIG: Record<string, {
@@ -46,10 +46,10 @@ export function ListView() {
         name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
 
     return (
-        <div className="w-full text-zinc-900 overflow-y-auto max-h-[calc(100vh-260px)] pr-1">
+        <div className="w-full text-zinc-900 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
             {/* Post Volume — horizontal date timeline */}
-            <div className="mb-3">
-                <div className="text-xs font-semibold text-zinc-500 mb-2">Post Volume</div>
+            <div className="mb-4">
+                <div className="text-sm font-semibold text-zinc-500 mb-3">Post Volume</div>
                 <div className="flex items-end overflow-x-auto pb-1">
                     {Array.from({ length: 3 }).map((_, weekIdx) => (
                         <div key={weekIdx} className={cn('flex items-end', weekIdx < 2 && 'mr-6')}>
@@ -60,17 +60,17 @@ export function ListView() {
                                     <button
                                         key={key}
                                         onClick={() => setCurrentDate(day)}
-                                        className="flex flex-col items-center min-w-[32px] group shrink-0"
+                                        className="flex flex-col items-center min-w-[40px] group shrink-0"
                                     >
                                         <div
                                             className={cn(
-                                                'w-4 h-0.5 rounded-full mb-1 transition-colors',
+                                                'w-5 h-1 rounded-full mb-1.5 transition-colors',
                                                 isSelected ? 'bg-blue-500' : 'bg-zinc-300 group-hover:bg-zinc-400'
                                             )}
                                         />
                                         <span
                                             className={cn(
-                                                'text-[11px] font-medium',
+                                                'text-sm font-medium',
                                                 isSelected ? 'text-blue-600 font-semibold' : 'text-zinc-600'
                                             )}
                                         >
@@ -85,25 +85,18 @@ export function ListView() {
             </div>
 
             {/* Selected date in blue */}
-            <div className="text-sm font-medium text-blue-600 mb-4">
+            <div className="text-lg font-semibold text-blue-600 mb-5">
                 {format(currentDate, 'EEE, MMM d, yyyy')}
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-3 mb-5">
                 <button
                     onClick={() => openCreateDialog(currentDate)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-semibold text-base transition-colors"
                 >
-                    <PenSquare className="h-4 w-4" />
+                    <PenSquare className="h-5 w-5" />
                     Schedule Post
-                </button>
-                <button
-                    onClick={() => openCreateDialog(currentDate)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 font-medium text-sm transition-colors"
-                >
-                    <SquarePlus className="h-4 w-4" />
-                    Add Note
                 </button>
             </div>
 
@@ -114,18 +107,15 @@ export function ListView() {
                     const dayEvents = (eventsByDay.get(key) || []).filter(
                         (e) => (e.type || '').toLowerCase() !== 'note'
                     );
-                    const dayNotes = (eventsByDay.get(key) || []).filter(
-                        (e) => (e.type || '').toLowerCase() === 'note'
-                    );
 
-                    if (dayEvents.length === 0 && dayNotes.length === 0) {
+                    if (dayEvents.length === 0) {
                         return (
                             <div
                                 onClick={() => openCreateDialog(currentDate)}
-                                className="flex flex-col items-center justify-center py-16 rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 cursor-pointer hover:border-amber-300 hover:bg-amber-50/40 transition-colors max-w-2xl mx-auto"
+                                className="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 cursor-pointer hover:border-amber-300 hover:bg-amber-50/40 transition-colors w-full"
                             >
-                                <p className="text-zinc-500 font-medium text-sm">No scheduled posts</p>
-                                <p className="text-zinc-400 text-xs mt-1">Click to add a post</p>
+                                <p className="text-zinc-500 font-semibold text-base">No scheduled posts</p>
+                                <p className="text-zinc-400 text-sm mt-2">Click to add a post</p>
                             </div>
                         );
                     }
@@ -147,62 +137,62 @@ export function ListView() {
                                     <div
                                         key={event.id}
                                         onClick={() => openEditDialog(event)}
-                                        className="rounded-lg border border-zinc-200 bg-white hover:border-zinc-300 transition-colors overflow-hidden cursor-pointer max-w-2xl mx-auto"
+                                        className="rounded-2xl border-2 border-zinc-200 bg-white hover:border-zinc-300 transition-colors overflow-hidden cursor-pointer w-full"
                                     >
                                         {/* Card header — pale yellow */}
-                                        <div className="flex items-start justify-between gap-3 px-4 py-3 bg-yellow-200 border-b border-yellow-200">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center text-amber-900 font-semibold text-sm shrink-0">
+                                        <div className="flex items-start justify-between gap-4 px-6 py-4 bg-yellow-200 border-b-2 border-yellow-200">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className="w-14 h-14 rounded-full bg-amber-400 flex items-center justify-center text-amber-900 font-semibold text-base shrink-0">
                                                     {account?.profile_name ? getInitials(account.profile_name) : '?'}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <PlatformIcon className="h-4 w-4 text-zinc-600 shrink-0" />
-                                                        <span className="font-semibold text-zinc-900 truncate">
+                                                        <PlatformIcon className="h-5 w-5 text-zinc-600 shrink-0" />
+                                                        <span className="font-bold text-zinc-900 truncate text-base">
                                                             {account?.profile_name || event.title}
                                                         </span>
                                                     </div>
-                                                    <div className="text-xs text-zinc-500 mt-0.5">
+                                                    <div className="text-sm text-zinc-500 mt-1">
                                                         {cfg.label} {account?.platform ? '•' : ''} {statusLabel}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-xs text-zinc-500 shrink-0">
+                                            <div className="text-sm text-zinc-500 shrink-0">
                                                 {format(when, 'EEE, MMM d, yyyy h:mm a')}
                                             </div>
                                         </div>
 
                                         {/* Centered metadata — Added at */}
-                                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 bg-zinc-50/80 border-b border-zinc-100 text-center">
+                                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-6 py-3 bg-zinc-50/80 border-b border-zinc-100 text-center">
                                             {addedAt && (
-                                                <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-                                                    <Clock className="h-3.5 w-3.5" />
+                                                <span className="inline-flex items-center gap-1.5 text-sm text-zinc-500">
+                                                    <Clock className="h-4 w-4" />
                                                     Added at {format(addedAt, 'h:mm a')} on {format(addedAt, 'MMM d, yyyy')}
                                                 </span>
                                             )}
                                             {event.series?.series_name && (
-                                                <span className="text-xs text-zinc-500">
+                                                <span className="text-sm text-zinc-500">
                                                     Series: {event.series.series_name}
                                                 </span>
                                             )}
                                         </div>
 
                                         {/* Card body */}
-                                        <div className="p-4">
-                                            <div className="text-sm text-zinc-800 whitespace-pre-wrap">
+                                        <div className="p-6">
+                                            <div className="text-base text-zinc-800 whitespace-pre-wrap">
                                                 {event.title}
                                             </div>
                                             {event.description && (
-                                                <div className="text-sm text-zinc-600 mt-1 whitespace-pre-wrap">{event.description}</div>
+                                                <div className="text-base text-zinc-600 mt-2 whitespace-pre-wrap">{event.description}</div>
                                             )}
                                             {media && (
-                                                <div className="mt-3 max-w-[280px] mx-auto">
-                                                    <div className="rounded-lg overflow-hidden bg-zinc-100 aspect-square">
+                                                <div className="mt-4 max-w-[360px] mx-auto">
+                                                    <div className="rounded-xl overflow-hidden bg-zinc-100 aspect-square">
                                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                                         <img src={media} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                     {/* Byline under image (Sprout-style) */}
-                                                    <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
+                                                    <div className="mt-3 flex items-center gap-2 text-sm text-zinc-500">
                                                         <div className="h-4 min-w-4 px-1 rounded-sm bg-emerald-600 text-white flex items-center justify-center font-semibold text-[10px] leading-none">
                                                             {getInitials(addedByName)}
                                                         </div>
@@ -211,7 +201,7 @@ export function ListView() {
                                                 </div>
                                             )}
                                             {!media && (
-                                                <div className="mt-3 flex items-center justify-center gap-2 text-xs text-zinc-500">
+                                                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-zinc-500">
                                                     <div className="h-4 min-w-4 px-1 rounded-sm bg-emerald-600 text-white flex items-center justify-center font-semibold text-[10px] leading-none">
                                                         {getInitials(addedByName)}
                                                     </div>
@@ -221,52 +211,23 @@ export function ListView() {
                                         </div>
 
                                         {/* Card footer — toolbar */}
-                                        <div className="flex items-center justify-end gap-1 px-4 py-2 border-t border-zinc-100" onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-zinc-100" onClick={e => e.stopPropagation()}>
                                             <button
                                                 onClick={() => openEditDialog(event)}
-                                                className="p-2 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+                                                className="p-2.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
                                                 title="Edit"
                                             >
-                                                <Pencil className="h-4 w-4" />
+                                                <Pencil className="h-5 w-5" />
                                             </button>
-                                            <button className="p-2 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="View">
-                                                <Eye className="h-4 w-4" />
+                                            <button className="p-2.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="View">
+                                                <Eye className="h-5 w-5" />
                                             </button>
-                                            <button className="p-2 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Copy">
-                                                <Copy className="h-4 w-4" />
+                                            <button className="p-2.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Copy">
+                                                <Copy className="h-5 w-5" />
                                             </button>
-                                            <button className="p-2 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Tag">
-                                                <Tag className="h-4 w-4" />
+                                            <button className="p-2.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors" title="Tag">
+                                                <Tag className="h-5 w-5" />
                                             </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            {dayNotes.map((event) => {
-                                const noteAddedAt = event.created_at ? parseISO(event.created_at) : null;
-                                const noteAddedByName = user?.displayName || user?.email?.split('@')[0] || 'You';
-                                return (
-                                    <div
-                                        key={event.id}
-                                        onClick={() => openEditDialog(event)}
-                                        className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 cursor-pointer hover:border-amber-300 transition-colors max-w-2xl mx-auto"
-                                    >
-                                        <div className="flex items-center justify-center gap-2">
-                                            <StickyNote className="h-4 w-4 text-amber-600" />
-                                            <span className="text-xs font-semibold text-amber-700">Note</span>
-                                        </div>
-                                        <div className="font-medium text-amber-900 mt-1 text-center">{event.title}</div>
-                                        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2 text-center">
-                                            {noteAddedAt && (
-                                                <span className="inline-flex items-center gap-1.5 text-xs text-amber-600/80">
-                                                    <Clock className="h-3.5 w-3.5" />
-                                                    Added at {format(noteAddedAt, 'h:mm a')} on {format(noteAddedAt, 'MMM d, yyyy')}
-                                                </span>
-                                            )}
-                                            <span className="inline-flex items-center gap-1.5 text-xs text-amber-600/80">
-                                                <User className="h-3.5 w-3.5" />
-                                                Added by {noteAddedByName}
-                                            </span>
                                         </div>
                                     </div>
                                 );
