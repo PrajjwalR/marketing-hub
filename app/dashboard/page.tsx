@@ -231,7 +231,7 @@ const EXTRA_TOOLS: ToolItem[] = [
         description: 'Add post approvers.',
         icon: CheckCheck,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/approvals',
         accent: '#1b9bbb',
         soft: '#def6fb',
     },
