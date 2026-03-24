@@ -10,6 +10,8 @@ export async function GET(req: Request) {
         const searchParams = new URL(req.url).searchParams;
         const folderId = searchParams.get("folderId");
         const all = searchParams.get("all") === "true";
+        const q = (searchParams.get("q") || "").trim();
+        const type = (searchParams.get("type") || "").trim();
 
         let query = supabaseAdmin
             .from("media_assets")
@@ -23,6 +25,14 @@ export async function GET(req: Request) {
             } else {
                 query = query.eq("folder_id", folderId);
             }
+        }
+
+        if (q) {
+            query = query.ilike("name", `%${q}%`);
+        }
+
+        if (type) {
+            query = query.ilike("type", `${type}%`);
         }
 
         const { data, error } = await query;
@@ -77,6 +87,7 @@ export async function POST(req: Request) {
             .from("media_assets")
             .insert({
                 user_id: userId,
+                uploaded_by: userId,
                 folder_id: folderId === "null" || !folderId ? null : folderId,
                 name: file.name,
                 url: publicUrlData.publicUrl,
