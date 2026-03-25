@@ -29,6 +29,7 @@ import {
     MessagesSquare,
     ArrowUpRight,
     Settings,
+    BarChart2,
     type LucideIcon,
 } from "lucide-react";
 import Link from 'next/link';
@@ -190,6 +191,15 @@ const CORE_TOOLS: ToolItem[] = [
 ];
 
 const EXTRA_TOOLS: ToolItem[] = [
+    {
+        name: 'Competitor Analysis',
+        description: 'Track competitor brands on YouTube & Facebook.',
+        icon: BarChart2,
+        tag: 'Core',
+        href: '/dashboard/competitors',
+        accent: '#e85d4a',
+        soft: '#fff0ee',
+    },
     {
         name: 'Facebook Pages Report',
         description: "See what's working and what isn't.",

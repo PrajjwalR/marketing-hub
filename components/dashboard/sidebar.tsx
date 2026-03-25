@@ -8,7 +8,7 @@ import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    LayoutGrid
+    LayoutGrid, BarChart2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,11 @@ const sidebarData = [
         name: 'Strategy Planner',
         icon: LayoutGrid,
         href: '/dashboard/strategy'
+    },
+    {
+        name: 'Competitors',
+        icon: BarChart2,
+        href: '/dashboard/competitors'
     },
     {
         name: 'Postings Calendar',
