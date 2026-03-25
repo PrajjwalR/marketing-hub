@@ -65,23 +65,28 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
       avatarUrl: null,
       avatarInitials: initials,
       avatarColor: color,
-      stats: {
-        subscribers: 0,
-        totalVideosPosts: 0,
-        avgLikes: 0,
-        avgComments: 0,
-        engagementRate: 0,
-        reach: 0,
-      },
-      recentContent: [
-        { date: '2025-03-15', engagement: 0 },
-        { date: '2025-03-16', engagement: 0 },
-        { date: '2025-03-17', engagement: 0 },
-        { date: '2025-03-18', engagement: 0 },
-        { date: '2025-03-19', engagement: 0 },
-        { date: '2025-03-20', engagement: 0 },
-        { date: '2025-03-21', engagement: 0 },
-      ],
+      accounts: [
+        {
+          platform: formData.platform,
+          stats: {
+            subscribers: 0,
+            totalVideosPosts: 0,
+            avgLikes: 0,
+            avgComments: 0,
+            engagementRate: 0,
+            reach: 0,
+          },
+          recentContent: [
+            { date: '2025-03-15', engagement: 0 },
+            { date: '2025-03-16', engagement: 0 },
+            { date: '2025-03-17', engagement: 0 },
+            { date: '2025-03-18', engagement: 0 },
+            { date: '2025-03-19', engagement: 0 },
+            { date: '2025-03-20', engagement: 0 },
+            { date: '2025-03-21', engagement: 0 },
+          ],
+        }
+      ]
     };
 
     onAdd(newCompetitor);

@@ -13,33 +13,43 @@ import {
 } from 'recharts';
 
 export default function ComparisonChart({ data }) {
-  // Transform the separate recentContent arrays into a single timeline array
-  // We assume all companies have the same dates for simplicity, as defined in mock data
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
-    // Get unique dates from the first company (assuming aligned dates)
-    const dates = data[0].recentContent.map(rc => rc.date);
+    // Find the first company with valid accounts to extract dates
+    const companyWithAccounts = data.find(c => c.accounts.length > 0);
+    if (!companyWithAccounts) return [];
+    
+    const dates = companyWithAccounts.accounts[0].recentContent.map(rc => rc.date);
     
     return dates.map(date => {
       const dataPoint = { date };
-      // Map each company's engagement for that date
+      // Map each company's aggregated engagement for that date
       data.forEach(company => {
-        const matchingPost = company.recentContent.find(rc => rc.date === date);
-        if (matchingPost) {
-          dataPoint[company.name] = matchingPost.engagement;
+        let sum = 0;
+        company.accounts.forEach(acc => {
+           const match = acc.recentContent.find(rc => rc.date === date);
+           if (match) sum += match.engagement;
+        });
+        // We only plot companies that have some engagement data for visible platforms
+        if (company.accounts.length > 0) {
+            dataPoint[company.name] = sum;
         }
       });
       return dataPoint;
     });
   }, [data]);
 
+  if (chartData.length === 0) {
+      return null;
+  }
+
   return (
     <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-6 shadow-sm">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-[16px] font-extrabold text-[#111827]">Engagement Trajectory</h3>
-          <p className="text-[13px] text-zinc-500 mt-0.5">Comparing total engagement (Likes + Comments) over the last 7 days</p>
+          <p className="text-[13px] text-zinc-500 mt-0.5">Comparing total engagement across visible platforms over the last 7 days</p>
         </div>
       </div>
       
@@ -83,7 +93,7 @@ export default function ComparisonChart({ data }) {
               iconType="circle"
             />
             
-            {data.map((company) => (
+            {data.filter(c => c.accounts.length > 0).map((company) => (
               <Line
                 key={company.id}
                 type="monotone"
@@ -93,7 +103,7 @@ export default function ComparisonChart({ data }) {
                 strokeWidth={company.isOurs ? 4 : 2}
                 dot={{ r: company.isOurs ? 5 : 3, fill: company.avatarColor, strokeWidth: 0 }}
                 activeDot={{ r: company.isOurs ? 8 : 6, stroke: 'white', strokeWidth: 2 }}
-                strokeDasharray={company.isOurs ? undefined : "5 5"} // Dashed line for competitors
+                strokeDasharray={company.isOurs ? undefined : "5 5"}
               />
             ))}
           </LineChart>

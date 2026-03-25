@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, ArrowUpDown } from 'lucide-react';
+import { Search, ArrowUpDown, RotateCcw } from 'lucide-react';
 
 const PLATFORMS = ['All Platforms', 'YouTube', 'Facebook', 'Instagram'];
 const CATEGORIES = ['All Categories', 'fashion', 'lifestyle', 'footwear', 'streetwear', 'beauty', 'wellness'];
@@ -18,6 +18,15 @@ export default function FilterBar({
   category, setCategory,
   sortBy, setSortBy
 }) {
+  const isFiltered = search !== '' || platform !== 'All Platforms' || category !== 'All Categories' || sortBy !== 'name';
+
+  const handleReset = () => {
+    setSearch('');
+    setPlatform('All Platforms');
+    setCategory('All Categories');
+    setSortBy('name');
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-[5px] border border-[#E5E7EB] shadow-sm mb-4">
       {/* Global Search */}
@@ -70,6 +79,18 @@ export default function FilterBar({
           ))}
         </select>
       </div>
+
+      {/* Reset Filters */}
+      {isFiltered && (
+        <button
+          onClick={handleReset}
+          className="ml-auto flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-[6px] transition-colors"
+          title="Reset all filters and sorting"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Reset
+        </button>
+      )}
     </div>
   );
 }
