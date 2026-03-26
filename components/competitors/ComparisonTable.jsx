@@ -1,4 +1,4 @@
-import { Youtube, Instagram, Facebook } from 'lucide-react';
+import { Youtube, Instagram, Facebook, Plus, Trash2 } from 'lucide-react';
 
 const XLogo = ({ className }) => (
   <svg
@@ -36,7 +36,7 @@ const PLATFORM_ICONS = {
 
 const PLATFORM_ORDER = ['YouTube', 'Instagram', 'Facebook', 'X'];
 
-export default function ComparisonTable({ data }) {
+export default function ComparisonTable({ data, onAddPlatform, onRemoveCompany }) {
   if (!data || data.length === 0) return null;
 
   // Determine which platforms should be visible across the whole table 
@@ -66,10 +66,19 @@ export default function ComparisonTable({ data }) {
             {data.map((company, i) => (
               <th
                 key={company.id}
-                className={`p-4 border-b border-[#E5E7EB] min-w-[220px] text-center ${
+                className={`group relative p-4 border-b border-[#E5E7EB] min-w-[220px] text-center ${
                   company.isOurs ? 'bg-[#EEF4FF] border-b-[#2D66C3]/20 shadow-[inset_0_2px_0_#2D66C3]' : 'bg-white'
                 } ${i < data.length - 1 ? 'border-r' : ''}`}
               >
+                {!company.isOurs && onRemoveCompany && (
+                  <button
+                    onClick={() => onRemoveCompany(company.id)}
+                    className="absolute top-3 right-3 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all z-20"
+                    title="Remove Competitor"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 <div className="flex flex-col items-center gap-2">
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-bold text-white shadow-sm"
@@ -121,7 +130,18 @@ export default function ComparisonTable({ data }) {
                                  {formatStat(acc.stats[metric.key], metric.type === 'percent')}
                                </span>
                              ) : (
-                               <span className="text-zinc-300 font-medium">-</span>
+                               onAddPlatform ? (
+                                 <button
+                                   onClick={() => onAddPlatform(company, plat)}
+                                   title={`Add ${plat} profile for ${company.name}`}
+                                   className="group relative flex items-center justify-center h-5 w-12 rounded hover:bg-zinc-200 transition-colors shrink-0"
+                                 >
+                                   <span className="text-zinc-300 font-medium group-hover:hidden">-</span>
+                                   <Plus className="hidden group-hover:block h-3.5 w-3.5 text-[#2D66C3]" />
+                                 </button>
+                               ) : (
+                                 <span className="text-zinc-300 font-medium">-</span>
+                               )
                              )}
                            </div>
                          );

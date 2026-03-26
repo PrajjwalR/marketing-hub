@@ -9,11 +9,11 @@ const SUGGESTED_TAGS = ['fashion', 'lifestyle', 'footwear', 'streetwear', 'beaut
 export default function AddCompetitorModal({ onClose, onAdd }) {
   const [form, setForm] = useState({
     name: '',
-    platform: 'YouTube',
-    url: '',
     tags: [],
     tagInput: '',
+    accounts: [{ platform: 'YouTube', url: '' }],
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const overlayRef = useRef(null);
 
   // Close on outside click
@@ -49,48 +49,41 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim()) return;
 
-    const AVATAR_COLORS = ['#e85d4a', '#2f80ed', '#8b5cf6', '#27b65b', '#f5a623', '#d95bf3'];
-    const color = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-    const initials = form.name.trim().split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+    const validAccounts = form.accounts.filter(acc => acc.url.trim() !== '');
+    if (validAccounts.length === 0) {
+      alert("Please provide at least one valid social platform URL.");
+      return;
+    }
 
-    const newCompetitor = {
-      id: Date.now().toString(),
-      name: form.name.trim(),
-      platform: form.platform,
-      category: form.tags.length > 0 ? form.tags : ['general'],
-      avatarUrl: null,
-      avatarInitials: initials,
-      avatarColor: color,
-      accounts: [
-        {
-          platform: form.platform,
-          stats: {
-            subscribers: 0,
-            totalVideosPosts: 0,
-            avgLikes: 0,
-            avgComments: 0,
-            engagementRate: 0,
-            reach: 0,
-          },
-          recentContent: [
-            { date: '2025-03-15', engagement: 0 },
-            { date: '2025-03-16', engagement: 0 },
-            { date: '2025-03-17', engagement: 0 },
-            { date: '2025-03-18', engagement: 0 },
-            { date: '2025-03-19', engagement: 0 },
-            { date: '2025-03-20', engagement: 0 },
-            { date: '2025-03-21', engagement: 0 },
-          ],
-        }
-      ]
-    };
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/competitors/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          category: form.tags.length > 0 ? form.tags : ['general'],
+          accounts: validAccounts.map(acc => ({ platform: acc.platform, handle: acc.url.trim() }))
+        })
+      });
 
-    onAdd(newCompetitor);
-    onClose();
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.statusText}`);
+      }
+
+      const newCompetitor = await response.json();
+      onAdd(newCompetitor);
+      onClose();
+    } catch (err) {
+      console.error('Failed to analyze competitor:', err);
+      alert('Failed to analyze competitor. Please check the URL and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -126,28 +119,61 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
             />
           </div>
 
-          {/* Platform */}
-          <div className="space-y-1.5">
-            <label className="block text-[13px] font-bold text-[#374151]">Platform</label>
-            <select
-              value={form.platform}
-              onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value }))}
-              className="w-full rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all cursor-pointer"
-            >
-              {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-
-          {/* Channel URL */}
-          <div className="space-y-1.5">
-            <label className="block text-[13px] font-bold text-[#374151]">Channel or Page URL</label>
-            <input
-              type="url"
-              placeholder="https://..."
-              value={form.url}
-              onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-              className="w-full rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all"
-            />
+          {/* Social Profiles */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-[13px] font-bold text-[#374151]">Social Profiles</label>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, accounts: [...f.accounts, { platform: 'Instagram', url: '' }] }))}
+                className="text-[12px] font-bold text-[#205BC3] hover:text-[#1a4fa8] hover:underline"
+              >
+                + Add another platform
+              </button>
+            </div>
+            
+            <div className="space-y-2 border border-[#E5E7EB] rounded-[8px] p-2 bg-zinc-50 border-dashed">
+              {form.accounts.map((acc, idx) => (
+                <div key={idx} className="flex gap-2 relative">
+                  <select
+                    value={acc.platform}
+                    onChange={(e) => {
+                      const newAccs = [...form.accounts];
+                      newAccs[idx].platform = e.target.value;
+                      setForm({ ...form, accounts: newAccs });
+                    }}
+                    className="w-[120px] shrink-0 rounded-[6px] border border-[#E5E7EB] px-2 py-2 text-[13px] text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3]"
+                  >
+                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://..."
+                    value={acc.url}
+                    onChange={(e) => {
+                      const newAccs = [...form.accounts];
+                      newAccs[idx].url = e.target.value;
+                      setForm({ ...form, accounts: newAccs });
+                    }}
+                    className="flex-1 rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-[13px] text-zinc-800 bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] group-first:pr-8"
+                  />
+                  {form.accounts.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newAccs = form.accounts.filter((_, i) => i !== idx);
+                        setForm({ ...form, accounts: newAccs });
+                      }}
+                      className="shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-md w-8 transition-colors"
+                      title="Remove profile"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Category Tags */}
@@ -198,9 +224,15 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
             </button>
             <button
               type="submit"
-              className="rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm"
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm disabled:opacity-75 disabled:cursor-wait min-w-[140px]"
             >
-              Start Tracking
+              {isSubmitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                  Analyzing...
+                </>
+              ) : 'Start Tracking'}
             </button>
           </div>
         </form>
