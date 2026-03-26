@@ -5,6 +5,8 @@ import { Plus, BarChart2 } from 'lucide-react';
 import { competitorsMockData } from '@/data/competitorsMockData';
 import ComparisonTable from '@/components/competitors/ComparisonTable';
 import ComparisonChart from '@/components/competitors/ComparisonChart';
+import ContentPillarsTable from '@/components/competitors/ContentPillarsTable';
+import CompetitorProgressChart from '@/components/competitors/CompetitorProgressChart';
 import AddCompetitorModal from '@/components/competitors/AddCompetitorModal';
 import FilterBar from '@/components/competitors/FilterBar';
 
@@ -124,6 +126,10 @@ export default function CompetitorsPage() {
         {processedData.length > 1 && (
           <ComparisonChart data={processedData} />
         )}
+
+        <ContentPillarsTable />
+
+        <CompetitorProgressChart />
       </div>
 
       {showModal && (

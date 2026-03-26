@@ -2,7 +2,7 @@
 
 import { Search, ArrowUpDown, RotateCcw } from 'lucide-react';
 
-const PLATFORMS = ['All Platforms', 'YouTube', 'Facebook', 'Instagram'];
+const PLATFORMS = ['All Platforms', 'YouTube', 'Facebook', 'Instagram', 'X'];
 const CATEGORIES = ['All Categories', 'fashion', 'lifestyle', 'footwear', 'streetwear', 'beauty', 'wellness'];
 const SORT_OPTIONS = [
   { value: 'name', label: 'Alphabetical' },

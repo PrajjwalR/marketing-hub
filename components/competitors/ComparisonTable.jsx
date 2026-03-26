@@ -1,3 +1,16 @@
+import { Youtube, Instagram, Facebook } from 'lucide-react';
+
+const XLogo = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
 function formatStat(num, isPercent = false) {
   if (isPercent) return `${Number(num).toFixed(1)}%`;
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -14,8 +27,23 @@ function getAggregate(company, metricKey, type) {
   return sum;
 }
 
+const PLATFORM_ICONS = {
+  'YouTube': <Youtube className="w-3.5 h-3.5 text-[#FF0000]" />,
+  'Instagram': <Instagram className="w-3.5 h-3.5 text-[#E1306C]" />,
+  'Facebook': <Facebook className="w-3.5 h-3.5 text-[#1877F2]" />,
+  'X': <XLogo className="w-3.5 h-3.5 text-[#000000]" />
+};
+
+const PLATFORM_ORDER = ['YouTube', 'Instagram', 'Facebook', 'X'];
+
 export default function ComparisonTable({ data }) {
   if (!data || data.length === 0) return null;
+
+  // Determine which platforms should be visible across the whole table 
+  // (if filtered, this will naturally only contain the active platform)
+  const visiblePlatforms = PLATFORM_ORDER.filter(plat => 
+    data.some(c => c.accounts.some(a => a.platform === plat))
+  );
 
   const metrics = [
     { key: 'avatar', label: 'Company', type: 'header' },
@@ -79,21 +107,29 @@ export default function ComparisonTable({ data }) {
                 return (
                   <td key={`${company.id}-${metric.key}`} className={cellClass}>
                     <div className="flex flex-col gap-2 w-full">
-                      {/* Individual Platform Breakdown */}
-                      {company.accounts.map((acc) => (
-                         <div key={acc.platform} className="flex items-center justify-between text-[13px] w-full px-1">
-                           <span className="text-zinc-500 text-[11px] font-medium px-1.5 py-0.5 bg-zinc-100 rounded border border-zinc-200">
-                             {acc.platform}
-                           </span>
-                           <span className={`font-semibold ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-700'}`}>
-                             {formatStat(acc.stats[metric.key], metric.type === 'percent')}
-                           </span>
-                         </div>
-                      ))}
+                      {/* Fixed height rows per visible platform for horizontal alignment */}
+                      {visiblePlatforms.map((plat) => {
+                         const acc = company.accounts.find(a => a.platform === plat);
+                         
+                         return (
+                           <div key={plat} className="flex items-center justify-between text-[13px] w-full px-1 min-h-[24px]">
+                             <div className="flex items-center justify-center p-1 rounded-md bg-zinc-100 border border-zinc-200" title={plat}>
+                               {PLATFORM_ICONS[plat]}
+                             </div>
+                             {acc ? (
+                               <span className={`font-semibold ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-700'}`}>
+                                 {formatStat(acc.stats[metric.key], metric.type === 'percent')}
+                               </span>
+                             ) : (
+                               <span className="text-zinc-300 font-medium">-</span>
+                             )}
+                           </div>
+                         );
+                      })}
                       
-                      {/* Aggregate Summary (Only show if multiple accounts exist for this metric) */}
-                      {company.accounts.length > 1 && (
-                         <div className={`flex items-center justify-between text-[13px] w-full px-1 pt-1.5 mt-1 border-t ${isOurs ? 'border-[#2D66C3]/20' : 'border-[#E5E7EB]/70'}`}>
+                      {/* Aggregate Summary (Only show if multiple accounts exist for this metric conceptually across the table) */}
+                      {visiblePlatforms.length > 1 && (
+                         <div className={`flex items-center justify-between text-[13px] w-full px-1 pt-1.5 mt-1 border-t ${isOurs ? 'border-[#2D66C3]/20' : 'border-[#E5E7EB]/70'} min-h-[28px]`}>
                            <span className={`font-bold text-[11px] uppercase ${isOurs ? 'text-[#2D66C3]' : 'text-zinc-600'}`}>
                              {metric.type === 'percent' ? 'Avg' : 'Total'}
                            </span>
@@ -103,8 +139,8 @@ export default function ComparisonTable({ data }) {
                          </div>
                       )}
                       
-                      {/* Empty state if filtered out entirely (handled by page logic usually, but just in case) */}
-                      {company.accounts.length === 0 && (
+                      {/* Empty state completely filtered out */}
+                      {visiblePlatforms.length === 0 && (
                         <div className="text-center text-zinc-400 text-xs py-2">-</div>
                       )}
                     </div>

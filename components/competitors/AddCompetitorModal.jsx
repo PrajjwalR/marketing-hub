@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
-const PLATFORMS = ['YouTube', 'Facebook', 'Instagram'];
+const PLATFORMS = ['YouTube', 'Facebook', 'Instagram', 'X'];
 const SUGGESTED_TAGS = ['fashion', 'lifestyle', 'footwear', 'streetwear', 'beauty', 'wellness', 'food', 'tech', 'fitness'];
 
 export default function AddCompetitorModal({ onClose, onAdd }) {
@@ -67,7 +67,7 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
       avatarColor: color,
       accounts: [
         {
-          platform: formData.platform,
+          platform: form.platform,
           stats: {
             subscribers: 0,
             totalVideosPosts: 0,

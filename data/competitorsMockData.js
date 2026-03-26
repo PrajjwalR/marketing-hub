@@ -32,6 +32,11 @@ export const competitorsMockData = [
         platform: 'Facebook',
         stats: { subscribers: 35000, totalVideosPosts: 20, avgLikes: 900, avgComments: 30, engagementRate: 2.8, reach: 350000 },
         recentContent: generateRecentContent(900)
+      },
+      {
+        platform: 'X',
+        stats: { subscribers: 55000, totalVideosPosts: 320, avgLikes: 1200, avgComments: 140, engagementRate: 2.2, reach: 410000 },
+        recentContent: generateRecentContent(1200)
       }
     ]
   },
@@ -52,6 +57,11 @@ export const competitorsMockData = [
         platform: 'Instagram',
         stats: { subscribers: 210000, totalVideosPosts: 135, avgLikes: 6500, avgComments: 340, engagementRate: 3.5, reach: 850000 },
         recentContent: generateRecentContent(6500)
+      },
+      {
+        platform: 'X',
+        stats: { subscribers: 82000, totalVideosPosts: 450, avgLikes: 2100, avgComments: 310, engagementRate: 2.6, reach: 600000 },
+        recentContent: generateRecentContent(2100)
       }
     ]
   },
@@ -97,6 +107,11 @@ export const competitorsMockData = [
         platform: 'Facebook',
         stats: { subscribers: 120000, totalVideosPosts: 310, avgLikes: 2100, avgComments: 140, engagementRate: 1.9, reach: 600000 },
         recentContent: generateRecentContent(2100)
+      },
+      {
+        platform: 'X',
+        stats: { subscribers: 195000, totalVideosPosts: 850, avgLikes: 4200, avgComments: 630, engagementRate: 2.2, reach: 1400000 },
+        recentContent: generateRecentContent(4200)
       }
     ]
   },
