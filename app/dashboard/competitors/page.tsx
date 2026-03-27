@@ -26,26 +26,16 @@ export default function CompetitorsPage() {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
   const [competitors, setCompetitors] = useState(() => sanitizeCompetitorsData(competitorsMockData));
+  const [hasLoadedFromDb, setHasLoadedFromDb] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [activePlatformAdd, setActivePlatformAdd] = useState<{company: any, platform: string} | null>(null);
   const [activePlatformEdit, setActivePlatformEdit] = useState<{company: any, platform: string, handle: string} | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [refreshingPlatforms, setRefreshingPlatforms] = useState<Record<string, boolean>>({});
 
-  // Sync with localStorage on mount and start Background Update
+  // Load initial competitor snapshot from DB and start background update.
   useEffect(() => {
     setIsMounted(true);
-    let loadedData = competitorsMockData;
-    try {
-      const saved = localStorage.getItem('competitorsData');
-      if (saved) {
-        loadedData = sanitizeCompetitorsData(JSON.parse(saved));
-        setCompetitors(loadedData);
-      }
-    } catch (e) {
-      console.error('Failed to parse competitors from LocalStorage', e);
-    }
-
     let isSubscribed = true;
 
     async function backgroundSync(compsToSync: any[]) {
@@ -81,17 +71,49 @@ export default function CompetitorsPage() {
       }
     }
 
-    backgroundSync(loadedData);
+    async function bootstrapFromDb() {
+      let loadedData = sanitizeCompetitorsData(competitorsMockData);
+      try {
+        const response = await fetch('/api/competitors', { cache: 'no-store' });
+        if (response.ok) {
+          const payload = await response.json();
+          if (Array.isArray(payload?.competitors)) {
+            loadedData = sanitizeCompetitorsData(payload.competitors);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load competitor snapshot from DB:', error);
+      }
+
+      if (!isSubscribed) return;
+      setCompetitors(loadedData);
+      setHasLoadedFromDb(true);
+      backgroundSync(loadedData);
+    }
+
+    bootstrapFromDb();
 
     return () => { isSubscribed = false; };
   }, []);
 
-  // Save to localStorage whenever competitors changes
+  // Persist competitor state to DB on every change after initial load.
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('competitorsData', JSON.stringify(competitors));
+    if (!isMounted || !hasLoadedFromDb) return;
+
+    async function persistCompetitors() {
+      try {
+        await fetch('/api/competitors', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ competitors }),
+        });
+      } catch (error) {
+        console.error('Failed to persist competitor snapshot:', error);
+      }
     }
-  }, [competitors, isMounted]);
+
+    persistCompetitors();
+  }, [competitors, isMounted, hasLoadedFromDb]);
 
   // Filter & Sort state
   const [search, setSearch] = useState('');
@@ -146,7 +168,6 @@ export default function CompetitorsPage() {
 
   function handleClearData() {
     if (confirm('This will clear all saved competitor data so you can start fresh. Continue?')) {
-      localStorage.removeItem('competitorsData');
       setCompetitors(sanitizeCompetitorsData(competitorsMockData));
     }
   }
