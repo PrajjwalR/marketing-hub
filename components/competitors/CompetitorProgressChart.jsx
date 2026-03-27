@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { competitorsMockData } from '@/data/competitorsMockData';
 
 const METRICS = [
   { key: 'subscribers', label: 'Subscribers / Followers' },
@@ -18,13 +17,15 @@ function formatStat(num, isPercent) {
   return String(num);
 }
 
-export default function CompetitorProgressChart() {
+export default function CompetitorProgressChart({ data }) {
   const [activeMetric, setActiveMetric] = useState(METRICS[0].key);
+
+  if (!data || data.length === 0) return null;
 
   const metricDef = METRICS.find(m => m.key === activeMetric);
 
-  // Build per-company aggregate data
-  const companyData = competitorsMockData.map(company => {
+  // Build per-company aggregate data using live dashboard array
+  const companyData = data.map(company => {
     const values = company.accounts.map(acc => acc.stats[activeMetric] || 0);
     const total = values.reduce((a, b) => a + b, 0);
     const value = metricDef.isPercent
@@ -107,10 +108,15 @@ export default function CompetitorProgressChart() {
                 {/* Avatar + Name */}
                 <div className="flex items-center gap-2.5 w-[200px] min-w-[200px]">
                   <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] text-[12px] font-bold text-white shadow-sm"
-                    style={{ backgroundColor: company.avatarColor }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] text-[12px] font-bold text-white shadow-sm overflow-hidden"
+                    style={company.avatarImage ? {} : { backgroundColor: company.avatarColor }}
                   >
-                    {company.avatarInitials}
+                    {company.avatarImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={company.avatarImage} alt={company.name} className="h-full w-full object-cover" />
+                    ) : (
+                      company.avatarInitials
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className={`text-[13px] font-bold truncate ${isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>

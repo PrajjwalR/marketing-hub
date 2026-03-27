@@ -33,6 +33,7 @@ async function fetchApifyInstagram(handle: string) {
   const url = `https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
   const response = await fetch(url, {
     method: 'POST',
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ usernames: [username] })
   });
@@ -87,6 +88,7 @@ async function fetchApifyYouTube(handle: string) {
   const url = `https://api.apify.com/v2/acts/streamers~youtube-channel-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
   const response = await fetch(url, {
     method: 'POST',
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ startUrls: [{ url: fullUrl }] })
   });
@@ -130,6 +132,7 @@ async function fetchApifyFacebook(handle: string) {
   const url = `https://api.apify.com/v2/acts/apify~facebook-pages-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
   const response = await fetch(url, {
     method: 'POST',
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ startUrls: [{ url: fullUrl }] })
   });
@@ -170,6 +173,7 @@ async function fetchApifyTwitter(handle: string) {
   const url = `https://api.apify.com/v2/acts/quacker~twitter-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
   const response = await fetch(url, {
     method: 'POST',
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ handle: [username] })
   });
@@ -197,6 +201,41 @@ async function fetchApifyTwitter(handle: string) {
   };
 }
 
+// --- 5. LINKEDIN HANDLER ---
+async function fetchApifyLinkedIn(handle: string) {
+  if (!APIFY_TOKEN) return null;
+  const fullUrl = handle.includes('linkedin.com') ? handle : `https://www.linkedin.com/company/${handle}`;
+
+  const url = `https://api.apify.com/v2/acts/apify~linkedin-company-profile-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls: [fullUrl] })
+  });
+
+  if (!response.ok) return null;
+  const data = await response.json();
+  if (!data || data.length === 0 || data.error) return null;
+
+  const company = data[0];
+  const followers = company.followerCount || company.followers || 0;
+
+  return {
+    platform: 'LinkedIn',
+    handle: fullUrl,
+    stats: {
+      subscribers: parseInt(followers, 10) || 0,
+      totalVideosPosts: company.updates?.length || 0,
+      avgLikes: Math.floor((followers || 0) * 0.03),
+      avgComments: Math.floor((followers || 0) * 0.005),
+      reach: Math.floor((followers || 0) * 0.08),
+      engagementRate: 3.5
+    },
+    recentContent: []
+  };
+}
+
 // ==========================================
 // UNIVERSAL PLATFORM ROUTER MAP
 // ==========================================
@@ -205,13 +244,14 @@ const SCRAPER_MAP: Record<string, (url: string) => Promise<any>> = {
   'Instagram': fetchApifyInstagram,
   'YouTube': fetchApifyYouTube,
   'Facebook': fetchApifyFacebook,
-  'X': fetchApifyTwitter
+  'X': fetchApifyTwitter,
+  'LinkedIn': fetchApifyLinkedIn
 };
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, category = ['general'], accounts } = body;
+    const { name, category = ['general'], accounts, strictRealData = false } = body;
 
     if (!accounts || accounts.length === 0) {
       return NextResponse.json({ error: 'At least one valid social account is required' }, { status: 400 });
@@ -233,11 +273,18 @@ export async function POST(request: Request) {
           // Attempt to fetch real Apify data via the mapped actor
           realData = await scraperFn(acc.handle);
           
-          // SAFETY GUARD: If the scraper returned data but failed to map anything (0 subscribers), 
-          // we force it to null so the synthesized fallback saves the UI.
-          if (realData && realData.stats.subscribers === 0) {
-            console.warn(`[ROUTER] Schema for ${acc.platform} returned 0. Scraper actor likely changed its JSON structure. Dropping to fallback.`);
-            realData = null;
+          // SAFETY GUARD: If the scraper returned data but entirely failed to map ANYTHING 
+          // (all stats are 0), this signals a schema mismatch. Drop to fallback.
+          if (realData) {
+            const stats = realData.stats;
+            const allZero = stats.subscribers === 0 && stats.totalVideosPosts === 0 
+              && stats.avgLikes === 0 && stats.reach === 0;
+            // X accounts can legitimately have 0 followers/posts (e.g. brand new profiles),
+            // so do not treat an all-zero payload as a schema failure for X.
+            if (allZero && acc.platform !== 'LinkedIn' && acc.platform !== 'X') {
+              console.warn(`[ROUTER] Schema for ${acc.platform} returned ALL ZEROS. Dropping to fallback.`);
+              realData = null;
+            }
           }
         } catch (e) {
           console.error(`Scraper failed for ${acc.platform}:`, e);
@@ -248,6 +295,40 @@ export async function POST(request: Request) {
       // If the targeted Apify actor succeeds and returns data, push it to the frontend!
       if (realData) {
         analyzedAccounts.push(realData);
+      } else if (acc.platform === 'LinkedIn') {
+        // If LinkedIn fails (e.g. Apify paywall or blocked proxy), do NOT synthesize realistic fallback data.
+        // Return explicit 0s so the user visually sees the scrape was blocked and requires a subscription.
+        analyzedAccounts.push({
+          platform: 'LinkedIn',
+          handle: acc.handle,
+          error: 'Apify Actor Subscription Required',
+          stats: {
+            subscribers: 0,
+            totalVideosPosts: 0,
+            avgLikes: 0,
+            avgComments: 0,
+            reach: 0,
+            engagementRate: 0
+          },
+          recentContent: []
+        });
+      } else if (strictRealData) {
+        // In strict mode (used for "our company"), never inject synthetic stats.
+        // Return explicit error payload and let client keep previous values or show failure.
+        analyzedAccounts.push({
+          platform: acc.platform,
+          handle: acc.handle,
+          error: 'Live scrape unavailable',
+          stats: {
+            subscribers: 0,
+            totalVideosPosts: 0,
+            avgLikes: 0,
+            avgComments: 0,
+            reach: 0,
+            engagementRate: 0
+          },
+          recentContent: []
+        });
       } else {
         // FALLBACK: If the actor is broken, blocked by a captcha, or unsupported,
         // use the synthesized generator so the dashboard continues to function.

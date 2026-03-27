@@ -1,4 +1,4 @@
-import { Youtube, Instagram, Facebook, Plus, Trash2 } from 'lucide-react';
+import { Youtube, Instagram, Facebook, Plus, Trash2, Pencil, Linkedin, RefreshCw } from 'lucide-react';
 
 const XLogo = ({ className }) => (
   <svg
@@ -31,19 +31,19 @@ const PLATFORM_ICONS = {
   'YouTube': <Youtube className="w-3.5 h-3.5 text-[#FF0000]" />,
   'Instagram': <Instagram className="w-3.5 h-3.5 text-[#E1306C]" />,
   'Facebook': <Facebook className="w-3.5 h-3.5 text-[#1877F2]" />,
-  'X': <XLogo className="w-3.5 h-3.5 text-[#000000]" />
+  'X': <XLogo className="w-3.5 h-3.5 text-[#000000]" />,
+  'LinkedIn': <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
 };
 
-const PLATFORM_ORDER = ['YouTube', 'Instagram', 'Facebook', 'X'];
+const PLATFORM_ORDER = ['YouTube', 'Instagram', 'Facebook', 'X', 'LinkedIn'];
 
-export default function ComparisonTable({ data, onAddPlatform, onRemoveCompany }) {
+export default function ComparisonTable({ data, activePlatformFilter = 'All Platforms', onAddPlatform, onRemoveCompany, onEditPlatform, onRefreshPlatform, refreshingPlatforms = {} }) {
   if (!data || data.length === 0) return null;
 
-  // Determine which platforms should be visible across the whole table 
-  // (if filtered, this will naturally only contain the active platform)
-  const visiblePlatforms = PLATFORM_ORDER.filter(plat => 
-    data.some(c => c.accounts.some(a => a.platform === plat))
-  );
+  // Platforms to show based on standard filter view (so empty ones can be added)
+  const visiblePlatforms = activePlatformFilter === 'All Platforms' 
+    ? PLATFORM_ORDER 
+    : [activePlatformFilter];
 
   const metrics = [
     { key: 'avatar', label: 'Company', type: 'header' },
@@ -81,10 +81,15 @@ export default function ComparisonTable({ data, onAddPlatform, onRemoveCompany }
                 )}
                 <div className="flex flex-col items-center gap-2">
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-bold text-white shadow-sm"
-                    style={{ backgroundColor: company.avatarColor }}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-bold text-white shadow-sm overflow-hidden"
+                    style={company.avatarImage ? {} : { backgroundColor: company.avatarColor }}
                   >
-                    {company.avatarInitials}
+                    {company.avatarImage ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={company.avatarImage} alt={company.name} className="h-full w-full object-cover" />
+                    ) : (
+                      company.avatarInitials
+                    )}
                   </div>
                   <div className="flex flex-col items-center">
                     <span className={`text-[15px] font-extrabold ${company.isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>
@@ -119,6 +124,8 @@ export default function ComparisonTable({ data, onAddPlatform, onRemoveCompany }
                       {/* Fixed height rows per visible platform for horizontal alignment */}
                       {visiblePlatforms.map((plat) => {
                          const acc = company.accounts.find(a => a.platform === plat);
+                         const refreshKey = `${company.id}-${plat}`;
+                         const isRefreshing = Boolean(refreshingPlatforms[refreshKey]);
                          
                          return (
                            <div key={plat} className="flex items-center justify-between text-[13px] w-full px-1 min-h-[24px]">
@@ -126,9 +133,30 @@ export default function ComparisonTable({ data, onAddPlatform, onRemoveCompany }
                                {PLATFORM_ICONS[plat]}
                              </div>
                              {acc ? (
-                               <span className={`font-semibold ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-700'}`}>
-                                 {formatStat(acc.stats[metric.key], metric.type === 'percent')}
-                               </span>
+                               <div className="flex items-center gap-1.5 group/edit relative">
+                                 {onRefreshPlatform && (
+                                   <button
+                                     onClick={() => onRefreshPlatform(company, plat, acc.handle)}
+                                     disabled={isRefreshing}
+                                     title={`Refresh ${plat} stats`}
+                                     className={`opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[#2D66C3] ${isRefreshing ? 'opacity-100 text-[#2D66C3]' : ''}`}
+                                   >
+                                     <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                   </button>
+                                 )}
+                                 {onEditPlatform && (
+                                   <button 
+                                     onClick={() => onEditPlatform(company, plat, acc.handle)}
+                                     title={`Edit ${plat} URL`}
+                                     className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[#2D66C3]"
+                                   >
+                                     <Pencil className="w-3 h-3" />
+                                   </button>
+                                 )}
+                                 <span className={`font-semibold ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-700'}`}>
+                                   {formatStat(acc.stats[metric.key], metric.type === 'percent')}
+                                 </span>
+                               </div>
                              ) : (
                                onAddPlatform ? (
                                  <button

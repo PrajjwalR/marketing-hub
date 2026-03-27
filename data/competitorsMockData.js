@@ -17,28 +17,7 @@ export const competitorsMockData = [
     category: ['fashion', 'lifestyle'],
     avatarInitials: 'OC',
     avatarColor: '#1d4e9f',
-    accounts: [
-      {
-        platform: 'YouTube',
-        stats: { subscribers: 125000, totalVideosPosts: 44, avgLikes: 3500, avgComments: 180, engagementRate: 4.2, reach: 500000 },
-        recentContent: generateRecentContent(3500)
-      },
-      {
-        platform: 'Instagram',
-        stats: { subscribers: 85000, totalVideosPosts: 60, avgLikes: 4100, avgComments: 210, engagementRate: 5.8, reach: 350000 },
-        recentContent: generateRecentContent(4100)
-      },
-      {
-        platform: 'Facebook',
-        stats: { subscribers: 35000, totalVideosPosts: 20, avgLikes: 900, avgComments: 30, engagementRate: 2.8, reach: 350000 },
-        recentContent: generateRecentContent(900)
-      },
-      {
-        platform: 'X',
-        stats: { subscribers: 55000, totalVideosPosts: 320, avgLikes: 1200, avgComments: 140, engagementRate: 2.2, reach: 410000 },
-        recentContent: generateRecentContent(1200)
-      }
-    ]
+    accounts: []
   },
   {
     id: 'nova-brand',

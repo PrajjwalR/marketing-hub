@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 
-export default function AddPlatformModal({ companyName, platform, onClose, onAdd }) {
-  const [url, setUrl] = useState('');
+export default function AddPlatformModal({ companyName, platform, initialUrl = '', onClose, onAdd }) {
+  const [url, setUrl] = useState(initialUrl);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditing = Boolean(initialUrl);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,7 +22,7 @@ export default function AddPlatformModal({ companyName, platform, onClose, onAdd
       <div className="w-full max-w-sm rounded-[8px] border border-[#E5E7EB] bg-white shadow-2xl animate-in zoom-in-95 duration-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[16px] font-extrabold text-[#111827]">
-            Add {platform}
+            {isEditing ? 'Edit' : 'Add'} {platform} Link
           </h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-800 transition-colors">
             <X className="h-4 w-4" />
@@ -29,7 +30,7 @@ export default function AddPlatformModal({ companyName, platform, onClose, onAdd
         </div>
         
         <p className="text-[13px] text-zinc-500 mb-4">
-          Enter the {platform} URL for <strong>{companyName}</strong> to start tracking it.
+          Enter the {isEditing ? 'new ' : ''}{platform} URL for <strong>{companyName}</strong> to track it.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,7 +61,7 @@ export default function AddPlatformModal({ companyName, platform, onClose, onAdd
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   Analyzing
                 </>
-              ) : 'Update'}
+              ) : isEditing ? 'Update Link' : 'Start Tracking'}
             </button>
           </div>
         </form>
