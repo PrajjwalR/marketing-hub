@@ -8,7 +8,6 @@ import {
     ChevronRight, Image as ImageIcon, Music, FileText, Search, LayoutGrid, 
     List, ArrowUp, HardDrive, Star, Clock3, Home, Settings
 } from 'lucide-react';
-import Image from 'next/image';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -485,7 +484,8 @@ function MediaLibrary() {
                                                     <div key={asset.id} className="group border border-zinc-200 rounded-md overflow-hidden bg-white hover:border-indigo-300 hover:shadow-sm transition-all relative cursor-pointer" onClick={() => setPreviewMedia(asset)}>
                                                         <div className="aspect-square bg-[#f8f9fa] border-b border-zinc-100 flex items-center justify-center relative p-2">
                                                             {asset.type.startsWith('image/') ? (
-                                                                <Image src={asset.url} alt={asset.name} fill className="object-contain p-2" />
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img src={asset.url} alt={asset.name} className="h-full w-full object-contain p-2" />
                                                             ) : asset.type.startsWith('video/') ? (
                                                                 <div className="w-full h-full relative flex items-center justify-center bg-black/5">
                                                                     <VideoIcon className="w-8 h-8 text-zinc-400" />
@@ -654,7 +654,8 @@ function MediaLibrary() {
                     </DialogHeader>
                     <div className="w-full h-[80vh] flex items-center justify-center relative bg-black">
                         {previewMedia?.type?.startsWith('image/') ? (
-                            <Image src={previewMedia.url} alt={previewMedia.name} fill className="object-contain" />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={previewMedia.url} alt={previewMedia.name} className="h-full w-full object-contain" />
                         ) : previewMedia?.type?.startsWith('video/') ? (
                             <video src={previewMedia.url} controls autoPlay className="w-full h-full object-contain" />
                         ) : previewMedia?.type?.startsWith('audio/') ? (
@@ -686,7 +687,8 @@ function VideoExplorerItem({ video, onDelete }: { video: any; onDelete: (id: str
     return (
         <div className="group border border-zinc-200 rounded-md overflow-hidden bg-white hover:border-indigo-300 hover:shadow-sm transition-all">
             <div className="aspect-video relative bg-zinc-100">
-                 <Image src={thumbnail} alt="thumb" fill className="object-cover opacity-80" />
+                 {/* eslint-disable-next-line @next/next/no-img-element */}
+                 <img src={thumbnail} alt="thumb" className="h-full w-full object-cover opacity-80" />
                  {isReady && video.video_url ? (
                     <Dialog>
                         <DialogTrigger asChild>

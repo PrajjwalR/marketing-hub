@@ -29,6 +29,7 @@ import {
     MessagesSquare,
     ArrowUpRight,
     Settings,
+    BarChart2,
     type LucideIcon,
 } from "lucide-react";
 import Link from 'next/link';
@@ -103,6 +104,8 @@ type CalendarPost = {
     scheduled_at: string;
     status: string;
     type?: string;
+    labels?: { id: string; name: string; color: string }[];
+    post_labels?: { label?: { id: string; name: string; color: string } | null }[];
 };
 
 type StrategySummary = {
@@ -123,6 +126,12 @@ type StrategyDetail = {
     posts?: StrategyPost[];
 };
 
+type LabelItem = {
+    id: string;
+    name: string;
+    color: string;
+};
+
 const CORE_TOOLS: ToolItem[] = [
     {
         name: 'Publishing Tools',
@@ -138,7 +147,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Automatically schedule best post times.',
         icon: Clock3,
         tag: 'Core',
-        href: '/dashboard/calendar',
+        href: '/dashboard/optimal-send-times',
         accent: '#2f80ed',
         soft: '#dff0ff',
     },
@@ -147,7 +156,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Uncover what people are saying.',
         icon: Radio,
         tag: 'Core',
-        href: '/dashboard/strategy',
+        href: '/dashboard/inbox-activity#listening',
         accent: '#5ad0dd',
         soft: '#ddf8fb',
     },
@@ -156,7 +165,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Quickly know which messages to tackle.',
         icon: MessageSquareText,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/inbox-activity#prioritization',
         accent: '#0f4c81',
         soft: '#d9ebfb',
     },
@@ -165,7 +174,7 @@ const CORE_TOOLS: ToolItem[] = [
         description: 'Your overall social performance.',
         icon: PieChart,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/analytics',
         accent: '#31c667',
         soft: '#defbe7',
         artwork: 'analytics',
@@ -182,6 +191,15 @@ const CORE_TOOLS: ToolItem[] = [
 ];
 
 const EXTRA_TOOLS: ToolItem[] = [
+    {
+        name: 'Competitor Analysis',
+        description: 'Track competitor brands on YouTube & Facebook.',
+        icon: BarChart2,
+        tag: 'Core',
+        href: '/dashboard/competitors',
+        accent: '#e85d4a',
+        soft: '#fff0ee',
+    },
     {
         name: 'Facebook Pages Report',
         description: "See what's working and what isn't.",
@@ -223,7 +241,7 @@ const EXTRA_TOOLS: ToolItem[] = [
         description: 'Add post approvers.',
         icon: CheckCheck,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/approvals',
         accent: '#1b9bbb',
         soft: '#def6fb',
     },
@@ -241,7 +259,7 @@ const EXTRA_TOOLS: ToolItem[] = [
         description: 'Analyze and improve paid ad campaigns.',
         icon: Megaphone,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/ad-insights',
         accent: '#ff68b0',
         soft: '#fff0f7',
     },
@@ -250,7 +268,7 @@ const EXTRA_TOOLS: ToolItem[] = [
         description: "See how you're responding to people.",
         icon: Inbox,
         tag: 'Core',
-        href: '/dashboard',
+        href: '/dashboard/inbox-activity',
         accent: '#d95bf3',
         soft: '#fbecff',
     },
@@ -598,6 +616,8 @@ export default function DashboardPage() {
     const [showMore, setShowMore] = useState(false);
     const [recentSort, setRecentSort] = useState<'latest' | 'scheduled' | 'published'>('latest');
     const [profileNameFromDb, setProfileNameFromDb] = useState<string | null>(null);
+    const [labels, setLabels] = useState<LabelItem[]>([]);
+    const [recentLabelId, setRecentLabelId] = useState<string>('all');
 
     const displayName = resolveWelcomeName(user, { dbName: profileNameFromDb });
 
@@ -607,7 +627,17 @@ export default function DashboardPage() {
             const scheduleRes = await fetch('/api/schedule');
             if (scheduleRes.ok) {
                 const data = await scheduleRes.json();
-                setCalendarPosts((data || []).filter((item: CalendarPost) => (item.type || '').toLowerCase() !== 'note'));
+                const normalized = (data || []).map((item: CalendarPost) => ({
+                    ...item,
+                    labels: (item.post_labels || []).map((row) => row?.label).filter(Boolean) as { id: string; name: string; color: string }[],
+                }));
+                setCalendarPosts(normalized.filter((item: CalendarPost) => (item.type || '').toLowerCase() !== 'note'));
+            }
+
+            const labelsRes = await fetch('/api/labels');
+            if (labelsRes.ok) {
+                const labelsData = await labelsRes.json();
+                setLabels(labelsData || []);
             }
 
             const strategiesRes = await fetch('/api/strategy');
@@ -682,7 +712,11 @@ export default function DashboardPage() {
         return postDate >= weekStart;
     });
 
-    const recentPosts = [...recentPostsBase].sort((a, b) => {
+    const recentPostsFilteredByLabel = recentLabelId === 'all'
+        ? recentPostsBase
+        : recentPostsBase.filter((post) => (post.labels || []).some((label) => label.id === recentLabelId));
+
+    const recentPosts = [...recentPostsFilteredByLabel].sort((a, b) => {
         if (recentSort === 'published') {
             const aPublished = a.status === 'completed' || a.status === 'published' ? 1 : 0;
             const bPublished = b.status === 'completed' || b.status === 'published' ? 1 : 0;
@@ -908,6 +942,19 @@ export default function DashboardPage() {
                         <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[#F3F4F6] shrink-0">
                             <h3 className="font-bold text-[#111827] text-[18px]">Your Recent Posts</h3>
                             <div className="flex items-center gap-2 text-sm">
+                                <span className="text-zinc-800 font-bold">Label</span>
+                                <select
+                                    value={recentLabelId}
+                                    onChange={(e) => setRecentLabelId(e.target.value)}
+                                    className="h-9 min-w-[150px] rounded-sm border border-zinc-200 bg-white pl-3 pr-8 text-sm font-medium text-[#9e9e9e] focus:outline-none focus:ring-1 focus:ring-[#2D66C3] appearance-none bg-no-repeat bg-size-[1rem] bg-position-[right_0.5rem_center] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%23d4d4d8%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')]"
+                                >
+                                    <option value="all">All labels</option>
+                                    {labels.map((label) => (
+                                        <option key={label.id} value={label.id}>
+                                            {label.name}
+                                        </option>
+                                    ))}
+                                </select>
                                 <span className="text-zinc-800 font-bold">Sort by</span>
                                 <select
                                     value={recentSort}
@@ -954,6 +1001,15 @@ export default function DashboardPage() {
                                                 <p className="text-xs text-[#6B7280] mt-1 line-clamp-2">
                                                     {post.description || 'No description yet.'}
                                                 </p>
+                                                {(post.labels || []).length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                                        {post.labels!.map((label) => (
+                                                            <span key={label.id} className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                                                                {label.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <div className="mt-2 text-xs text-[#9CA3AF]">
                                                     {format(new Date(post.scheduled_at), 'MMM dd, yyyy • h:mm a')}
                                                 </div>

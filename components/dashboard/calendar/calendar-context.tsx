@@ -15,11 +15,26 @@ export interface CalendarEvent {
     scheduled_at: string;
     end_at: string | null;
     status: string;
+    approval_required?: boolean;
+    approval_status?: 'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested';
+    approved_by?: string | null;
+    approved_at?: string | null;
+    submitted_for_approval_at?: string | null;
+    published_at?: string | null;
+    platforms?: string[];
     created_at: string;
     video_id: string | null;
     series_id: string | null;
+    labels?: LabelItem[];
+    post_labels?: { label?: LabelItem | null }[];
     video?: { id: string; title: string; video_url: string; status: string } | null;
     series?: { id: string; series_name: string } | null;
+}
+
+export interface LabelItem {
+    id: string;
+    name: string;
+    color: string;
 }
 
 export interface SocialConnection {
@@ -37,6 +52,9 @@ interface CalendarContextType {
     setDisplayMode: (mode: 'list' | 'week' | 'month') => void;
     events: CalendarEvent[];
     socialConnections: SocialConnection[];
+    labels: LabelItem[];
+    activeLabelId: string;
+    setActiveLabelId: (id: string) => void;
     isLoading: boolean;
     fetchEvents: () => Promise<void>;
     handleStatusToggle: (event: CalendarEvent) => Promise<void>;
@@ -57,6 +75,8 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     const [displayMode, setDisplayMode] = useState<'list' | 'week' | 'month'>('week');
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [socialConnections, setSocialConnections] = useState<SocialConnection[]>([]);
+    const [labels, setLabels] = useState<LabelItem[]>([]);
+    const [activeLabelId, setActiveLabelId] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
 
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -72,11 +92,23 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
             
             if (eventsRes.ok) {
                 const data = await eventsRes.json();
-                setEvents(data);
+                const normalized = (data || []).map((event: CalendarEvent) => ({
+                    ...event,
+                    labels: (event.post_labels || [])
+                        .map((item) => item?.label)
+                        .filter(Boolean) as LabelItem[],
+                }));
+                setEvents(normalized);
             }
             if (socialRes.ok) {
                 const data = await socialRes.json();
                 setSocialConnections(data);
+            }
+
+            const labelsRes = await fetch('/api/labels');
+            if (labelsRes.ok) {
+                const labelData = await labelsRes.json();
+                setLabels(labelData || []);
             }
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -152,6 +184,10 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         setIsCreateOpen(true);
     };
 
+    const visibleEvents = activeLabelId === 'all'
+        ? events
+        : events.filter((event) => (event.labels || []).some((label) => label.id === activeLabelId));
+
     return (
         <CalendarContext.Provider
             value={{
@@ -159,8 +195,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
                 setCurrentDate,
                 displayMode,
                 setDisplayMode,
-                events,
+                events: visibleEvents,
                 socialConnections,
+                labels,
+                activeLabelId,
+                setActiveLabelId,
                 isLoading,
                 fetchEvents: fetchData,
                 handleStatusToggle,

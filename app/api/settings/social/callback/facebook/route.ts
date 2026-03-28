@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { encryptSocialToken } from "@/lib/token-crypto";
 
 export async function GET(req: Request) {
     try {
@@ -81,6 +82,7 @@ export async function GET(req: Request) {
         const pagesData = await pagesRes.json();
         
         const pages = pagesData.data || [];
+        const encryptedUserToken = encryptSocialToken(userAccessToken);
         
         if (pages.length === 0) {
             return NextResponse.redirect(new URL('/dashboard/settings?error=no_facebook_pages_found', req.url));
@@ -92,6 +94,7 @@ export async function GET(req: Request) {
             const pageId = page.id;
             const pageName = page.name;
             const pageAccessToken = page.access_token;
+            const encryptedPageToken = encryptSocialToken(pageAccessToken);
             
             const { error: upsertError } = await supabaseAdmin
                 .from('social_connections')
@@ -102,8 +105,12 @@ export async function GET(req: Request) {
                     profile_name: pageName,
                     platform_user_id: pageId,
                     internal_id: pageId,
-                    access_token: pageAccessToken,
-                    refresh_token: userAccessToken, // User token stored as root reference
+                    access_token: encryptedPageToken.value,
+                    refresh_token: encryptedUserToken.value, // User token stored as root reference
+                    token_encrypted: encryptedPageToken.encrypted,
+                    status: 'connected',
+                    connected_at: new Date().toISOString(),
+                    last_sync_at: new Date().toISOString(),
                     created_at: new Date().toISOString()
                 }, { onConflict: 'user_id,platform,platform_user_id' });
 

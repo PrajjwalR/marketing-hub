@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth-helpers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { encryptSocialToken } from "@/lib/token-crypto";
 
 export async function GET(req: Request) {
     try {
@@ -41,6 +42,8 @@ export async function GET(req: Request) {
         const accessToken = tokenData.access_token;
         const refreshToken = tokenData.refresh_token;
         const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+        const encryptedAccess = encryptSocialToken(accessToken);
+        const encryptedRefresh = encryptSocialToken(refreshToken);
 
         // 2. Get TikTok User Info
         const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=display_name,avatar_url', {
@@ -60,8 +63,12 @@ export async function GET(req: Request) {
             .upsert({
                 user_id: userId,
                 platform: 'tiktok',
-                access_token: accessToken,
-                refresh_token: refreshToken,
+                access_token: encryptedAccess.value,
+                refresh_token: encryptedRefresh.value,
+                token_encrypted: encryptedAccess.encrypted,
+                status: 'connected',
+                connected_at: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 expires_at: expiresAt,
                 profile_name: profileName,
                 profile_image: profileImage,

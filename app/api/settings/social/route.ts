@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth-helpers";
+import { encryptSocialToken } from "@/lib/token-crypto";
 
 export async function GET(req: Request) {
     try {
@@ -11,14 +12,21 @@ export async function GET(req: Request) {
 
         const { data, error } = await supabaseAdmin
             .from('social_connections')
-            .select('*')
+            .select('id, platform, profile_name, profile_image, platform_user_id, status, connected_at, last_sync_at, created_at')
             .eq('user_id', userId);
 
         if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        return NextResponse.json(data);
+        return NextResponse.json(
+            (data ?? []).map((row) => ({
+                ...row,
+                status: row.status ?? 'connected',
+                connected_at: row.connected_at ?? row.created_at ?? null,
+                last_sync_at: row.last_sync_at ?? row.connected_at ?? row.created_at ?? null,
+            }))
+        );
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -32,7 +40,8 @@ export async function POST(req: Request) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
-        const { platform, name } = await req.json();
+        const { platform, name, accessToken } = await req.json();
+        const encryptedToken = encryptSocialToken(accessToken || 'placeholder_token');
 
         const { data, error } = await supabaseAdmin
             .from('social_connections')
@@ -40,8 +49,12 @@ export async function POST(req: Request) {
                 user_id: userId,
                 platform,
                 profile_name: name,
-                access_token: 'placeholder_token',
-                created_at: new Date().toISOString()
+                access_token: encryptedToken.value,
+                token_encrypted: encryptedToken.encrypted,
+                status: 'connected',
+                connected_at: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
             }, { onConflict: 'user_id,platform' })
             .select()
             .single();

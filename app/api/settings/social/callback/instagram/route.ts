@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { encryptSocialToken } from "@/lib/token-crypto";
 
 export async function GET(req: Request) {
     try {
@@ -176,13 +177,18 @@ export async function GET(req: Request) {
 
         // 5. Store in Supabase
         // Notice we save 'pageAccessToken' which has the required Page/Publish scopes
+        const encryptedAccess = encryptSocialToken(pageAccessToken);
         const { error: upsertError } = await supabaseAdmin
             .from('social_connections')
             .upsert({
                 user_id: userId,
                 integration_id: integrationId,
                 platform: 'instagram',
-                access_token: pageAccessToken, 
+                access_token: encryptedAccess.value,
+                token_encrypted: encryptedAccess.encrypted,
+                status: 'connected',
+                connected_at: new Date().toISOString(),
+                last_sync_at: new Date().toISOString(),
                 profile_name: profileName,
                 profile_image: profileImage,
                 platform_user_id: igAccountId,

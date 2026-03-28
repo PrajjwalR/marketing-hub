@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { addDays, addMonths, addWeeks, endOfWeek, format, startOfWeek, subDays, subMonths, subWeeks } from 'date-fns';
 
 function CalendarContent() {
-    const { isLoading, displayMode, setDisplayMode, openCreateDialog, currentDate, setCurrentDate } = useCalendar();
+    const { isLoading, displayMode, setDisplayMode, openCreateDialog, currentDate, setCurrentDate, labels, activeLabelId, setActiveLabelId } = useCalendar();
 
     const title = (() => {
         if (displayMode === 'list') {
@@ -87,6 +87,18 @@ function CalendarContent() {
 
                 {/* Right group: view switcher + Add New */}
                 <div className="flex items-center gap-4">
+                    <select
+                        value={activeLabelId}
+                        onChange={(e) => setActiveLabelId(e.target.value)}
+                        className="h-11 min-w-[180px] rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                        <option value="all">All labels</option>
+                        {labels.map((label) => (
+                            <option key={label.id} value={label.id}>
+                                {label.name}
+                            </option>
+                        ))}
+                    </select>
                     <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
                         {(['list', 'week', 'month'] as const).map(mode => (
                             <button

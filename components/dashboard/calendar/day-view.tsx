@@ -5,6 +5,7 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { Fragment } from 'react';
+import { EventApprovalBadge } from './event-approval-badge';
 
 const convertTimeFormatBasedOnLocality = (time: number) => {
     return `${time === 12 ? 12 : time % 12}:00 ${time >= 12 ? 'PM' : 'AM'}`;
@@ -70,10 +71,13 @@ export function DayView() {
                                             <div 
                                                 key={event.id}
                                                 onClick={(e) => { e.stopPropagation(); openEditDialog(event); }}
-                                                className="bg-white text-zinc-900 text-[13px] p-3 rounded-xl border border-zinc-200 shadow-sm hover:border-amber-300 hover:bg-amber-50 transition-colors flex items-center justify-between"
+                                                className="bg-white text-zinc-900 text-[13px] p-3 rounded-xl border border-zinc-200 shadow-sm hover:border-amber-300 hover:bg-amber-50 transition-colors flex items-center justify-between gap-2"
                                             >
-                                                <div className="font-black truncate">{event.title}</div>
-                                                <div className="text-[10px] text-zinc-600 uppercase bg-zinc-100 px-2 py-0.5 rounded-full font-bold">{event.type}</div>
+                                                <div className="font-black truncate min-w-0">{event.title}</div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <EventApprovalBadge event={event} compact />
+                                                    <div className="text-[10px] text-zinc-600 uppercase bg-zinc-100 px-2 py-0.5 rounded-full font-bold">{event.type}</div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>

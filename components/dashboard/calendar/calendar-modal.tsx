@@ -1,13 +1,13 @@
 'use client';
 
-import { useCalendar, CalendarEvent, SocialConnection } from './calendar-context';
+import { useCalendar, CalendarEvent, SocialConnection, LabelItem } from './calendar-context';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText } from 'lucide-react';
+import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -52,6 +52,7 @@ export function CalendarModal() {
     const [formType, setFormType] = useState('event');
     const [formAccountId, setFormAccountId] = useState('');
     const [formColor, setFormColor] = useState('indigo');
+    const [formStatus, setFormStatus] = useState<'draft' | 'scheduled' | 'published' | 'cancelled'>('scheduled');
     const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const [formTime, setFormTime] = useState('09:00');
     const [formEndDate, setFormEndDate] = useState('');
@@ -71,8 +72,39 @@ export function CalendarModal() {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [labels, setLabels] = useState<LabelItem[]>([]);
+    const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+    const [newLabelName, setNewLabelName] = useState('');
+    const [isSavingLabel, setIsSavingLabel] = useState(false);
+    const [reviewers, setReviewers] = useState<Array<{ user_id: string; name: string | null; email: string | null }>>([]);
+    const [selectedReviewerIds, setSelectedReviewerIds] = useState<string[]>([]);
+    const [approvalRequired, setApprovalRequired] = useState(false);
+    const [approvalStatus, setApprovalStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested'>('none');
 
     const selectedAccount = socialConnections.find(c => c.id === formAccountId);
+
+    const fetchLabels = async () => {
+        try {
+            const res = await fetch('/api/labels');
+            if (res.ok) {
+                const data = await res.json();
+                setLabels(data || []);
+            }
+        } catch (error) {
+            toast.error('Failed to load labels');
+        }
+    };
+
+    const fetchReviewers = async () => {
+        try {
+            const res = await fetch('/api/approvals/reviewers');
+            if (!res.ok) return;
+            const data = await res.json();
+            setReviewers(data || []);
+        } catch {
+            // no-op
+        }
+    };
 
     const fetchLibrary = async () => {
         try {
@@ -144,11 +176,15 @@ export function CalendarModal() {
         setFormType('event');
         setFormAccountId('');
         setFormColor('indigo');
+        setFormStatus('scheduled');
         setFormDate(format(currentDate, 'yyyy-MM-dd'));
         setFormTime('09:00');
         setFormEndDate('');
         setFormEndTime('');
         setFormMediaUrl('');
+        setApprovalRequired(false);
+        setApprovalStatus('none');
+        setSelectedReviewerIds([]);
     };
 
     useEffect(() => {
@@ -159,6 +195,7 @@ export function CalendarModal() {
                 setFormType(editingEvent.type || 'event');
                 setFormAccountId(editingEvent.account_id || '');
                 setFormColor(editingEvent.color || 'indigo');
+                setFormStatus(((editingEvent.status as 'draft' | 'scheduled' | 'published' | 'cancelled') || 'scheduled'));
                 setFormMediaUrl(editingEvent.media_url || '');
                 const scheduled = parseISO(editingEvent.scheduled_at);
                 setFormDate(format(scheduled, 'yyyy-MM-dd'));
@@ -168,14 +205,95 @@ export function CalendarModal() {
                     setFormEndDate(format(end, 'yyyy-MM-dd'));
                     setFormEndTime(format(end, 'HH:mm'));
                 }
+                setSelectedLabelIds((editingEvent.labels || []).map((label) => label.id));
+                setApprovalRequired(!!editingEvent.approval_required);
+                setApprovalStatus((editingEvent.approval_status as any) || 'none');
             } else {
                 resetForm();
                 if (currentDate) {
                     setFormDate(format(currentDate, 'yyyy-MM-dd'));
                 }
+                setSelectedLabelIds([]);
             }
+            fetchLabels();
+            fetchReviewers();
         }
     }, [isCreateOpen, editingEvent, currentDate]);
+
+    useEffect(() => {
+        if (!isCreateOpen || !editingEvent || (editingEvent.type || '').toLowerCase() !== 'post') {
+            return;
+        }
+        let cancelled = false;
+        setSelectedReviewerIds([]);
+        fetch(`/api/approvals/post/${editingEvent.id}`)
+            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((data: { reviewerIds?: string[] }) => {
+                if (cancelled) return;
+                setSelectedReviewerIds(Array.isArray(data.reviewerIds) ? data.reviewerIds : []);
+            })
+            .catch(() => {
+                if (!cancelled) setSelectedReviewerIds([]);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isCreateOpen, editingEvent?.id, editingEvent?.type]);
+
+    const handleCreateLabel = async () => {
+        if (!newLabelName.trim()) return;
+        setIsSavingLabel(true);
+        try {
+            const res = await fetch('/api/labels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newLabelName.trim() }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err?.error || 'Failed to create label');
+            }
+            const created = await res.json();
+            setLabels((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+            setSelectedLabelIds((prev) => [...prev, created.id]);
+            setNewLabelName('');
+            toast.success('Label created');
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to create label');
+        } finally {
+            setIsSavingLabel(false);
+        }
+    };
+
+    const handleDeleteLabel = async (labelId: string) => {
+        try {
+            const res = await fetch(`/api/labels/${labelId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete label');
+            setLabels((prev) => prev.filter((label) => label.id !== labelId));
+            setSelectedLabelIds((prev) => prev.filter((id) => id !== labelId));
+            toast.success('Label deleted');
+        } catch {
+            toast.error('Failed to delete label');
+        }
+    };
+
+    const handleRenameLabel = async (label: LabelItem) => {
+        const name = window.prompt('Rename label', label.name)?.trim();
+        if (!name || name === label.name) return;
+        try {
+            const res = await fetch(`/api/labels/${label.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            if (!res.ok) throw new Error('Failed to rename label');
+            const updated = await res.json();
+            setLabels((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+            toast.success('Label renamed');
+        } catch {
+            toast.error('Failed to rename label');
+        }
+    };
 
     const handleSubmit = async () => {
         if (!formTitle.trim() || !formDate) {
@@ -196,14 +314,31 @@ export function CalendarModal() {
             type: formType,
             account_id: formType === 'post' ? (formAccountId || null) : null,
             platform: formType === 'post' && selectedAccount ? selectedAccount.platform : null,
+            platforms: formType === 'post' && selectedAccount ? [selectedAccount.platform] : [],
             color: formColor,
             scheduled_at,
             end_at,
+            label_ids: selectedLabelIds,
+            approval_required: approvalRequired,
         };
 
-        // If it's a social post, ensure status is reset to 'scheduled' so it actually runs
         if (formType === 'post') {
-            payload.status = 'scheduled';
+            payload.status = formStatus;
+            payload.published_at = formStatus === 'published' ? new Date().toISOString() : null;
+        }
+
+        if (
+            editingEvent &&
+            formType === 'post' &&
+            approvalRequired &&
+            approvalStatus === 'pending'
+        ) {
+            if (selectedReviewerIds.length === 0) {
+                toast.error('Pick at least one reviewer while approval is pending.');
+                setIsSubmitting(false);
+                return;
+            }
+            payload.reviewer_ids = selectedReviewerIds;
         }
 
         try {
@@ -218,7 +353,8 @@ export function CalendarModal() {
                     setIsCreateOpen(false);
                     fetchEvents();
                 } else {
-                    toast.error('Failed to update');
+                    const data = await res.json().catch(() => ({}));
+                    toast.error(data?.error || 'Failed to update');
                 }
             } else {
                 const res = await fetch('/api/schedule', {
@@ -231,7 +367,8 @@ export function CalendarModal() {
                     setIsCreateOpen(false);
                     fetchEvents();
                 } else {
-                    toast.error('Failed to create');
+                    const data = await res.json().catch(() => ({}));
+                    toast.error(data?.error || 'Failed to create');
                 }
             }
         } catch (error) {
@@ -249,6 +386,62 @@ export function CalendarModal() {
         }
     };
 
+    const handlePublishNow = async () => {
+        if (!editingEvent) return;
+        setIsSubmitting(true);
+        try {
+            const res = await fetch(`/api/schedule/${editingEvent.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'publish_now' }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.error || 'Failed to publish');
+            toast.success('Post published');
+            setFormStatus('published');
+            setIsCreateOpen(false);
+            fetchEvents();
+        } catch (error: any) {
+            const message = error?.message || 'Failed to publish now';
+            toast.error(message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSubmitForApproval = async () => {
+        if (!editingEvent) return;
+        if (!approvalRequired) {
+            toast.error('Enable approval required before submitting.');
+            return;
+        }
+        if (selectedReviewerIds.length === 0) {
+            toast.error('Pick at least one reviewer.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/approvals/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    postId: editingEvent.id,
+                    reviewerIds: selectedReviewerIds,
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.error || 'Failed to submit for approval');
+            toast.success('Submitted for approval');
+            setApprovalStatus('pending');
+            setIsCreateOpen(false);
+            fetchEvents();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Failed to submit for approval');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <>
             <Dialog open={isCreateOpen} onOpenChange={(open) => {
@@ -257,7 +450,7 @@ export function CalendarModal() {
                 }
             }}>
                 <DialogContent className={cn("rounded-[12px] border border-zinc-200 bg-white p-0 overflow-hidden text-zinc-900 shadow-2xl flex flex-col transition-all duration-300", formType === 'post' ? "min-w-7xl w-[95vw] h-[85vh]" : "max-w-xl w-[95vw] h-auto max-h-[85vh]")}>
-                    <DialogHeader className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 flex-shrink-0">
+                    <DialogHeader className="px-6 py-4 border-b border-zinc-200 bg-zinc-50 shrink-0">
                         <DialogTitle className="text-lg font-black text-zinc-900 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <CalendarDays className="h-5 w-5 text-indigo-600" />
@@ -341,6 +534,157 @@ export function CalendarModal() {
                                     )}
                                 </div>
                             )}
+
+                            {formType === 'post' && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-zinc-500">Publishing Status</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['draft', 'scheduled', 'published'] as const).map((status) => {
+                                            const selected = formStatus === status;
+                                            return (
+                                                <button
+                                                    key={status}
+                                                    type="button"
+                                                    onClick={() => setFormStatus(status)}
+                                                    className={cn(
+                                                        'rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors',
+                                                        selected
+                                                            ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                                            : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
+                                                    )}
+                                                >
+                                                    {status}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {formType === 'post' && (
+                                <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-zinc-700">Approval Workflow</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setApprovalRequired((prev) => !prev)}
+                                            className={cn(
+                                                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                approvalRequired
+                                                    ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                    : "border-zinc-200 bg-white text-zinc-600"
+                                            )}
+                                        >
+                                            {approvalRequired ? 'Required' : 'Optional'}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-zinc-500">
+                                        Current status: <span className="font-semibold uppercase">{approvalStatus}</span>
+                                    </p>
+                                    {approvalRequired && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-zinc-500">Reviewers</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {reviewers.map((reviewer) => {
+                                                    const selected = selectedReviewerIds.includes(reviewer.user_id);
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={reviewer.user_id}
+                                                            onClick={() =>
+                                                                setSelectedReviewerIds((prev) =>
+                                                                    prev.includes(reviewer.user_id)
+                                                                        ? prev.filter((id) => id !== reviewer.user_id)
+                                                                        : [...prev, reviewer.user_id]
+                                                                )
+                                                            }
+                                                            className={cn(
+                                                                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                                selected
+                                                                    ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                                    : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                                                            )}
+                                                        >
+                                                            {reviewer.name || reviewer.email || reviewer.user_id}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-zinc-500 flex items-center gap-2">
+                                    <Tags className="h-4 w-4" />
+                                    Content Labels
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        placeholder="Add new label..."
+                                        value={newLabelName}
+                                        onChange={(e) => setNewLabelName(e.target.value)}
+                                        className="rounded-xl h-10 bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-indigo-600"
+                                    />
+                                    <Button
+                                        type="button"
+                                        onClick={handleCreateLabel}
+                                        disabled={isSavingLabel || !newLabelName.trim()}
+                                        variant="outline"
+                                        className="rounded-xl h-10 border-zinc-200 bg-white font-bold"
+                                    >
+                                        {isSavingLabel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                {labels.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {labels.map((label) => {
+                                            const selected = selectedLabelIds.includes(label.id);
+                                            return (
+                                                <div key={label.id} className="inline-flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedLabelIds((prev) =>
+                                                                prev.includes(label.id)
+                                                                    ? prev.filter((id) => id !== label.id)
+                                                                    : [...prev, label.id]
+                                                            );
+                                                        }}
+                                                        className={cn(
+                                                            "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold transition-colors",
+                                                            selected
+                                                                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                                                                : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+                                                        )}
+                                                    >
+                                                        {label.name}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRenameLabel(label)}
+                                                        className="text-zinc-400 hover:text-zinc-700 text-xs"
+                                                        aria-label={`Rename ${label.name}`}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteLabel(label.id)}
+                                                        className="text-zinc-400 hover:text-red-500 text-xs"
+                                                        aria-label={`Delete ${label.name}`}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-zinc-500">No labels yet. Create your first label.</p>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-zinc-500">Title *</label>
@@ -773,7 +1117,25 @@ export function CalendarModal() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 flex-shrink-0">
+                    <div className="px-6 py-4 border-t border-zinc-200 bg-zinc-50 flex justify-end gap-3 shrink-0">
+                        {editingEvent && formType === 'post' && formStatus !== 'published' && (
+                            <Button
+                                onClick={handlePublishNow}
+                                disabled={isSubmitting || (approvalRequired && approvalStatus !== 'approved')}
+                                className="h-11 px-6 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                Publish now
+                            </Button>
+                        )}
+                        {editingEvent && formType === 'post' && approvalRequired && approvalStatus !== 'pending' && approvalStatus !== 'approved' && (
+                            <Button
+                                onClick={handleSubmitForApproval}
+                                disabled={isSubmitting || selectedReviewerIds.length === 0}
+                                className="h-11 px-6 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                                Submit for approval
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             onClick={() => setIsCreateOpen(false)}
@@ -783,12 +1145,12 @@ export function CalendarModal() {
                         </Button>
                         <Button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !formTitle.trim() || !formDate || (formType === 'post' && !formAccountId)}
+                            disabled={isSubmitting || !formTitle.trim() || !formDate || (formType === 'post' && formStatus !== 'draft' && !formAccountId)}
                             className="h-11 px-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white border-0 transition-all active:scale-95 disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                            ) : editingEvent ? 'Save Changes' : (formType === 'post' ? 'Schedule Post' : 'Add to Calendar')}
+                            ) : editingEvent ? 'Save Changes' : (formType === 'post' ? (formStatus === 'draft' ? 'Save Draft' : formStatus === 'published' ? 'Publish Post' : 'Schedule Post') : 'Add to Calendar')}
                         </Button>
                     </div>
                 </DialogContent>

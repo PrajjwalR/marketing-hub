@@ -5,13 +5,12 @@ import {
     Bell,
     MessageCircle,
     FileText,
-    Plus,
-    MoreVertical,
     Keyboard,
     HelpCircle,
     UserCircle,
     MoreHorizontal,
 } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +37,7 @@ export function DashboardRightRail() {
         if (pathname.startsWith('/dashboard/emails') || pathname.startsWith('/dashboard/sequences') || pathname.startsWith('/dashboard/inbox')) return 'messages';
         if (pathname.startsWith('/dashboard/analytics') || pathname.startsWith('/dashboard/reports') || pathname.startsWith('/dashboard/deliverability')) return 'documents';
         if (pathname.startsWith('/dashboard/billing')) return 'more';
+        if (pathname.startsWith('/dashboard/settings')) return 'account';
         if (pathname.startsWith('/dashboard/calendar')) return 'documents';
         return null;
     })();
@@ -83,9 +83,14 @@ export function DashboardRightRail() {
                 <button type="button" className={railBtn} aria-label="Help" title="Help">
                     <HelpCircle className="h-[19px] w-[19px]" strokeWidth={1.5} />
                 </button>
-                <button type="button" className={railBtn} aria-label="Account" title="Account">
+                <Link
+                    href="/dashboard/settings"
+                    className={cn(railBtn, activeKey === 'account' && railBtnActive)}
+                    aria-label="Account"
+                    title="Account"
+                >
                     <UserCircle className="h-[19px] w-[19px]" strokeWidth={1.5} />
-                </button>
+                </Link>
             </div>
         </aside>
     );
