@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
+import { useEffect, useMemo, useState, use } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
-import { competitorsMockData } from '@/data/competitorsMockData';
 import EngagementChart from '@/components/competitors/EngagementChart';
 import InsightsPanel from '@/components/competitors/InsightsPanel';
 
@@ -26,16 +25,57 @@ type SortKey = 'date' | 'likes';
 
 export default function CompetitorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const competitor = competitorsMockData.find((c) => c.id === id);
+  const [competitor, setCompetitor] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortKey, setSortKey] = useState<SortKey>('date');
 
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        setIsLoading(true);
+        const res = await fetch('/api/competitors', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load');
+        const payload = await res.json();
+        const list = Array.isArray(payload?.competitors) ? payload.competitors : [];
+        const found = list.find((c: any) => c?.id === id) ?? null;
+        if (!cancelled) setCompetitor(found);
+      } catch {
+        if (!cancelled) setCompetitor(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const recentContent = useMemo(() => {
+    const accounts = competitor?.accounts;
+    if (!Array.isArray(accounts)) return [];
+    // Flatten any per-account recentContent arrays (may be empty for some platforms).
+    const items = accounts.flatMap((a: any) => (Array.isArray(a?.recentContent) ? a.recentContent : []));
+    return items;
+  }, [competitor]);
+
   const sortedContent = useMemo(() => {
-    if (!competitor) return [];
-    return [...competitor.recentContent].sort((a, b) => {
+    if (!recentContent.length) return [];
+    return [...recentContent].sort((a: any, b: any) => {
       if (sortKey === 'likes') return b.likes - a.likes;
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
-  }, [competitor, sortKey]);
+  }, [recentContent, sortKey]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <BarChart2 className="h-12 w-12 text-zinc-300 mb-4" />
+        <p className="text-sm text-zinc-500">Loading competitor…</p>
+      </div>
+    );
+  }
 
   if (!competitor) {
     return (
@@ -50,10 +90,9 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const { name, platform, category, avatarInitials, avatarColor, stats, recentContent } = competitor;
-  const platformStyle = PLATFORM_COLORS[platform] || PLATFORM_COLORS.YouTube;
-  const topPostIndex = [...recentContent]
-    .map((p, i) => ({ i, score: p.likes + p.comments }))
+  const { name, category, avatarInitials, avatarColor } = competitor;
+  const topPostIndex = [...sortedContent]
+    .map((p: any, i: number) => ({ i, score: (p.likes || 0) + (p.comments || 0) }))
     .sort((a, b) => b.score - a.score)[0]?.i ?? -1;
 
   return (
@@ -77,9 +116,6 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-[16px] font-bold text-[#111827] truncate">{name}</h1>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${platformStyle.bg} ${platformStyle.text} ${platformStyle.border}`}>
-                {platform}
-              </span>
               {category.map((tag: string) => (
                 <span key={tag} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 capitalize">
                   {tag}
@@ -90,16 +126,22 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
         </div>
       </header>
 
-      {/* Stat cards */}
+      {/* Stat cards (derived) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Total Posts" value={stats.totalPosts} />
-        <StatCard label="Avg Likes / Post" value={stats.avgLikes.toLocaleString()} />
-        <StatCard label="Avg Comments / Post" value={stats.avgComments.toLocaleString()} />
-        <StatCard label="Posting Frequency" value={stats.postingFrequency} />
+        <StatCard label="Connected Platforms" value={Array.isArray(competitor.accounts) ? competitor.accounts.length : 0} />
+        <StatCard label="Recent Content Items" value={recentContent.length} />
+        <StatCard label="Top Likes" value={recentContent.reduce((m: number, p: any) => Math.max(m, p.likes || 0), 0).toLocaleString()} />
+        <StatCard label="Top Comments" value={recentContent.reduce((m: number, p: any) => Math.max(m, p.comments || 0), 0).toLocaleString()} />
       </div>
 
       {/* Engagement chart */}
-      <EngagementChart data={recentContent} />
+      {recentContent.length > 0 ? (
+        <EngagementChart data={recentContent} />
+      ) : (
+        <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-10 text-center text-sm text-zinc-500">
+          No recent content data available for this competitor yet.
+        </div>
+      )}
 
       {/* Recent Content Table */}
       <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
@@ -134,7 +176,7 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
             </thead>
             <tbody>
               {sortedContent.map((post, i) => {
-                const isTop = post.id === recentContent[topPostIndex]?.id;
+                const isTop = i === topPostIndex;
                 return (
                   <tr
                     key={post.id}

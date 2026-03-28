@@ -164,27 +164,250 @@ async function fetchApifyFacebook(handle: string) {
 // --- 4. X (TWITTER) HANDLER ---
 async function fetchApifyTwitter(handle: string) {
   if (!APIFY_TOKEN) return null;
+
+  // Normalize input so the Apify actor can reliably find the profile.
+  // Examples:
+  // - "@brand" -> "brand"
+  // - "https://x.com/brand" -> "brand"
+  // - "brand" -> "brand"
   let username = handle.trim();
   if (username.includes('x.com/') || username.includes('twitter.com/')) {
     username = username.split('.com/')[1].split('/')[0].split('?')[0];
   }
+  username = username.replace(/^@/, '');
 
-  // Using Quacker's twitter scraper as it's the most reliable public one
+  function toNumber(val: any): number {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
+    if (typeof val === 'string') {
+      const cleaned = val.replace(/,/g, '').replace(/[^\d.]/g, '');
+      const num = parseFloat(cleaned);
+      return Number.isFinite(num) ? num : 0;
+    }
+    if (typeof val === 'object' && typeof val?.count !== 'undefined') {
+      return toNumber(val.count);
+    }
+    return 0;
+  }
+
+  function firstDefined(...vals: any[]) {
+    return vals.find(v => v !== null && v !== undefined);
+  }
+
   const url = `https://api.apify.com/v2/acts/quacker~twitter-scraper/run-sync-get-dataset-items?token=${APIFY_TOKEN}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ handle: [username] })
-  });
 
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (!data || data.length === 0 || data.error) return null;
+  // Using Quacker's twitter scraper as it's the most reliable public one.
+  // Correct input keys per Apify: `userName` and/or `url`.
+  let datasetItems: any = null;
+  let lastFailure: string | null = null;
 
-  const user = data[0].user || data[0];
-  const followers = user.followers_count || user.followersCount || 0;
-  const tweets = user.statuses_count || user.tweetsCount || 0;
+  const xUrl = `https://x.com/${username}`;
+  const twitterUrl = `https://twitter.com/${username}`;
+
+  // Apify actors commonly accept `startUrls` (list of URLs to scrape).
+  // We try multiple input shapes since Quacker actors have had schema changes over time.
+  const inputVariants = [
+    { startUrls: [{ url: xUrl }] },
+    { startUrls: [{ url: twitterUrl }] },
+    { urls: [xUrl] },
+    { urls: [twitterUrl] },
+    { url: xUrl },
+    { url: twitterUrl },
+    { userName: username, url: xUrl },
+    { userName: `@${username}`, url: xUrl },
+    { userName: username },
+  ];
+
+  for (const input of inputVariants) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input)
+        });
+
+        if (!response.ok) {
+          lastFailure = `Apify X request failed: ${response.status} ${response.statusText}`;
+          continue;
+        }
+
+        const data = await response.json();
+        if (!data) continue;
+
+        if (Array.isArray(data)) {
+          if (data.length === 0) continue;
+          datasetItems = data;
+          break;
+        }
+
+        if (typeof data === 'object') {
+          datasetItems = [data];
+          break;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        lastFailure = msg || 'fetch failed';
+      }
+    }
+    if (datasetItems) break;
+  }
+
+  if (!datasetItems || !Array.isArray(datasetItems) || datasetItems.length === 0) {
+    return {
+      platform: 'X',
+      handle: `https://x.com/${username}`,
+      error: `Apify X scrape failed${lastFailure ? `: ${lastFailure}` : ''}`,
+      stats: {
+        subscribers: 0,
+        totalVideosPosts: 0,
+        avgLikes: 0,
+        avgComments: 0,
+        reach: 0,
+        engagementRate: 0
+      },
+      recentContent: []
+    };
+  }
+
+  const raw = datasetItems[0];
+  const user = raw.user || raw;
+  const legacy = user?.legacy;
+
+  // Apify/Quacker payload shape can vary a lot. Try multiple common keys/paths.
+  const followersVal = firstDefined(
+    // raw top-level
+    raw.followers_count,
+    raw.followersCount,
+    raw.followers_total,
+    raw.follower_count,
+    raw.followerCount,
+    raw.followers,
+    // `user` level
+    user?.followers_count,
+    user?.followersCount,
+    user?.followers_total,
+    user?.follower_count,
+    user?.followerCount,
+    user?.followers,
+    // legacy (often comes as numbers/strings)
+    legacy?.followers_count,
+    legacy?.followersCount,
+    legacy?.followers_total,
+    legacy?.follower_count,
+    legacy?.followerCount,
+    legacy?.followers,
+    // public_metrics
+    user?.public_metrics?.followers_count,
+    user?.publicMetrics?.followers_count,
+    user?.public_metrics?.followersCount,
+    user?.publicMetrics?.followersCount
+  );
+
+  const tweetsVal = firstDefined(
+    // raw top-level
+    raw.statuses_count,
+    raw.statusesCount,
+    raw.tweets_count,
+    raw.tweetsCount,
+    raw.tweets_total,
+    raw.statuses_total,
+    // `user` level
+    user?.statuses_count,
+    user?.statusesCount,
+    user?.tweets_count,
+    user?.tweetsCount,
+    user?.tweets_total,
+    user?.statuses_total,
+    // legacy
+    legacy?.statuses_count,
+    legacy?.statusesCount,
+    legacy?.tweets_count,
+    legacy?.tweetsCount,
+    legacy?.tweets_total,
+    legacy?.statuses_total,
+    // public_metrics
+    user?.public_metrics?.statuses_count,
+    user?.publicMetrics?.statuses_count,
+    user?.public_metrics?.statusesCount,
+    user?.publicMetrics?.statusesCount
+  );
+
+  function findFirstNumberByKeyRegex(obj: any, keyRegex: RegExp, maxDepth = 4): number | undefined {
+    const isObject = (v: any) => v !== null && typeof v === 'object';
+    const visited = new Set<any>();
+
+    function walk(v: any, depth: number): number | undefined {
+      if (!isObject(v) || depth > maxDepth) return undefined;
+      if (visited.has(v)) return undefined;
+      visited.add(v);
+
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          const found = walk(item, depth + 1);
+          if (typeof found === 'number') return found;
+        }
+        return undefined;
+      }
+
+      for (const [k, val] of Object.entries(v)) {
+        if (keyRegex.test(k)) {
+          if (val !== null && val !== undefined) {
+            const n = toNumber(val);
+            if (Number.isFinite(n)) return n;
+          }
+        }
+        const nested = walk(val, depth + 1);
+        if (typeof nested === 'number') return nested;
+      }
+      return undefined;
+    }
+
+    return walk(obj, 0);
+  }
+
+  const isNullish = (v: any) => v === null || v === undefined;
+
+  // If we couldn't find the follower/tweets fields at all, try a generic nested-key search.
+  let resolvedFollowersVal = followersVal;
+  let resolvedTweetsVal = tweetsVal;
+
+  if (isNullish(resolvedFollowersVal)) {
+    const found = findFirstNumberByKeyRegex(raw, /(follower|followers|follower_count|followerCount)/i);
+    if (!isNullish(found)) resolvedFollowersVal = found;
+  }
+  if (isNullish(resolvedTweetsVal)) {
+    const found = findFirstNumberByKeyRegex(raw, /(statuses|status|tweets|tweets_count|statuses_count|tweetCount|statusesCount)/i);
+    if (!isNullish(found)) resolvedTweetsVal = found;
+  }
+
+  // If the actor response doesn't contain follower fields, return an error so we don't overwrite with 0.
+  if (isNullish(resolvedFollowersVal)) {
+    console.warn('[X_SCRAPE_MISSING_FOLLOWERS]', {
+      username,
+      rawTopKeys: raw && typeof raw === 'object' ? Object.keys(raw) : [],
+      userTopKeys: user && typeof user === 'object' ? Object.keys(user) : [],
+      apifyError: raw?.error,
+    });
+    return {
+      platform: 'X',
+      handle: `https://x.com/${username}`,
+      error: raw?.error ? String(raw.error) : 'Apify X actor did not return follower counts in expected fields',
+      stats: {
+        subscribers: 0,
+        totalVideosPosts: 0,
+        avgLikes: 0,
+        avgComments: 0,
+        reach: 0,
+        engagementRate: 0
+      },
+      recentContent: []
+    };
+  }
+
+  const followers = toNumber(resolvedFollowersVal);
+  const tweets = toNumber(resolvedTweetsVal);
 
   return {
     platform: 'X',
@@ -312,9 +535,9 @@ export async function POST(request: Request) {
           },
           recentContent: []
         });
-      } else if (strictRealData) {
-        // In strict mode (used for "our company"), never inject synthetic stats.
-        // Return explicit error payload and let client keep previous values or show failure.
+      } else if (strictRealData || acc.platform !== 'LinkedIn') {
+        // For this competitor analysis flow, we do NOT want synthetic/fake numbers.
+        // If scraping fails, return an error payload and let the UI keep the previous values.
         analyzedAccounts.push({
           platform: acc.platform,
           handle: acc.handle,
@@ -330,10 +553,21 @@ export async function POST(request: Request) {
           recentContent: []
         });
       } else {
-        // FALLBACK: If the actor is broken, blocked by a captcha, or unsupported,
-        // use the synthesized generator so the dashboard continues to function.
-        const fallbackData = await synthesizeFallback(acc, baseMultiplier);
-        analyzedAccounts.push(fallbackData);
+        // LinkedIn failure without strict mode: keep existing explicit 0s behaviour.
+        analyzedAccounts.push({
+          platform: 'LinkedIn',
+          handle: acc.handle,
+          error: 'Apify Actor Subscription Required',
+          stats: {
+            subscribers: 0,
+            totalVideosPosts: 0,
+            avgLikes: 0,
+            avgComments: 0,
+            reach: 0,
+            engagementRate: 0
+          },
+          recentContent: []
+        });
       }
     }
 

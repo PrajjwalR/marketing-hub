@@ -39,6 +39,17 @@ const PLATFORM_ORDER = ['YouTube', 'Instagram', 'Facebook', 'X', 'LinkedIn'];
 
 export default function ComparisonTable({ data, activePlatformFilter = 'All Platforms', onAddPlatform, onRemoveCompany, onEditPlatform, onRefreshPlatform, refreshingPlatforms = {} }) {
   if (!data || data.length === 0) return null;
+  const isSingleCompanyView = data.length === 1;
+  const companyColMinWidth = isSingleCompanyView ? 'min-w-[110px]' : 'min-w-[220px]';
+  const companyColPadding = isSingleCompanyView ? 'p-1.5' : 'p-4';
+  const cellPadding = isSingleCompanyView ? 'p-1.5' : 'p-4';
+  const companyHeaderTextSize = isSingleCompanyView ? 'text-[12px]' : 'text-[15px]';
+  const companyAvatarSize = isSingleCompanyView ? 'h-8 w-8' : 'h-10 w-10';
+  const companyBadgeTextSize = isSingleCompanyView ? 'text-[8px]' : 'text-[10px]';
+  const companyHeaderGap = isSingleCompanyView ? 'gap-0.5' : 'gap-2';
+  const platformRowTextSize = isSingleCompanyView ? 'text-[11px]' : 'text-[13px]';
+  const platformRowMinHeight = isSingleCompanyView ? 'min-h-[18px]' : 'min-h-[24px]';
+  const platformRowXPad = isSingleCompanyView ? 'px-1' : 'px-1';
 
   // Platforms to show based on standard filter view (so empty ones can be added)
   const visiblePlatforms = activePlatformFilter === 'All Platforms' 
@@ -56,8 +67,8 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
   ];
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-x-auto shadow-sm">
-      <table className="w-full text-left border-collapse">
+    <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-x-auto shadow-sm w-full">
+      <table className={`${isSingleCompanyView ? 'w-auto min-w-[560px]' : 'w-full'} text-left border-collapse`}>
         <thead>
           <tr>
             <th className="p-4 bg-zinc-50 border-b border-r border-[#E5E7EB] w-48 text-[13px] font-bold text-zinc-500 uppercase tracking-widest sticky left-0 z-10">
@@ -66,7 +77,7 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
             {data.map((company, i) => (
               <th
                 key={company.id}
-                className={`group relative p-4 border-b border-[#E5E7EB] min-w-[220px] text-center ${
+                className={`group relative ${companyColPadding} border-b border-[#E5E7EB] ${companyColMinWidth} text-center ${
                   company.isOurs ? 'bg-[#EEF4FF] border-b-[#2D66C3]/20 shadow-[inset_0_2px_0_#2D66C3]' : 'bg-white'
                 } ${i < data.length - 1 ? 'border-r' : ''}`}
               >
@@ -79,9 +90,9 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
-                <div className="flex flex-col items-center gap-2">
+                <div className={`flex flex-col items-center ${companyHeaderGap}`}>
                   <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] text-sm font-bold text-white shadow-sm overflow-hidden"
+                    className={`flex ${companyAvatarSize} shrink-0 items-center justify-center rounded-[8px] text-sm font-bold text-white shadow-sm overflow-hidden`}
                     style={company.avatarImage ? {} : { backgroundColor: company.avatarColor }}
                   >
                     {company.avatarImage ? (
@@ -92,11 +103,11 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                     )}
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className={`text-[15px] font-extrabold ${company.isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>
+                    <span className={`${companyHeaderTextSize} font-extrabold ${company.isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>
                       {company.name}
                     </span>
                     {company.isOurs && (
-                      <span className="mt-1.5 rounded-full bg-[#2D66C3] px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                      <span className={`mt-1.5 rounded-full bg-[#2D66C3] px-2 py-0.5 ${companyBadgeTextSize} font-bold text-white uppercase tracking-wider`}>
                         You
                       </span>
                     )}
@@ -107,14 +118,14 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
           </tr>
         </thead>
         <tbody className="text-[14px]">
-          {metrics.slice(1).map((metric, rowIndex) => (
+          {metrics.slice(1).map((metric) => (
             <tr key={metric.key} className="transition-colors hover:bg-zinc-50/50">
               <td className="p-4 bg-zinc-50/80 border-b border-r border-[#E5E7EB] font-bold text-[#374151] sticky left-0 z-10 align-top">
                 {metric.label}
               </td>
               {data.map((company, colIndex) => {
                 const isOurs = company.isOurs;
-                const cellClass = `p-4 border-b border-[#E5E7EB] align-top ${
+                const cellClass = `${cellPadding} border-b border-[#E5E7EB] align-top ${
                   isOurs ? 'bg-[#EEF4FF]/50' : 'bg-white'
                 } ${colIndex < data.length - 1 ? 'border-r' : ''}`;
 
@@ -128,7 +139,7 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                          const isRefreshing = Boolean(refreshingPlatforms[refreshKey]);
                          
                          return (
-                           <div key={plat} className="flex items-center justify-between text-[13px] w-full px-1 min-h-[24px]">
+                           <div key={plat} className={`flex items-center justify-between ${platformRowTextSize} w-full ${platformRowXPad} ${platformRowMinHeight}`}>
                              <div className="flex items-center justify-center p-1 rounded-md bg-zinc-100 border border-zinc-200" title={plat}>
                                {PLATFORM_ICONS[plat]}
                              </div>
@@ -153,9 +164,18 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                                      <Pencil className="w-3 h-3" />
                                    </button>
                                  )}
-                                 <span className={`font-semibold ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-700'}`}>
-                                   {formatStat(acc.stats[metric.key], metric.type === 'percent')}
-                                 </span>
+                                <span
+                                  className={`font-semibold ${
+                                    acc?.error
+                                      ? 'text-zinc-400'
+                                      : isOurs
+                                        ? 'text-[#1d4e9f]'
+                                        : 'text-zinc-700'
+                                  }`}
+                                  title={acc?.error ? String(acc.error) : undefined}
+                                >
+                                  {acc?.error ? '-' : formatStat(acc.stats[metric.key], metric.type === 'percent')}
+                                </span>
                                </div>
                              ) : (
                                onAddPlatform ? (

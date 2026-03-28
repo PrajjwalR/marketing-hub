@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Plus, BarChart2, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
-import { competitorsMockData } from '@/data/competitorsMockData';
 import ComparisonTable from '@/components/competitors/ComparisonTable';
 import ComparisonChart from '@/components/competitors/ComparisonChart';
 import ContentPillarsTable from '@/components/competitors/ContentPillarsTable';
@@ -25,7 +24,7 @@ function sanitizeCompetitorsData(data: any[]) {
 export default function CompetitorsPage() {
   const { user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
-  const [competitors, setCompetitors] = useState(() => sanitizeCompetitorsData(competitorsMockData));
+  const [competitors, setCompetitors] = useState<any[]>([]);
   const [hasLoadedFromDb, setHasLoadedFromDb] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [activePlatformAdd, setActivePlatformAdd] = useState<{company: any, platform: string} | null>(null);
@@ -59,8 +58,46 @@ export default function CompetitorsPage() {
            if (response.ok) {
               const freshComp = await response.json();
               if (isSubscribed) {
-                 // Update the specific competitor in place seamlessly to avoid race conditions with adding new ones
-                 setCompetitors(prev => prev.map(c => c.id === comp.id ? { ...freshComp, id: comp.id, isOurs: comp.isOurs } : c));
+                 // Merge so failed scrapes (error payloads) don't overwrite previously-correct stats.
+                 setCompetitors(prev =>
+                   prev.map((c: any) => {
+                     if (c.id !== comp.id) return c;
+
+                     const existingAccounts: any[] = Array.isArray(c.accounts) ? c.accounts : [];
+                     const freshAccounts: any[] = Array.isArray(freshComp?.accounts) ? freshComp.accounts : [];
+
+                     const existingByPlatform = new Map(existingAccounts.map(a => [a.platform, a]));
+
+                     const mergedAccounts: any[] = [];
+
+                     // Take all fresh accounts; if a fresh account has error, keep the previous one if present.
+                     for (const fa of freshAccounts) {
+                       if (!fa?.platform) continue;
+                       if (fa.error) {
+                         const prevAcc = existingByPlatform.get(fa.platform);
+                         if (prevAcc) mergedAccounts.push(prevAcc);
+                       } else {
+                         mergedAccounts.push(fa);
+                       }
+                     }
+
+                     // Keep any existing platforms not present in the fresh payload.
+                     for (const ea of existingAccounts) {
+                       if (!ea?.platform) continue;
+                       if (!mergedAccounts.some(a => a?.platform === ea.platform)) mergedAccounts.push(ea);
+                     }
+
+                     return {
+                       ...freshComp,
+                       id: comp.id,
+                       isOurs: c.isOurs,
+                       // Keep avatar fields stable so UI doesn't flicker on background refresh.
+                       avatarInitials: c.avatarInitials,
+                       avatarColor: c.avatarColor,
+                       accounts: mergedAccounts
+                     };
+                   })
+                 );
               }
            }
         }
@@ -72,7 +109,7 @@ export default function CompetitorsPage() {
     }
 
     async function bootstrapFromDb() {
-      let loadedData = sanitizeCompetitorsData(competitorsMockData);
+      let loadedData: any[] = [];
       try {
         const response = await fetch('/api/competitors', { cache: 'no-store' });
         if (response.ok) {
@@ -88,7 +125,7 @@ export default function CompetitorsPage() {
       if (!isSubscribed) return;
       setCompetitors(loadedData);
       setHasLoadedFromDb(true);
-      backgroundSync(loadedData);
+      if (loadedData.length > 0) backgroundSync(loadedData);
     }
 
     bootstrapFromDb();
@@ -149,7 +186,8 @@ export default function CompetitorsPage() {
       const analysisResult = await response.json();
       
       const newAccountObj = analysisResult.accounts[0];
-      if (!newAccountObj || newAccountObj.error) throw new Error('Live data unavailable');
+      if (!newAccountObj) throw new Error('No account data returned');
+      if (newAccountObj.error) throw new Error(String(newAccountObj.error));
 
       setCompetitors(prev => prev.map(c => {
         if (c.id === activePlatformAdd.company.id) {
@@ -162,13 +200,14 @@ export default function CompetitorsPage() {
       
       setActivePlatformAdd(null);
     } catch (err) {
-       alert("Failed to analyze the new platform. Please check URL.");
+       const msg = err instanceof Error ? err.message : '';
+       alert(`Failed to analyze the new platform. ${msg ? `Reason: ${msg}` : 'Please check URL.'}`);
     }
   }
 
   function handleClearData() {
     if (confirm('This will clear all saved competitor data so you can start fresh. Continue?')) {
-      setCompetitors(sanitizeCompetitorsData(competitorsMockData));
+      setCompetitors([]);
     }
   }
 
@@ -189,7 +228,8 @@ export default function CompetitorsPage() {
       if (!response.ok) throw new Error('API Error');
       const analysisResult = await response.json();
       const newAccountObj = analysisResult.accounts[0];
-      if (!newAccountObj || newAccountObj.error) throw new Error('Live data unavailable');
+      if (!newAccountObj) throw new Error('No account data returned');
+      if (newAccountObj.error) throw new Error(String(newAccountObj.error));
 
       setCompetitors(prev => prev.map(c => {
         if (c.id === activePlatformEdit.company.id) {
@@ -203,7 +243,8 @@ export default function CompetitorsPage() {
       
       setActivePlatformEdit(null);
     } catch (err) {
-       alert("Failed to update and analyze the tracking URL.");
+       const msg = err instanceof Error ? err.message : '';
+       alert(`Failed to update and analyze the tracking URL. ${msg ? `Reason: ${msg}` : ''}`);
     }
   }
 
@@ -226,7 +267,8 @@ export default function CompetitorsPage() {
       if (!response.ok) throw new Error('API Error');
       const analysisResult = await response.json();
       const refreshedAccount = analysisResult.accounts?.[0];
-      if (!refreshedAccount || refreshedAccount.error) throw new Error('Live data unavailable');
+      if (!refreshedAccount) throw new Error('No account data returned');
+      if (refreshedAccount.error) throw new Error(String(refreshedAccount.error));
 
       setCompetitors(prev => prev.map(c => {
         if (c.id !== company.id) return c;
@@ -238,7 +280,8 @@ export default function CompetitorsPage() {
         };
       }));
     } catch (err) {
-      alert(`Failed to refresh ${platformName} account stats.`);
+      const msg = err instanceof Error ? err.message : '';
+      alert(`Failed to refresh ${platformName} account stats.${msg ? ` Reason: ${msg}` : ''}`);
     } finally {
       setRefreshingPlatforms(prev => {
         const next = { ...prev };
@@ -249,19 +292,6 @@ export default function CompetitorsPage() {
   }
 
   const processedData = useMemo(() => {
-    // 1. Separate "Our Company" from the rest
-    const ourCompanyMock = competitors.find(c => c.isOurs) || competitors[0];
-    const others = competitors.filter(c => c.id !== ourCompanyMock.id);
-
-    // Dynamically inject the authenticated user's details
-    const companyName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'My Company');
-    const ourCompany = {
-      ...ourCompanyMock,
-      name: companyName,
-      avatarImage: user?.photoURL,
-      avatarInitials: companyName.substring(0, 2).toUpperCase()
-    };
-
     // Helper: Filter accounts IN the company objects based on Platform filter
     const filterCompanyAccounts = (comp: any) => {
       if (platform === 'All Platforms') return comp;
@@ -269,8 +299,19 @@ export default function CompetitorsPage() {
       return { ...comp, accounts: filteredAccounts };
     };
 
-    let ourFiltered = filterCompanyAccounts(ourCompany);
-    let othersFiltered = others.map(filterCompanyAccounts);
+    const ourCompanyExisting = competitors.find(c => c.isOurs);
+    const companyName = user?.displayName || (user?.email ? user.email.split('@')[0] : 'My Company');
+    const ourCompany = ourCompanyExisting
+      ? filterCompanyAccounts({
+          ...ourCompanyExisting,
+          name: companyName,
+          avatarImage: user?.photoURL,
+          avatarInitials: companyName.substring(0, 2).toUpperCase()
+        })
+      : null;
+
+    const others = competitors.filter(c => !c.isOurs);
+    const othersFiltered = others.map(filterCompanyAccounts);
 
     // 2. Filter companies that have AT LEAST ONE account matching the filters
     const filtered = othersFiltered.filter((c) => {
@@ -300,8 +341,8 @@ export default function CompetitorsPage() {
       return valB - valA;
     });
 
-    // 4. Reconstruct array: Our Company always first
-    return [ourFiltered, ...sorted];
+    // 4. Reconstruct array: Our Company first (if present)
+    return ourCompany ? [ourCompany, ...sorted] : sorted;
   }, [competitors, search, platform, category, sortBy]);
 
   // Prevent hydration mismatch by blocking render until mounted
@@ -355,12 +396,16 @@ export default function CompetitorsPage() {
         <div>
           <div className="mb-3 flex items-center justify-between px-1">
             <h2 className="text-[16px] font-extrabold text-[#111827]">Metrics Comparison</h2>
-            <span className="text-[13px] text-zinc-500 font-medium tracking-wide">
-              Comparing You vs {processedData.length - 1} Competitor{processedData.length - 1 !== 1 ? 's' : ''}
-            </span>
+            {processedData.length > 0 && (
+              <span className="text-[13px] text-zinc-500 font-medium tracking-wide">
+                {processedData.some((c: any) => c.isOurs)
+                  ? `Comparing You vs ${Math.max(0, processedData.length - 1)} Competitor${processedData.length - 1 !== 1 ? 's' : ''}`
+                  : `Comparing ${processedData.length} Company${processedData.length !== 1 ? 'ies' : ''}`}
+              </span>
+            )}
           </div>
           
-          {processedData.length > 1 ? (
+          {processedData.length > 0 ? (
             <ComparisonTable 
                data={processedData} 
                activePlatformFilter={platform}
@@ -372,12 +417,13 @@ export default function CompetitorsPage() {
             />
           ) : (
             <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-12 text-center">
-              <p className="text-[14px] text-zinc-500 font-medium">No competitors match your filters.</p>
-              <button 
-                onClick={() => { setSearch(''); setPlatform('All Platforms'); setCategory('All Categories'); setSortBy('name'); }}
-                className="mt-3 text-[#2D66C3] font-bold text-[13px] hover:underline"
+              <p className="text-[14px] text-zinc-500 font-medium">No tracked companies yet.</p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm"
               >
-                Clear Filters
+                <Plus className="h-4 w-4" />
+                Add your first company
               </button>
             </div>
           )}
