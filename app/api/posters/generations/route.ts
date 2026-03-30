@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
         let query = supabaseAdmin
             .from('poster_generations')
-            .select('id, type, output_url, description, requirements, format, style, tone, prompt, parent_id, saved, created_at')
+            .select('id, type, output_url, description, requirements, format, style, tone, prompt, negative_prompt, parent_id, saved, created_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
             .limit(limit);
