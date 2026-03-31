@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    LayoutGrid, BarChart2
+    BarChart2, Target, Home, Brain
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,16 +31,34 @@ const WhatsappIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const sidebarData = [
+type SidebarSubItem = {
+    name: string;
+    href: string;
+    badge?: string;
+    external?: boolean;
+};
+
+type SidebarSection = {
+    name: string;
+    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    href?: string;
+    external?: boolean;
+    hasBorderBottom?: boolean;
+    defaultExpanded?: boolean;
+    hasArrow?: boolean;
+    items?: SidebarSubItem[];
+};
+
+const sidebarData: SidebarSection[] = [
     {
         name: 'Dashboard',
-        icon: LayoutDashboard,
+        icon: Home,
         href: '/dashboard',
         hasBorderBottom: true,
     },
     {
         name: 'Strategy Planner',
-        icon: LayoutGrid,
+        icon: Brain,
         href: '/dashboard/strategy'
     },
     {
@@ -61,86 +79,87 @@ const sidebarData = [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
             { name: 'Create Content', href: '/dashboard/posters' },
+            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
             
             { name: 'Create New', href: '/dashboard/create' },
             // { name: 'Billing', href: '/dashboard/billing' },
         ]
     },
-    {
-        name: 'Billing',
-        icon: CreditCard,
-        href: '/dashboard/billing'
-    },
+    // {
+    //     name: 'Billing',
+    //     icon: CreditCard,
+    //     href: '/dashboard/billing'
+    // },
     {
         name: 'Whathub',
         icon: WhatsappIcon,
         href: '/api/whathub/sso',
         external: true,
     },
-    {
-        name: 'CRM',
-        icon: CreditCard,
-        href: '/dashboard/billing',
-        items: [
-            { name: 'Contacts', href: '/dashboard/contacts' },
-            { name: 'Companies', href: '/dashboard/companies' },
-            { name: 'Lists', href: '/dashboard/lists' },
-            { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
-        ]
-    },
-    {
-        name: 'Engage',
-        icon: Send,
-        defaultExpanded: true,
-        items: [
-            { name: 'Sequences', href: '/dashboard/sequences' },
-            { name: 'Emails', href: '/dashboard/emails' },
-            { name: 'Calls', href: '/dashboard/calls' },
-            { name: 'Tasks', href: '/dashboard/tasks' },
-        ]
-    },
-    {
-        name: 'Win deals',
-        icon: DollarSign,
-        defaultExpanded: false,
-        items: [
-            { name: 'Meetings', href: '/dashboard/meetings' },
-            { name: 'Conversations', href: '/dashboard/conversations' },
-            { name: 'Deals', href: '/dashboard/deals' },
-        ]
-    },
-    {
-        name: 'Tools and automation',
-        icon: Wrench,
-        defaultExpanded: false,
-        items: [
-            { name: 'Workflows', href: '/dashboard/workflows' },
-            { name: 'Analytics', href: '/dashboard/analytics' },
-            { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
-        ]
-    },
-    {
-        name: 'Inbound',
-        icon: ArrowDownLeft,
-        defaultExpanded: false,
-        items: [
-            { name: 'Website visitors', href: '/dashboard/website-visitors', badge: 'New' },
-            { name: 'Forms', href: '/dashboard/forms' },
-        ]
-    },
-    {
-        name: 'Saved records',
-        icon: Bookmark,
-        defaultExpanded: false,
-        items: [
-            { name: 'People', href: '/dashboard/saved-people' },
-        ]
-    },
-    {
-        name: 'Deliverability suite',
-        icon: ShieldCheck,
-        href: '/dashboard/deliverability'
-    },
+    // {
+    //     name: 'CRM',
+    //     icon: CreditCard,
+    //     href: '/dashboard/billing',
+    //     items: [
+    //         { name: 'Contacts', href: '/dashboard/contacts' },
+    //         { name: 'Companies', href: '/dashboard/companies' },
+    //         { name: 'Lists', href: '/dashboard/lists' },
+    //         { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
+    //     ]
+    // },
+    // {
+    //     name: 'Engage',
+    //     icon: Send,
+    //     defaultExpanded: true,
+    //     items: [
+    //         { name: 'Sequences', href: '/dashboard/sequences' },
+    //         { name: 'Emails', href: '/dashboard/emails' },
+    //         { name: 'Calls', href: '/dashboard/calls' },
+    //         { name: 'Tasks', href: '/dashboard/tasks' },
+    //     ]
+    // },
+    // {
+    //     name: 'Win deals',
+    //     icon: DollarSign,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Meetings', href: '/dashboard/meetings' },
+    //         { name: 'Conversations', href: '/dashboard/conversations' },
+    //         { name: 'Deals', href: '/dashboard/deals' },
+    //     ]
+    // },
+    // {
+    //     name: 'Tools and automation',
+    //     icon: Wrench,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Workflows', href: '/dashboard/workflows' },
+    //         { name: 'Analytics', href: '/dashboard/analytics' },
+    //         { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
+    //     ]
+    // },
+    // {
+    //     name: 'Inbound',
+    //     icon: ArrowDownLeft,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Website visitors', href: '/dashboard/website-visitors', badge: 'New' },
+    //         { name: 'Forms', href: '/dashboard/forms' },
+    //     ]
+    // },
+    // {
+    //     name: 'Saved records',
+    //     icon: Bookmark,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'People', href: '/dashboard/saved-people' },
+    //     ]
+    // },
+    // {
+    //     name: 'Deliverability suite',
+    //     icon: ShieldCheck,
+    //     href: '/dashboard/deliverability'
+    // },
    
     {
         name: 'Admin Settings',
@@ -179,7 +198,7 @@ export function Sidebar() {
         }, {} as Record<string, boolean>)
     );
 
-    const toggleSection = (name: string, items?: any[]) => {
+    const toggleSection = (name: string, items?: SidebarSubItem[]) => {
         if (isCollapsed) {
             if (items && items.length > 0) {
                 // Always open/keep open the secondary sidebar when clicking a parent icon
@@ -207,6 +226,7 @@ export function Sidebar() {
 
     // On navigation: expand on dashboard home only; otherwise collapse.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCollapsed(!isDashboardHomePath(pathname));
         setShowSecondary(false);
         setActiveSectionName(null);
@@ -223,6 +243,7 @@ export function Sidebar() {
 
     useEffect(() => {
         if (!isCollapsed) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowSecondary(false);
             setActiveSectionName(null);
         } else {
@@ -366,7 +387,7 @@ export function Sidebar() {
                                 {section.items?.map(item => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
-                                        if ((item as any).external) {
+                                        if (item.external) {
                                             return (
                                                 <a
                                                     key={item.name}
@@ -402,12 +423,12 @@ export function Sidebar() {
                                                     "truncate transition-all duration-300",
                                                     isCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible w-auto"
                                                 )}>{item.name}</span>
-                                                {(item as any).badge && (
+                                                {item.badge && (
                                                     <span className={cn(
                                                         "text-[11px] uppercase tracking-wider bg-emerald-500/20 text-emerald-200 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
                                                         isCollapsed ? "opacity-0 scale-0 invisible w-0" : "opacity-100 scale-100 visible w-auto"
                                                     )}>
-                                                        {(item as any).badge}
+                                                        {item.badge}
                                                     </span>
                                                 )}
                                             </Link>
@@ -478,7 +499,7 @@ export function Sidebar() {
 
                     const singleLinkItem = (
                         <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
-                            {(section as any).external ? (
+                            {section.external ? (
                                 <a
                                     href={section.href!}
                                     target="_blank"
