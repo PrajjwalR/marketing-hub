@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PostersAiHelpSheet, type AiHelpSelection } from './posters-ai-help-sheet';
 import { PostersRegenerateModal, type PosterGenerationRecord } from './posters-regenerate-modal';
 import { AddToStrategyModal } from './add-to-strategy-modal';
+import type { StrategyPostersContext } from '@/lib/strategy-posters-context';
 import { toast } from 'sonner';
 import {
     Select,
@@ -230,14 +231,26 @@ function ResultPreview({ type, previewUrl }: { type: WorkbenchType; previewUrl?:
     );
 }
 
+function defaultFormatForStrategyPost(contentType: string, workbenchType: WorkbenchType): string {
+    const c = contentType.toLowerCase();
+    if (workbenchType === 'video') return 'reels-9-16';
+    if (c === 'reel' || c === 'video') return 'reels-9-16';
+    if (c === 'carousel') return 'portrait-4-5';
+    if (c === 'text_post') return 'landscape-16-9';
+    return 'square-1-1';
+}
+
 export function PostersWorkbench({
     title,
     subtitle,
     type,
+    strategyContext = null,
 }: {
     title: string;
     subtitle: string;
     type: WorkbenchType;
+    /** Loaded from ?strategyId=&postId= — keeps AI Help aligned with that strategy post */
+    strategyContext?: StrategyPostersContext | null;
 }) {
     const [referenceFile, setReferenceFile] = useState<File | null>(null);
     const [referenceGalleryUrl, setReferenceGalleryUrl] = useState<string | null>(null);
@@ -260,6 +273,8 @@ export function PostersWorkbench({
     const [regenerateModalOpen, setRegenerateModalOpen] = useState(false);
     const [addToStrategyModalOpen, setAddToStrategyModalOpen] = useState(false);
     const [addToStrategyMediaUrl, setAddToStrategyMediaUrl] = useState<string | null>(null);
+    const didApplyStrategyDefaults = useRef(false);
+    const didPrefillDescription = useRef(false);
 
     const previewUrl = useMemo(() => {
         if (referenceFile) return URL.createObjectURL(referenceFile);
@@ -310,6 +325,28 @@ export function PostersWorkbench({
             })
             .catch(() => {});
     }, [type]);
+
+    useEffect(() => {
+        didApplyStrategyDefaults.current = false;
+        didPrefillDescription.current = false;
+    }, [strategyContext?.strategyId, strategyContext?.post.id]);
+
+    useEffect(() => {
+        if (!strategyContext || didApplyStrategyDefaults.current) return;
+        didApplyStrategyDefaults.current = true;
+        setFormat(defaultFormatForStrategyPost(strategyContext.post.contentType, type));
+    }, [strategyContext, type]);
+
+    useEffect(() => {
+        if (!strategyContext || didPrefillDescription.current) return;
+        const parts = [strategyContext.post.idea, strategyContext.post.caption].filter(
+            (x): x is string => typeof x === 'string' && x.trim().length > 0
+        );
+        if (parts.length) {
+            setDescription(parts.join('\n\n'));
+            didPrefillDescription.current = true;
+        }
+    }, [strategyContext]);
 
     const canGenerate = description.trim().length > 0;
 
@@ -449,6 +486,18 @@ export function PostersWorkbench({
                             {title}
                         </h2>
                         <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
+                        {strategyContext && (
+                            <div className="mt-2 rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-xs text-indigo-950">
+                                <span className="font-semibold">Strategy post:</span>{' '}
+                                {strategyContext.strategyName} · Day {strategyContext.post.day} ·{' '}
+                                <span className="capitalize">{strategyContext.post.platform}</span> ·{' '}
+                                <span className="capitalize">{strategyContext.post.contentType.replace(/_/g, ' ')}</span>
+                                {strategyContext.scheduledDateLabel
+                                    ? ` · ${strategyContext.scheduledDateLabel}`
+                                    : ''}
+                                . AI Help suggestions will match this post.
+                            </div>
+                        )}
                     </div>
                     <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600">
                         <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
@@ -597,6 +646,9 @@ export function PostersWorkbench({
                                                 format,
                                                 style,
                                                 tone,
+                                                prompt: typeof data.prompt === 'string' ? data.prompt : null,
+                                                negative_prompt:
+                                                    typeof data.negativePrompt === 'string' ? data.negativePrompt : null,
                                                 parent_id: data.parentId ?? null,
                                                 saved: false,
                                             };
@@ -739,6 +791,7 @@ export function PostersWorkbench({
             onOpenChange={setRegenerateModalOpen}
             type={type}
             generation={lastGeneration}
+            strategyContext={strategyContext}
             onRegenerate={async (params) => {
                 setIsGenerating(true);
                 try {
@@ -784,6 +837,9 @@ export function PostersWorkbench({
                             format: params.format,
                             style: params.style,
                             tone: params.tone,
+                            prompt: typeof data.prompt === 'string' ? data.prompt : null,
+                            negative_prompt:
+                                typeof data.negativePrompt === 'string' ? data.negativePrompt : null,
                             parent_id: params.parentId,
                             saved: false,
                         };
@@ -835,6 +891,7 @@ export function PostersWorkbench({
             open={aiHelpOpen}
             onOpenChange={setAiHelpOpen}
             type={type}
+            strategyContext={strategyContext}
             onApply={(sel: AiHelpSelection) => {
                 setDescription(sel.description);
                 setRequirements(sel.requirements);

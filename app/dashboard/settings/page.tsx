@@ -22,12 +22,19 @@ import {
     Loader2,
     Camera,
     Pencil,
-    Save
+    Save,
+    Gem,
+    Dumbbell,
+    ShoppingBag,
+    Sparkles,
+    Globe2,
+    type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -247,6 +254,356 @@ function ProfileSection({ firebaseUser }: { firebaseUser: User | null }) {
     );
 }
 
+const BUSINESS_VERTICAL_CARDS: {
+    id: "jewellery" | "gym" | "ecommerce";
+    title: string;
+    blurb: string;
+    Icon: LucideIcon;
+    accent: string;
+    ring: string;
+}[] = [
+    {
+        id: "jewellery",
+        title: "Jewellery & luxury",
+        blurb: "Fine jewellery, watches, bespoke pieces, retail & D2C.",
+        Icon: Gem,
+        accent: "from-amber-500/15 to-rose-500/10",
+        ring: "ring-amber-400/80",
+    },
+    {
+        id: "gym",
+        title: "Fitness & gym",
+        blurb: "Studios, gyms, coaches, classes, memberships.",
+        Icon: Dumbbell,
+        accent: "from-emerald-500/15 to-cyan-500/10",
+        ring: "ring-emerald-500/80",
+    },
+    {
+        id: "ecommerce",
+        title: "E‑commerce & D2C",
+        blurb: "Online stores, catalogs, drops, subscriptions, marketplaces.",
+        Icon: ShoppingBag,
+        accent: "from-violet-500/15 to-indigo-500/10",
+        ring: "ring-violet-500/80",
+    },
+];
+
+const PRIMARY_GOALS: { value: string; label: string }[] = [
+    { value: "drive_sales", label: "Drive sales & conversions" },
+    { value: "brand_awareness", label: "Build brand awareness" },
+    { value: "community", label: "Grow community & engagement" },
+    { value: "launch", label: "Launch a product or collection" },
+    { value: "retention", label: "Retention & repeat purchases" },
+    { value: "leads", label: "Lead generation & bookings" },
+];
+
+const CONTENT_TONES: { value: string; label: string }[] = [
+    { value: "luxury_premium", label: "Luxury / premium" },
+    { value: "warm_trusted", label: "Warm & trustworthy" },
+    { value: "bold_energetic", label: "Bold & energetic" },
+    { value: "educational", label: "Educational & expert" },
+    { value: "minimal_clean", label: "Minimal & clean" },
+    { value: "playful", label: "Playful & fun" },
+];
+
+function BusinessProfileSection({ firebaseUser }: { firebaseUser: User | null }) {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [businessVertical, setBusinessVertical] = useState<"" | "jewellery" | "gym" | "ecommerce">("");
+    const [businessDisplayName, setBusinessDisplayName] = useState("");
+    const [targetAudience, setTargetAudience] = useState("");
+    const [primaryMarketingGoal, setPrimaryMarketingGoal] = useState("");
+    const [contentTone, setContentTone] = useState("");
+    const [regionsOrMarkets, setRegionsOrMarkets] = useState("");
+    const [productFocus, setProductFocus] = useState("");
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!firebaseUser) {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            try {
+                const token = await firebaseUser.getIdToken();
+                const res = await fetch("/api/user", {
+                    credentials: "same-origin",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (cancelled) return;
+                const v = data.businessVertical;
+                if (v === "jewellery" || v === "gym" || v === "ecommerce") {
+                    setBusinessVertical(v);
+                }
+                setBusinessDisplayName(data.businessDisplayName ?? "");
+                setTargetAudience(data.targetAudience ?? "");
+                setPrimaryMarketingGoal(data.primaryMarketingGoal ?? "");
+                setContentTone(data.contentTone ?? "");
+                setRegionsOrMarkets(data.regionsOrMarkets ?? "");
+                setProductFocus(data.productFocus ?? "");
+            } catch {
+                /* ignore */
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [firebaseUser]);
+
+    const handleSaveBusinessProfile = async () => {
+        if (!businessVertical) {
+            toast.error("Choose your industry — jewellery, fitness, or e‑commerce.");
+            return;
+        }
+        if (!businessDisplayName.trim()) {
+            toast.error("Add your brand or business name.");
+            return;
+        }
+        if (!targetAudience.trim()) {
+            toast.error("Describe who you serve (target audience).");
+            return;
+        }
+        if (!primaryMarketingGoal) {
+            toast.error("Select your primary marketing goal.");
+            return;
+        }
+        if (!contentTone) {
+            toast.error("Select a content tone.");
+            return;
+        }
+        if (!regionsOrMarkets.trim()) {
+            toast.error("Add at least one region or market you sell or operate in.");
+            return;
+        }
+        if (!productFocus.trim()) {
+            toast.error("Summarize your key products, services, or offers.");
+            return;
+        }
+
+        if (!firebaseUser) {
+            toast.error("Sign in to save your business profile.");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const token = await firebaseUser.getIdToken();
+            const res = await fetch("/api/user", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    businessVertical,
+                    businessDisplayName: businessDisplayName.trim(),
+                    targetAudience: targetAudience.trim(),
+                    primaryMarketingGoal,
+                    contentTone,
+                    regionsOrMarkets: regionsOrMarkets.trim(),
+                    productFocus: productFocus.trim(),
+                }),
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(typeof payload.error === "string" ? payload.error : "Could not save profile");
+            }
+            toast.success("Business profile saved. Strategy prompts will use this context.");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to save");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <section className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-2">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-indigo-600 shrink-0" />
+                        <h2 className="text-xl font-bold text-zinc-900">Business profile</h2>
+                    </div>
+                    <p className="text-sm text-zinc-500 max-w-2xl leading-relaxed">
+                        Tell us what you sell and who you serve. We use this to tailor AI strategy and content prompts to your
+                        vertical — jewellery, fitness, or e‑commerce.
+                    </p>
+                </div>
+                <Button
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 shrink-0"
+                    onClick={handleSaveBusinessProfile}
+                    disabled={saving || loading || !firebaseUser}
+                >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save business profile
+                </Button>
+            </div>
+
+            <Card className="border-zinc-200/60 shadow-sm bg-gradient-to-br from-white via-indigo-50/30 to-white overflow-hidden">
+                <CardContent className="pt-6 space-y-8">
+                    {loading ? (
+                        <div className="space-y-4 animate-pulse">
+                            <div className="h-4 w-48 bg-zinc-100 rounded" />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="h-28 rounded-2xl bg-zinc-100" />
+                                <div className="h-28 rounded-2xl bg-zinc-100" />
+                                <div className="h-28 rounded-2xl bg-zinc-100" />
+                            </div>
+                            <div className="h-24 bg-zinc-100 rounded-xl" />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-3">
+                                <Label className="text-zinc-700 text-sm font-semibold">
+                                    Industry <span className="text-rose-600">*</span>
+                                </Label>
+                                <p className="text-xs text-zinc-500">Pick the category that best matches your business.</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    {BUSINESS_VERTICAL_CARDS.map((c) => {
+                                        const selected = businessVertical === c.id;
+                                        return (
+                                            <button
+                                                key={c.id}
+                                                type="button"
+                                                onClick={() => setBusinessVertical(c.id)}
+                                                className={cn(
+                                                    "text-left rounded-2xl border p-4 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+                                                    "bg-gradient-to-br hover:shadow-md",
+                                                    c.accent,
+                                                    selected
+                                                        ? cn("border-transparent shadow-md ring-2 ring-offset-2", c.ring)
+                                                        : "border-zinc-200/80 hover:border-zinc-300"
+                                                )}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div
+                                                        className={cn(
+                                                            "p-2.5 rounded-xl shrink-0",
+                                                            c.id === "jewellery" && "bg-amber-100 text-amber-800",
+                                                            c.id === "gym" && "bg-emerald-100 text-emerald-800",
+                                                            c.id === "ecommerce" && "bg-violet-100 text-violet-800"
+                                                        )}
+                                                    >
+                                                        <c.Icon className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="min-w-0 space-y-1">
+                                                        <p className="font-bold text-zinc-900 leading-tight">{c.title}</p>
+                                                        <p className="text-xs text-zinc-600 leading-snug">{c.blurb}</p>
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="biz-name" className="text-zinc-700 text-sm font-semibold">
+                                        Brand or business name <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Input
+                                        id="biz-name"
+                                        placeholder="e.g. Aurelia Fine Jewels, IronPulse Gym, Northwind Store"
+                                        value={businessDisplayName}
+                                        onChange={(e) => setBusinessDisplayName(e.target.value)}
+                                        className="bg-white/90 border-zinc-200"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="audience" className="text-zinc-700 text-sm font-semibold">
+                                        Target audience <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Textarea
+                                        id="audience"
+                                        placeholder="Who buys from you? Age range, lifestyle, pain points, budget level…"
+                                        value={targetAudience}
+                                        onChange={(e) => setTargetAudience(e.target.value)}
+                                        className="min-h-[88px] bg-white/90 border-zinc-200 resize-y"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-700 text-sm font-semibold">
+                                        Primary marketing goal <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Select value={primaryMarketingGoal || undefined} onValueChange={setPrimaryMarketingGoal}>
+                                        <SelectTrigger className="bg-white/90 border-zinc-200 h-11">
+                                            <SelectValue placeholder="Choose a goal" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {PRIMARY_GOALS.map((g) => (
+                                                <SelectItem key={g.value} value={g.value}>
+                                                    {g.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-700 text-sm font-semibold">
+                                        Content tone <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Select value={contentTone || undefined} onValueChange={setContentTone}>
+                                        <SelectTrigger className="bg-white/90 border-zinc-200 h-11">
+                                            <SelectValue placeholder="How should copy feel?" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {CONTENT_TONES.map((t) => (
+                                                <SelectItem key={t.value} value={t.value}>
+                                                    {t.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="regions" className="text-zinc-700 text-sm font-semibold flex items-center gap-2">
+                                        <Globe2 className="h-4 w-4 text-zinc-400" />
+                                        Regions or markets <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Input
+                                        id="regions"
+                                        placeholder="e.g. UAE & GCC, UK online, pan‑India, US + Canada"
+                                        value={regionsOrMarkets}
+                                        onChange={(e) => setRegionsOrMarkets(e.target.value)}
+                                        className="bg-white/90 border-zinc-200"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="product-focus" className="text-zinc-700 text-sm font-semibold">
+                                        Key products, services, or offers <span className="text-rose-600">*</span>
+                                    </Label>
+                                    <Textarea
+                                        id="product-focus"
+                                        placeholder="What should campaigns highlight? SKUs, services, memberships, bestsellers, seasonal drops…"
+                                        value={productFocus}
+                                        onChange={(e) => setProductFocus(e.target.value)}
+                                        className="min-h-[96px] bg-white/90 border-zinc-200 resize-y"
+                                    />
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-zinc-500 border-t border-zinc-100 pt-4">
+                                Fields marked with <span className="text-rose-600">*</span> are required so generated strategies
+                                match your business. You can update this anytime.
+                            </p>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+        </section>
+    );
+}
+
 function SettingsForm() {
     const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
     const router = useRouter();
@@ -451,6 +808,8 @@ function SettingsForm() {
 
             {/* Profile Section */}
             <ProfileSection firebaseUser={firebaseUser} />
+
+            <BusinessProfileSection firebaseUser={firebaseUser} />
 
             {/* Social Integrations Section */}
             <section className="space-y-4">

@@ -1,8 +1,20 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+/** Structured JSON array of strings — avoids markdown / malformed arrays in prompt suggestions */
+export const posterSuggestionsModel = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+        },
+    },
+});
 
 export const generateScriptPrompt = (niche: string, duration: string, style: string) => {
   const sceneCount = duration === '30-50' ? '4-5' : '5-6';
