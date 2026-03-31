@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { DashboardRightRail } from "@/components/dashboard/dashboard-right-rail";
 import { UserSync } from "@/components/dashboard/user-sync";
 import { PageWrapper } from "@/components/dashboard/page-wrapper";
+import { ProductTour } from "@/components/dashboard/product-tour";
 
 export default function DashboardLayout({
     children,
@@ -11,6 +12,7 @@ export default function DashboardLayout({
     return (
         <div className="flex h-screen bg-white overflow-hidden">
             <UserSync />
+            <ProductTour />
             <div className="hidden md:flex shrink-0">
                 <Sidebar />
             </div>

@@ -444,22 +444,24 @@ function SettingsForm() {
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
             {/* Header */}
-            <div className="space-y-1">
+            <div id="settings-header" className="space-y-1">
                 <h1 className="text-3xl font-black tracking-tight text-zinc-900 mt-2">Settings</h1>
                 <p className="text-zinc-500 font-medium">Manage your profile, social connections, and account security.</p>
             </div>
 
             {/* Profile Section */}
-            <ProfileSection firebaseUser={firebaseUser} />
+            <div id="settings-profile">
+                <ProfileSection firebaseUser={firebaseUser} />
+            </div>
 
             {/* Social Integrations Section */}
-            <section className="space-y-4">
+            <section id="settings-social" className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                         <Link2 className="h-5 w-5 text-indigo-600" />
                         <h2 className="text-xl font-bold text-zinc-900">Social Media Connections</h2>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div id="settings-support" className="flex items-center gap-2">
                         <Link href="/docs" target="_blank">
                             <Button variant="outline" size="sm" className="bg-white hover:bg-zinc-50 font-bold border-zinc-200 text-indigo-600 hover:text-indigo-700">
                                 Docs

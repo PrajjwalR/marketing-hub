@@ -47,6 +47,7 @@ type SidebarSection = {
     defaultExpanded?: boolean;
     hasArrow?: boolean;
     items?: SidebarSubItem[];
+    id?: string;
 };
 
 const sidebarData: SidebarSection[] = [
@@ -55,26 +56,31 @@ const sidebarData: SidebarSection[] = [
         icon: Home,
         href: '/dashboard',
         hasBorderBottom: true,
+        id: 'sidebar-dashboard',
     },
     {
         name: 'Strategy Planner',
         icon: Brain,
-        href: '/dashboard/strategy'
+        href: '/dashboard/strategy',
+        id: 'sidebar-strategy',
     },
     {
         name: 'Competitors',
         icon: BarChart2,
-        href: '/dashboard/competitors'
+        href: '/dashboard/competitors',
+        id: 'sidebar-competitors',
     },
     {
         name: 'Postings Calendar',
         icon: CalendarDays,
-        href: '/dashboard/calendar'
+        href: '/dashboard/calendar',
+        id: 'sidebar-calendar',
     },
     {
         name: 'Content Creation',
         icon: Film,
         defaultExpanded: true,
+        id: 'sidebar-content',
         items: [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
@@ -165,7 +171,8 @@ const sidebarData: SidebarSection[] = [
         name: 'Admin Settings',
         icon: Settings,
         href: '/dashboard/settings',
-        hasArrow: true
+        hasArrow: true,
+        id: 'sidebar-settings',
     }
 ];
 
@@ -335,6 +342,7 @@ export function Sidebar() {
                     const sidebarItem = (
                         <div key={section.name} className="flex flex-col">
                             <button
+                                id={section.id}
                                 onClick={() => toggleSection(section.name, section.items)}
                                 className={cn(
                                     "group flex cursor-pointer items-center text-[14px] font-bold transition-colors",
@@ -501,6 +509,7 @@ export function Sidebar() {
                         <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
                             {section.external ? (
                                 <a
+                                    id={section.id}
                                     href={section.href!}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -511,6 +520,7 @@ export function Sidebar() {
                                 </a>
                             ) : (
                                 <Link
+                                    id={section.id}
                                     href={section.href!}
                                     className={linkClasses}
                                     onClick={() => setShowSecondary(false)}
