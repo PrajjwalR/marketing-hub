@@ -741,7 +741,7 @@ export default function DashboardPage() {
         <div className="w-full">
             {/* Page header: avatar, welcome, trial CTAs (replaces global dashboard header on this page) */}
             <header className="font-sans sticky top-0 z-30 -mx-3 mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-3.5 sm:-mx-4 sm:px-4">
-                <div className="flex min-w-0 items-center gap-3">
+                <div id="dashboard-welcome" className="flex min-w-0 items-center gap-3">
                     <div
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none bg-[#D1FAE5] text-sm font-bold text-[#047857]"
                         title={displayName}
@@ -770,7 +770,7 @@ export default function DashboardPage() {
 
             <div className="space-y-3">
             {/* Explore Section — Sprout-style: blue top accent, progress, tool grid */}
-            <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
+            <div id="dashboard-explore" className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
                 <div className="h-2 w-full bg-[#2D66C3]" />
 
                 <div className="p-6">
@@ -835,7 +835,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Integrations Section */}
-            <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-6">
+            <div id="dashboard-integrations" className="rounded-[5px] border border-[#E5E7EB] bg-white p-6">
                 <div className="flex items-start justify-between gap-4 pb-5 border-b border-[#E5E7EB]">
                     <div>
                         <h2 className="text-[20px] font-extrabold text-[#111827] ">
@@ -863,7 +863,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Latest Activity */}
-            <div className="space-y-4">
+            <div id="dashboard-activity" className="space-y-4">
                 <h2 className="text-[16.5px] font-bold text-[#111827]">Your Latest Activity</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-6">
                     <div className="space-y-4">
@@ -1069,7 +1069,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-6">
+            <div id="dashboard-resources" className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px] gap-6">
                 <div className="space-y-4">
                     <div className="overflow-hidden rounded-[5px] border border-[#E5E7EB] bg-white">
                         <div className="border-b border-[#F3F4F6] px-5 py-4">

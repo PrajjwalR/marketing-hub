@@ -357,7 +357,7 @@ export default function CompetitorsPage() {
           </div>
           <div className="min-w-0 flex items-center gap-3">
             <div>
-              <h1 className="text-lg font-bold text-[#111827]">Competitor Analysis</h1>
+              <h1 id="competitors-header" className="text-lg font-bold text-[#111827]">Competitor Analysis</h1>
               <p className="text-[13px] text-zinc-500 leading-none mt-0.5">Compare your performance head-to-head across all platform accounts</p>
             </div>
             {isSyncing && (
@@ -386,12 +386,14 @@ export default function CompetitorsPage() {
       </header>
 
       <div className="space-y-6">
-        <FilterBar
-          search={search} setSearch={setSearch}
-          platform={platform} setPlatform={setPlatform}
-          category={category} setCategory={setCategory}
-          sortBy={sortBy} setSortBy={setSortBy}
-        />
+        <div id="competitors-filters">
+          <FilterBar
+            search={search} setSearch={setSearch}
+            platform={platform} setPlatform={setPlatform}
+            category={category} setCategory={setCategory}
+            sortBy={sortBy} setSortBy={setSortBy}
+          />
+        </div>
 
         <div>
           <div className="mb-3 flex items-center justify-between px-1">
@@ -406,15 +408,17 @@ export default function CompetitorsPage() {
           </div>
           
           {processedData.length > 0 ? (
-            <ComparisonTable 
-               data={processedData} 
-               activePlatformFilter={platform}
-               onAddPlatform={(company: any, platform: string) => setActivePlatformAdd({ company, platform })}
-               onRemoveCompany={handleDeleteCompany}
-               onEditPlatform={(company: any, platform: string, handle: string) => setActivePlatformEdit({ company, platform, handle })}
-               onRefreshPlatform={handleRefreshPlatform}
-               refreshingPlatforms={refreshingPlatforms}
-            />
+            <div id="competitors-table">
+              <ComparisonTable 
+                 data={processedData} 
+                 activePlatformFilter={platform}
+                 onAddPlatform={(company: any, platform: string) => setActivePlatformAdd({ company, platform })}
+                 onRemoveCompany={handleDeleteCompany}
+                 onEditPlatform={(company: any, platform: string, handle: string) => setActivePlatformEdit({ company, platform, handle })}
+                 onRefreshPlatform={handleRefreshPlatform}
+                 refreshingPlatforms={refreshingPlatforms}
+              />
+            </div>
           ) : (
             <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-12 text-center">
               <p className="text-[14px] text-zinc-500 font-medium">No tracked companies yet.</p>
