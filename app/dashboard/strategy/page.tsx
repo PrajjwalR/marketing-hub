@@ -16,6 +16,7 @@ import {
 interface Strategy {
     id: string;
     name: string;
+    theme?: string | null;
     platforms: string[];
     duration_days: number;
     created_at: string;
@@ -38,7 +39,12 @@ export default function StrategyPage() {
             const res = await fetch('/api/strategy');
             if (res.ok) {
                 const data = await res.json();
-                setStrategies(data);
+                const prebuiltPrefix = 'prebuilt_';
+                const filtered = (Array.isArray(data) ? data : []).filter((s: Strategy) => {
+                    const t = s?.theme;
+                    return !(typeof t === 'string' && t.startsWith(prebuiltPrefix));
+                });
+                setStrategies(filtered);
             }
         } catch {
             setStrategies([]);

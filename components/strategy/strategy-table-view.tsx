@@ -71,6 +71,7 @@ function formatLabel(s: string) {
 interface StrategyTableViewProps {
     posts: StrategyPost[];
     startDate?: string | null;
+    readonly?: boolean;
     onRowClick: (post: StrategyPost) => void;
     onEdit: (post: StrategyPost) => void;
     onClone: (post: StrategyPost) => void;
@@ -79,12 +80,13 @@ interface StrategyTableViewProps {
     onContent: (post: StrategyPost) => void;
     onDelete: (post: StrategyPost) => void;
     onIncludeChange: (post: StrategyPost, checked: boolean) => void;
-    onAddPost: () => void;
+    onAddPost?: () => void;
 }
 
 export function StrategyTableView({
     posts,
     startDate,
+    readonly = false,
     onRowClick,
     onEdit,
     onClone,
@@ -93,7 +95,6 @@ export function StrategyTableView({
     onContent,
     onDelete,
     onIncludeChange,
-    onAddPost,
 }: StrategyTableViewProps) {
     let baseDate: Date | null = null;
     if (startDate) baseDate = new Date(startDate);
@@ -110,7 +111,9 @@ export function StrategyTableView({
             <Table className="text-[13px]">
                 <TableHeader>
                     <TableRow className="border-zinc-200 bg-zinc-50/80">
-                        <TableHead className="w-8 px-3 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]"></TableHead>
+                        {!readonly && (
+                            <TableHead className="w-8 px-3 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]"></TableHead>
+                        )}
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Idea</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Day</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Date</TableHead>
@@ -118,13 +121,15 @@ export function StrategyTableView({
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Content type</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Goal</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Status</TableHead>
-                        <TableHead className="w-16 px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]"></TableHead>
+                        {!readonly && (
+                            <TableHead className="w-16 px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]"></TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {sortedPosts.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={9} className="py-8 text-center text-zinc-400 text-[13px]">
+                            <TableCell colSpan={readonly ? 7 : 9} className="py-8 text-center text-zinc-400 text-[13px]">
                                 No posts match this filter.
                             </TableCell>
                         </TableRow>
@@ -140,23 +145,30 @@ export function StrategyTableView({
                             return (
                                 <TableRow
                                     key={post.id}
-                                    className="border-zinc-100 cursor-pointer group hover:bg-zinc-50 transition-colors odd:bg-white even:bg-zinc-50/60"
-                                    onClick={() => onRowClick(post)}
+                                    className={cn(
+                                        'border-zinc-100 group transition-colors odd:bg-white even:bg-zinc-50/60',
+                                        readonly ? 'cursor-default' : 'cursor-pointer hover:bg-zinc-50'
+                                    )}
+                                    onClick={() => {
+                                        if (!readonly) onRowClick(post);
+                                    }}
                                 >
-                                    <TableCell className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            type="button"
-                                            className={cn(
-                                                'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                                                post.include_in_calendar
-                                                    ? 'bg-zinc-900 text-white'
-                                                    : 'bg-white border border-zinc-300'
-                                            )}
-                                            onClick={() => onIncludeChange(post, !post.include_in_calendar)}
-                                        >
-                                            {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
-                                        </button>
-                                    </TableCell>
+                                    {!readonly && (
+                                        <TableCell className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                type="button"
+                                                className={cn(
+                                                    'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
+                                                    post.include_in_calendar
+                                                        ? 'bg-zinc-900 text-white'
+                                                        : 'bg-white border border-zinc-300'
+                                                )}
+                                                onClick={() => onIncludeChange(post, !post.include_in_calendar)}
+                                            >
+                                                {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
+                                            </button>
+                                        </TableCell>
+                                    )}
                                     <TableCell className="px-3.5 py-3 max-w-[220px]">
                                         <div className="font-medium text-[13px] text-zinc-900 line-clamp-2 truncate">
                                             {post.idea || 'Untitled'}
@@ -210,76 +222,78 @@ export function StrategyTableView({
                                             {formatLabel(post.status)}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center gap-1.5">
-                                            <button
-                                                type="button"
-                                                className="w-7 h-7 rounded-lg border border-zinc-200 bg-white flex items-center justify-center text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
-                                                onClick={() => onEdit(post)}
-                                                title="Edit"
-                                            >
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </button>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-7 w-7 shrink-0 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <MoreVertical className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
-                                                <DropdownMenuItem
-                                                    onClick={(e) => { e.stopPropagation(); onEdit(post); }}
-                                                    className="gap-2 rounded-md"
+                                    {!readonly && (
+                                        <TableCell className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
+                                            <div className="flex items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    className="w-7 h-7 rounded-lg border border-zinc-200 bg-white flex items-center justify-center text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+                                                    onClick={() => onEdit(post)}
+                                                    title="Edit"
                                                 >
                                                     <Pencil className="h-3.5 w-3.5" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={(e) => { e.stopPropagation(); onClone(post); }}
-                                                    className="gap-2 rounded-md"
-                                                >
-                                                    <Copy className="h-3.5 w-3.5" />
-                                                    Clone
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={(e) => { e.stopPropagation(); onPostToPlatforms(post); }}
-                                                    className="gap-2 rounded-md"
-                                                >
-                                                    <Share2 className="h-3.5 w-3.5" />
-                                                    Post to more
-                                                </DropdownMenuItem>
-                                                {onScheduleToCalendar && (
+                                                </button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="h-7 w-7 shrink-0 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <MoreVertical className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
                                                     <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onScheduleToCalendar(post); }}
+                                                        onClick={(e) => { e.stopPropagation(); onEdit(post); }}
                                                         className="gap-2 rounded-md"
                                                     >
-                                                        <Calendar className="h-3.5 w-3.5" />
-                                                        Schedule to calendar
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        Edit
                                                     </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuItem
-                                                    onClick={(e) => { e.stopPropagation(); onContent(post); }}
-                                                    className="gap-2 rounded-md"
-                                                >
-                                                    <ImagePlus className="h-3.5 w-3.5" />
-                                                    Create / Upload content
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    onClick={(e) => { e.stopPropagation(); onDelete(post); }}
-                                                    className="gap-2 rounded-md text-red-600 focus:text-red-600"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        </div>
-                                    </TableCell>
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => { e.stopPropagation(); onClone(post); }}
+                                                        className="gap-2 rounded-md"
+                                                    >
+                                                        <Copy className="h-3.5 w-3.5" />
+                                                        Clone
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => { e.stopPropagation(); onPostToPlatforms(post); }}
+                                                        className="gap-2 rounded-md"
+                                                    >
+                                                        <Share2 className="h-3.5 w-3.5" />
+                                                        Post to more
+                                                    </DropdownMenuItem>
+                                                    {onScheduleToCalendar && (
+                                                        <DropdownMenuItem
+                                                            onClick={(e) => { e.stopPropagation(); onScheduleToCalendar(post); }}
+                                                            className="gap-2 rounded-md"
+                                                        >
+                                                            <Calendar className="h-3.5 w-3.5" />
+                                                            Schedule to calendar
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => { e.stopPropagation(); onContent(post); }}
+                                                        className="gap-2 rounded-md"
+                                                    >
+                                                        <ImagePlus className="h-3.5 w-3.5" />
+                                                        Create / Upload content
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => { e.stopPropagation(); onDelete(post); }}
+                                                        className="gap-2 rounded-md text-red-600 focus:text-red-600"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                            </div>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             );
                         })
