@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth-helpers';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }

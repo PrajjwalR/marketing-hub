@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, RotateCcw } from 'lucide-react';
 import type { WorkbenchType } from './posters-workbench';
+import type { StrategyPostersContext } from '@/lib/strategy-posters-context';
 
 const LANDING_BTN =
     'bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 rounded-full font-medium text-[15px] shadow-md transition-all';
@@ -28,6 +29,9 @@ export interface PosterGenerationRecord {
     format?: string | null;
     style?: string | null;
     tone?: string | null;
+    /** Final prompt sent to the image/video model (from `buildPowerPrompt`) */
+    prompt?: string | null;
+    negative_prompt?: string | null;
     parent_id?: string | null;
     saved?: boolean;
 }
@@ -38,6 +42,7 @@ interface PostersRegenerateModalProps {
     type: WorkbenchType;
     /** The generation we're regenerating from (has the prompt we used) */
     generation: PosterGenerationRecord | null;
+    strategyContext?: StrategyPostersContext | null;
     onRegenerate: (params: {
         description: string;
         requirements: string;
@@ -53,6 +58,7 @@ export function PostersRegenerateModal({
     onOpenChange,
     type,
     generation,
+    strategyContext = null,
     onRegenerate,
 }: PostersRegenerateModalProps) {
     const [feedback, setFeedback] = useState('');
@@ -87,6 +93,7 @@ export function PostersRegenerateModal({
                 body: JSON.stringify({
                     type,
                     refine: { originalPrompt, feedback: feedback.trim() || undefined },
+                    ...(strategyContext ? { strategyContext } : {}),
                 }),
             });
             const data = await res.json();

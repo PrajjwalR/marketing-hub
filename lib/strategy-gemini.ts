@@ -21,13 +21,86 @@ export interface GenerateStrategyInput {
   durationDays: number;
 }
 
+type Vertical = "jewellery" | "gym" | "ecommerce" | "generic";
+
+function normalizeVertical(raw: string): Vertical {
+  const value = (raw || "").trim().toLowerCase();
+  if (!value) return "generic";
+
+  if (
+    value.includes("jewel") ||
+    value.includes("jewellery") ||
+    value.includes("jewelry") ||
+    value.includes("gold") ||
+    value.includes("diamond")
+  ) {
+    return "jewellery";
+  }
+
+  if (
+    value.includes("gym") ||
+    value.includes("fitness") ||
+    value.includes("workout") ||
+    value.includes("studio") ||
+    value.includes("coach")
+  ) {
+    return "gym";
+  }
+
+  if (
+    value.includes("ecommerce") ||
+    value.includes("e-commerce") ||
+    value.includes("e commerse") ||
+    value.includes("ecom") ||
+    value.includes("d2c") ||
+    value.includes("online store")
+  ) {
+    return "ecommerce";
+  }
+
+  return "generic";
+}
+
+function getVerticalSystemPrompt(vertical: Vertical): string {
+  if (vertical === "jewellery") {
+    return [
+      "You are an expert jewellery marketing strategist.",
+      "Create premium, trust-building content for high-consideration purchases.",
+      "Focus on craftsmanship stories, materials, certifications, gifting moments, styling inspiration, and occasion-based demand.",
+      "Balance aspiration with conversion using clear CTAs, social proof, and collection highlights.",
+    ].join(" ");
+  }
+
+  if (vertical === "gym") {
+    return [
+      "You are an expert gym and fitness growth strategist.",
+      "Create motivating, high-retention content that drives memberships, trials, and class bookings.",
+      "Focus on transformations, trainer authority, habit-building, local community, challenges, and beginner-friendly onboarding.",
+      "Use energetic hooks, action-driven CTAs, and formats that encourage saves/shares.",
+    ].join(" ");
+  }
+
+  if (vertical === "ecommerce") {
+    return [
+      "You are an expert e-commerce and D2C performance content strategist.",
+      "Create content that improves product discovery, trust, and conversion rates.",
+      "Focus on product education, UGC/social proof, objections handling, seasonal campaigns, bundles, urgency, and retention loops.",
+      "Blend brand storytelling with measurable conversion intent.",
+    ].join(" ");
+  }
+
+  return "You are an expert social media marketing strategist.";
+}
+
 export function getStrategyGeneratePrompt(input: GenerateStrategyInput): string {
   const { businessType, brandName, targetAudience, goal, platforms, theme, durationDays } = input;
+  const vertical = normalizeVertical(businessType);
+  const expertPrompt = getVerticalSystemPrompt(vertical);
   const platformList = platforms.join(', ');
   const themeHint = theme ? `Campaign theme/focus: ${theme}. ` : '';
 
   return `
-You are an expert social media marketing strategist. Generate a ${durationDays}-day content strategy for the following:
+${expertPrompt} Generate a ${durationDays}-day content strategy for the following:
 
 Business Type: ${businessType}
 Brand Name: ${brandName}
@@ -35,6 +108,7 @@ Target Audience: ${targetAudience}
 Goal: ${goal}
 Platforms: ${platformList}
 ${themeHint}
+Detected Vertical: ${vertical}
 
 Requirements:
 - Create exactly ${durationDays} days of content. Distribute posts across the platforms. Not every day needs a post; vary the posting schedule naturally.
@@ -46,6 +120,12 @@ Requirements:
 - theme examples: festival, educational, promotion, behind_the_scenes, product_launch, seasonal, etc.
 - idea: short catchy title for the post concept (e.g. "Holi outfit styling tips")
 - caption: 1-2 sentence caption suggestion
+
+Vertical-specific guidance:
+- If vertical is jewellery: include luxury positioning, trust cues, craftsmanship, and gifting/occasion hooks.
+- If vertical is gym: include motivation, program outcomes, trainer expertise, community challenges, and local conversion hooks.
+- If vertical is ecommerce: include product utility, social proof, offer framing, urgency/seasonality, and clear shopping intent.
+- Ensure content still matches brand goal and target audience.
 
 Return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
 {

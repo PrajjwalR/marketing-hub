@@ -1,11 +1,4 @@
-'use client';
-
-import { useState } from 'react';
-import { Image as ImageIcon, Film } from 'lucide-react';
-import { PostersWorkbench } from '@/components/posters/posters-workbench';
-import { cn } from '@/lib/utils';
-
-type TabType = 'image' | 'video';
+import { PostersPageClient } from '@/components/posters/posters-page-client';
 
 export default function PostersPage() {
     const [activeTab, setActiveTab] = useState<TabType>('image');

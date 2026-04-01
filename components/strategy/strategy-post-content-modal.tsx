@@ -205,7 +205,9 @@ export function StrategyPostContentModal({
                                 Generate posters or videos in Create Content, then add them to this post.
                             </p>
                             <Button asChild className="rounded-full font-medium bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 gap-2">
-                                <Link href="/dashboard/posters">
+                                <Link
+                                    href={`/dashboard/posters?strategyId=${encodeURIComponent(strategyId)}&postId=${encodeURIComponent(post.id)}`}
+                                >
                                     Go to Create Content
                                     <ExternalLink className="h-4 w-4" />
                                 </Link>

@@ -17,11 +17,11 @@ async function ensureOwnership(userId: string, strategyId: string) {
 }
 
 export async function GET(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
@@ -62,7 +62,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
@@ -99,11 +99,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
