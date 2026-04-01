@@ -87,17 +87,18 @@ const sidebarData: SidebarSection[] = [
             // { name: 'Billing', href: '/dashboard/billing' },
         ]
     },
-    {
-        name: 'Billing',
-        icon: CreditCard,
-        href: '/dashboard/billing'
-    },
+    // {
+    //     name: 'Billing',
+    //     icon: CreditCard,
+    //     href: '/dashboard/billing'
+    // },
     {
         name: 'Whathub',
         icon: WhatsappIcon,
         href: '/api/whathub/sso',
         external: true,
     },
+    /*
     {
         name: 'CRM',
         icon: CreditCard,
@@ -162,6 +163,7 @@ const sidebarData: SidebarSection[] = [
         icon: ShieldCheck,
         href: '/dashboard/deliverability'
     },
+    */
    
     {
         name: 'Admin Settings',

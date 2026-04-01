@@ -28,6 +28,7 @@ import {
     ShoppingBag,
     Sparkles,
     Globe2,
+    LogOut,
     type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -125,7 +126,7 @@ const COMING_SOON_PLATFORMS = [
     },
 ];
 
-function ProfileSection({ firebaseUser }: { firebaseUser: User | null }) {
+function ProfileSection({ firebaseUser, onSignOut }: { firebaseUser: User | null, onSignOut: () => void }) {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState("");
     const [isUploading, setIsUploading] = useState(false);
@@ -190,10 +191,26 @@ function ProfileSection({ firebaseUser }: { firebaseUser: User | null }) {
                     <h2 className="text-xl font-bold text-zinc-900">Profile Information</h2>
                 </div>
                 {!isEditing ? (
-                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit Profile
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setIsEditing(true)}
+                            className="bg-white hover:bg-zinc-50 border-zinc-200 text-indigo-600 hover:text-indigo-700 shadow-sm transition-all"
+                        >
+                            <Pencil className="h-3.5 w-3.5 mr-2" />
+                            Edit Profile
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={onSignOut} 
+                            className="border-rose-100/50 bg-rose-50/10 text-rose-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 shadow-sm transition-all"
+                        >
+                            <LogOut className="h-3.5 w-3.5 mr-2 text-rose-500" />
+                            Sign Out
+                        </Button>
+                    </div>
                 ) : (
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>
@@ -807,7 +824,7 @@ function SettingsForm() {
             </div>
 
             {/* Profile Section */}
-            <ProfileSection firebaseUser={firebaseUser} />
+            <ProfileSection firebaseUser={firebaseUser} onSignOut={signOut} />
 
             <BusinessProfileSection firebaseUser={firebaseUser} />
 
