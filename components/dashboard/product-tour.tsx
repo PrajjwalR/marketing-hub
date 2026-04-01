@@ -10,8 +10,8 @@ export function ProductTour() {
     const driverRef = useRef<Driver | null>(null);
 
     useEffect(() => {
-        // Prevent running multiple tours at once or re-running if already done for this path
-        const storageKey = `ae_tour_${pathname.replace(/\//g, '_')}_completed`;
+        const pathnameKey = pathname.replace(/\//g, '_');
+        const storageKey = `ae_tour_${pathnameKey}_completed`;
         if (localStorage.getItem(storageKey) === 'true') return;
 
         // Common sidebar steps for the main dashboard home
@@ -251,6 +251,9 @@ export function ProductTour() {
         const driverObj = driver({
             showProgress: true,
             popoverClass: 'ae-premium-popover',
+            overlayColor: '#000000',
+            overlayOpacity: 0.7,
+            animate: true,
             steps: steps,
             onDestroyed: () => {
                 localStorage.setItem(storageKey, 'true');
