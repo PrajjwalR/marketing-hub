@@ -68,6 +68,7 @@ const STATUS_PILL: Record<string, { bg: string; text: string; border?: string }>
 interface StrategyPostCardProps {
     post: StrategyPost;
     dateLabel?: string;
+    readonly?: boolean;
     onEdit: () => void;
     onClone: () => void;
     onPostToPlatforms: () => void;
@@ -80,6 +81,7 @@ interface StrategyPostCardProps {
 export function StrategyPostCard({
     post,
     dateLabel,
+    readonly = false,
     onEdit,
     onClone,
     onPostToPlatforms,
@@ -96,7 +98,14 @@ export function StrategyPostCard({
     const PlatformIcon = platformCfg?.icon;
 
     return (
-        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+        <div
+            className={cn(
+                'bg-white border border-zinc-200 rounded-xl p-4 shadow-sm transition-shadow',
+                readonly
+                    ? 'rounded-2xl p-5 hover:shadow-md bg-linear-to-br from-white to-zinc-50/70'
+                    : 'hover:shadow-md'
+            )}
+        >
             {/* Top: Day badge + Status + More menu */}
             <div className="flex justify-between items-start mb-2.5">
                 <span className="text-[11px] font-medium text-zinc-600 bg-zinc-100 rounded-xl px-2 py-0.5">
@@ -113,49 +122,51 @@ export function StrategyPostCard({
                     >
                         {formatLabel(post.status)}
                     </span>
-                    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-700 -mr-1"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <MoreVertical className="h-3.5 w-3.5" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
-                            <DropdownMenuItem onClick={() => { onEdit(); setMenuOpen(false); }} className="gap-2 rounded-md">
-                                <Pencil className="h-3.5 w-3.5" />
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { onClone(); setMenuOpen(false); }} className="gap-2 rounded-md">
-                                <Copy className="h-3.5 w-3.5" />
-                                Clone
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { onPostToPlatforms(); setMenuOpen(false); }} className="gap-2 rounded-md">
-                                <Share2 className="h-3.5 w-3.5" />
-                                Post to more
-                            </DropdownMenuItem>
-                            {onScheduleToCalendar && (
-                                <DropdownMenuItem onClick={() => { onScheduleToCalendar(); setMenuOpen(false); }} className="gap-2 rounded-md">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    Schedule to calendar
+                    {!readonly && (
+                        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 shrink-0 rounded-lg text-zinc-500 hover:text-zinc-700 -mr-1"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <MoreVertical className="h-3.5 w-3.5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
+                                <DropdownMenuItem onClick={() => { onEdit(); setMenuOpen(false); }} className="gap-2 rounded-md">
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit
                                 </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => { onContent(); setMenuOpen(false); }} className="gap-2 rounded-md">
-                                <ImagePlus className="h-3.5 w-3.5" />
-                                Create / Upload content
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => { onDelete(); setMenuOpen(false); }}
-                                className="gap-2 rounded-md text-red-600 focus:text-red-600"
-                            >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                <DropdownMenuItem onClick={() => { onClone(); setMenuOpen(false); }} className="gap-2 rounded-md">
+                                    <Copy className="h-3.5 w-3.5" />
+                                    Clone
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { onPostToPlatforms(); setMenuOpen(false); }} className="gap-2 rounded-md">
+                                    <Share2 className="h-3.5 w-3.5" />
+                                    Post to more
+                                </DropdownMenuItem>
+                                {onScheduleToCalendar && (
+                                    <DropdownMenuItem onClick={() => { onScheduleToCalendar(); setMenuOpen(false); }} className="gap-2 rounded-md">
+                                        <Calendar className="h-3.5 w-3.5" />
+                                        Schedule to calendar
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => { onContent(); setMenuOpen(false); }} className="gap-2 rounded-md">
+                                    <ImagePlus className="h-3.5 w-3.5" />
+                                    Create / Upload content
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => { onDelete(); setMenuOpen(false); }}
+                                    className="gap-2 rounded-md text-red-600 focus:text-red-600"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </div>
             </div>
 
@@ -173,11 +184,13 @@ export function StrategyPostCard({
             )}
 
             {/* Title + caption */}
-            <div className="text-[13px] font-medium text-zinc-900 mb-1 line-clamp-2">
+            <div className={cn('text-[13px] font-medium text-zinc-900 mb-1', readonly ? 'text-[15px] leading-6' : 'line-clamp-2')}>
                 {post.idea || 'Untitled'}
             </div>
             {post.caption && (
-                <div className="text-[11px] text-zinc-400 mb-3 line-clamp-2">{post.caption}</div>
+                <div className={cn('text-zinc-500 mb-3', readonly ? 'text-[13px] leading-5' : 'text-[11px] line-clamp-2')}>
+                    {post.caption}
+                </div>
             )}
 
             {/* Type pill + Date */}
@@ -201,19 +214,21 @@ export function StrategyPostCard({
                 <span className="text-[11px] text-zinc-500">
                     {post.goal ? formatLabel(post.goal) : '—'}
                 </span>
-                <button
-                    type="button"
-                    className={cn(
-                        'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                        post.include_in_calendar ? 'bg-zinc-900 text-white' : 'bg-white border border-zinc-300'
-                    )}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onIncludeChange(!post.include_in_calendar);
-                    }}
-                >
-                    {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
-                </button>
+                {!readonly && (
+                    <button
+                        type="button"
+                        className={cn(
+                            'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
+                            post.include_in_calendar ? 'bg-zinc-900 text-white' : 'bg-white border border-zinc-300'
+                        )}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onIncludeChange(!post.include_in_calendar);
+                        }}
+                    >
+                        {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
+                    </button>
+                )}
             </div>
         </div>
     );

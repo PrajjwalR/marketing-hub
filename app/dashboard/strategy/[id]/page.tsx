@@ -1,13 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Loader2, ArrowLeft, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
-import { StrategyColumn } from '@/components/strategy/strategy-column';
-import { StrategyPostCard } from '@/components/strategy/strategy-post-card';
 import { StrategyTableView } from '@/components/strategy/strategy-table-view';
 import { StrategyBoardSkeleton } from '@/components/strategy/strategy-board-skeleton';
 import { StrategyPostDetailSidebar } from '@/components/strategy/strategy-post-detail-sidebar';
@@ -19,6 +16,16 @@ import type { StrategyPost } from '@/components/strategy/edit-strategy-post-moda
 import { addDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+    ExecutionGuide,
+    StrategyDayCard,
+    StrategyHeader,
+    StrategyOverview,
+    StrategyPhases,
+    StrategyTips,
+    type PlaybookDay,
+    type PlaybookPhase,
+} from '@/components/strategy/strategy-playbook-sections';
 
 function formatLabel(s: string) {
     return s.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -88,14 +95,57 @@ function StatRingCard({
 interface Strategy {
     id: string;
     name: string;
+    theme?: string | null;
     duration_days: number;
     start_date?: string | null;
     posts: StrategyPost[];
 }
 
+const MOCK_PHASES: PlaybookPhase[] = [
+    {
+        title: 'Week 1 - Awareness',
+        goal: 'Introduce core pain points and create resonance.',
+        points: ['Introduce common problems', 'Share beginner mistakes', 'Set context for your niche'],
+        accent: 'bg-blue-50',
+    },
+    {
+        title: 'Week 2 - Education',
+        goal: 'Teach key concepts and build authority.',
+        points: ['Teach core concepts', 'Break common myths', 'Share practical frameworks'],
+        accent: 'bg-indigo-50',
+    },
+    {
+        title: 'Week 3 - Engagement',
+        goal: 'Create two-way conversations with your audience.',
+        points: ['Ask opinion-based questions', 'Start comment threads', 'Use audience-led prompts'],
+        accent: 'bg-emerald-50',
+    },
+    {
+        title: 'Week 4 - Conversion',
+        goal: 'Move from trust to action with soft CTAs.',
+        points: ['Show proof and case studies', 'Highlight outcomes', 'Add low-friction next steps'],
+        accent: 'bg-amber-50',
+    },
+];
+
+const MOCK_EXECUTION_POINTS = [
+    'Stay consistent with posting rhythm across weeks.',
+    'Prioritize clarity over complexity in every idea.',
+    'Engage in comments within the first hour.',
+    'Repurpose top-performing posts into other formats.',
+    'Track saves, shares, and profile visits weekly.',
+];
+
+const MOCK_TIPS = [
+    'Educational posts usually perform best in mornings.',
+    'Carousel-style formats often increase saves.',
+    'Engagement prompts tend to work better mid-week.',
+];
+
 export default function StrategyBoardPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const id = params.id as string;
 
     const [strategy, setStrategy] = useState<Strategy | null>(null);
@@ -114,11 +164,14 @@ export default function StrategyBoardPage() {
     const [contentPost, setContentPost] = useState<StrategyPost | null>(null);
     const [filter, setFilter] = useState<string>('all');
 
+    const fromPrebuilt = searchParams.get('source') === 'prebuilt';
+    const fallbackRoute = fromPrebuilt ? '/dashboard/prebuilt-strategy-prompts' : '/dashboard/strategy';
+
     const fetchStrategy = useCallback(async () => {
         try {
             const res = await fetch(`/api/strategy/${id}`);
             if (!res.ok) {
-                if (res.status === 404) router.replace('/dashboard/strategy');
+                if (res.status === 404) router.replace(fallbackRoute);
                 return;
             }
             const data = await res.json();
@@ -129,7 +182,7 @@ export default function StrategyBoardPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [id, router]);
+    }, [id, router, fallbackRoute]);
 
     useEffect(() => {
         if (id) fetchStrategy();
@@ -228,10 +281,13 @@ export default function StrategyBoardPage() {
         fetchStrategy();
     };
 
-    const getDefaultDay = () => addDay ?? 1;
-
-    const posts = strategy?.posts ?? [];
+    const posts = useMemo(() => strategy?.posts ?? [], [strategy?.posts]);
     const duration = strategy?.duration_days ?? 30;
+    const isPrebuilt = !!strategy?.theme && typeof strategy.theme === 'string' && strategy.theme.startsWith('prebuilt_');
+
+    useEffect(() => {
+        if (isPrebuilt) setViewMode('cards');
+    }, [isPrebuilt]);
 
     const goalFilters = useMemo(() => {
         const goals = new Set(posts.map((p) => p.goal).filter(Boolean));
@@ -248,23 +304,15 @@ export default function StrategyBoardPage() {
         [posts]
     );
 
-    const primaryGoal = useMemo(() => {
-        const counts: Record<string, number> = {};
-        posts.forEach((p) => {
-            if (p.goal) counts[p.goal] = (counts[p.goal] || 0) + 1;
-        });
-        const entries = Object.entries(counts);
-        if (entries.length === 0) return { goal: '—', count: 0 };
-        const [goal, count] = entries.reduce((a, b) => (a[1] > b[1] ? a : b));
-        return { goal: formatLabel(goal), count };
-    }, [posts]);
-
     const platformCoverage = useMemo(() => {
         const platforms = new Set(posts.map((p) => p.platform?.toLowerCase()).filter(Boolean));
         return `${platforms.size} platform${platforms.size !== 1 ? 's' : ''}`;
     }, [posts]);
 
-    const baseDate = strategy?.start_date ? new Date(strategy.start_date) : null;
+    const baseDate = useMemo(
+        () => (strategy?.start_date ? new Date(strategy.start_date) : null),
+        [strategy?.start_date]
+    );
     const todayDay = useMemo(() => {
         if (!baseDate) return 1;
         return Math.min(
@@ -275,15 +323,63 @@ export default function StrategyBoardPage() {
 
     const remainingDays = Math.max(duration - todayDay, 0);
 
-    const { postsByDay, dateLabels } = useMemo(() => {
-        const byDay: Record<number, StrategyPost[]> = {};
+    const { dateLabels } = useMemo(() => {
         const labels: Record<number, string | null> = {};
         for (let d = 1; d <= duration; d++) {
-            byDay[d] = filteredPosts.filter((p) => p.day === d);
             labels[d] = baseDate ? format(addDays(baseDate, d - 1), 'dd/MM/yy') : null;
         }
-        return { postsByDay: byDay, dateLabels: labels };
-    }, [duration, filteredPosts, baseDate]);
+        return { dateLabels: labels };
+    }, [duration, baseDate]);
+
+    const playbookSubtitle = useMemo(() => {
+        if (isPrebuilt) return 'Prebuilt Strategy Playbook';
+        return 'AI Strategy Playbook';
+    }, [isPrebuilt]);
+
+    const playbookDescription = useMemo(() => {
+        if (isPrebuilt) {
+            return 'This strategy focuses on building trust and authority using consistent knowledge-based content.';
+        }
+        return 'This strategy combines awareness, education, engagement, and conversion content to guide execution day by day.';
+    }, [isPrebuilt]);
+
+    const playbookDays = useMemo<PlaybookDay[]>(() => {
+        const intentFromGoal = (goal?: string) => {
+            if (!goal) return 'Awareness';
+            if (goal.includes('engagement')) return 'Engagement';
+            if (goal.includes('sales') || goal.includes('conversion')) return 'Conversion';
+            return 'Awareness';
+        };
+
+        return [...filteredPosts]
+            .sort((a, b) => a.day - b.day)
+            .map((post) => {
+                const intent = intentFromGoal(post.goal);
+                return {
+                    id: post.id,
+                    day: post.day,
+                    dateLabel: dateLabels[post.day] || undefined,
+                    platform: post.platform ? formatLabel(post.platform) : undefined,
+                    title: post.idea || `Day ${post.day} Strategy Idea`,
+                    description:
+                        post.caption || 'Create a concise post around this day theme with a clear audience takeaway.',
+                    type: formatLabel(post.content_type || 'text_post'),
+                    intent,
+                    hook:
+                        intent === 'Conversion'
+                            ? 'Most brands miss this simple move that drives action...'
+                            : intent === 'Engagement'
+                              ? 'What would you do in this situation?'
+                              : 'Most people are still doing this the hard way...',
+                    cta:
+                        intent === 'Conversion'
+                            ? 'DM us to get the full playbook.'
+                            : intent === 'Engagement'
+                              ? 'Comment your take below.'
+                              : 'Follow for more practical insights.',
+                };
+            });
+    }, [filteredPosts, dateLabels]);
 
     if (isLoading) {
         return <StrategyBoardSkeleton />;
@@ -293,7 +389,7 @@ export default function StrategyBoardPage() {
         return (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
                 <p className="text-base text-zinc-500">Strategy not found.</p>
-                <Link href="/dashboard/strategy">
+                <Link href={fromPrebuilt ? '/dashboard/prebuilt-strategy-prompts' : '/dashboard/strategy'}>
                     <Button variant="outline" className="rounded-full font-medium text-[15px]">
                         Back to Strategies
                     </Button>
@@ -304,71 +400,31 @@ export default function StrategyBoardPage() {
 
     return (
         <div className="min-h-screen bg-white text-zinc-900">
-            <link
-                href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Playfair+Display:wght@600&display=swap"
-                rel="stylesheet"
+            <StrategyHeader
+                backHref={isPrebuilt || fromPrebuilt ? '/dashboard/prebuilt-strategy-prompts' : '/dashboard/strategy'}
+                title={name}
+                subtitle={playbookSubtitle}
+                description={playbookDescription}
+                durationDays={duration}
+                showPrebuiltBadge={isPrebuilt}
+                editable={!isPrebuilt}
+                isSavingName={isSavingName}
+                onTitleChange={setName}
+                onTitleBlur={handleNameBlur}
             />
 
-            {/* Header */}
-            <div className="px-6  flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                    <Link href="/dashboard/strategy">
-                        <button
-                            type="button"
-                            className="w-8 h-8 rounded-full border border-zinc-200 bg-zinc-100 flex items-center justify-center text-zinc-600 hover:bg-zinc-200 transition-colors"
-                            aria-label="Back"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </button>
-                    </Link>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                onBlur={handleNameBlur}
-                                className="text-lg font-semibold tracking-tight border-0 bg-transparent px-0 h-auto py-0.5 focus-visible:ring-0 rounded-none max-w-md"
-                            />
-                            {isSavingName && <Loader2 className="h-4 w-4 animate-spin text-zinc-400 shrink-0" />}
-                        </div>
-                        <p className="text-[11px] text-zinc-400 mt-0.5">AI-generated marketing strategy</p>
-                    </div>
-                    <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-900 text-white text-[11px] font-medium">
-                        {duration} days
-                    </span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-zinc-100 rounded-[20px] p-0.5 gap-0.5">
-                        <button
-                            type="button"
-                            className={cn(
-                                'text-xs font-medium py-1.5 px-3 rounded-2xl transition-colors',
-                                viewMode === 'table'
-                                    ? 'bg-zinc-900 text-white'
-                                    : 'bg-transparent text-zinc-500 hover:text-zinc-700'
-                            )}
-                            onClick={() => setViewMode('table')}
-                        >
-                            Table
-                        </button>
-                        <button
-                            type="button"
-                            className={cn(
-                                'text-xs font-medium py-1.5 px-3 rounded-2xl transition-colors',
-                                viewMode === 'cards'
-                                    ? 'bg-white text-zinc-900 border border-zinc-200'
-                                    : 'bg-transparent text-zinc-500 hover:text-zinc-700'
-                            )}
-                            onClick={() => setViewMode('cards')}
-                        >
-                            Cards
-                        </button>
-                    </div>
-                </div>
+            <div className="mt-6 space-y-6">
+                <StrategyOverview
+                    summary="Focus on educating your audience before selling to build long-term trust."
+                    outcomes={['Increase engagement', 'Build authority', 'Improve profile visits']}
+                    audience={['E-commerce brands', 'Personal brands', 'SaaS founders']}
+                />
+
+                <StrategyPhases phases={MOCK_PHASES} />
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-5">
+            <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-5', isPrebuilt && 'lg:grid-cols-3')}>
                 <StatRingCard
                     label="Total posts"
                     valueLabel={`${posts.length} of ${duration} days`}
@@ -401,7 +457,8 @@ export default function StrategyBoardPage() {
                     </div>
                 </div>
 
-                <div className="rounded-2xl bg-white border border-zinc-200 px-4 py-3.5 shadow-sm flex flex-col items-center justify-center text-center">
+                {!isPrebuilt && (
+                    <div className="rounded-2xl bg-white border border-zinc-200 px-4 py-3.5 shadow-sm flex flex-col items-center justify-center text-center">
                     <div className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
                         Campaign progress
                     </div>
@@ -411,11 +468,13 @@ export default function StrategyBoardPage() {
                     <div className="text-[11px] text-zinc-500 mt-0.5">
                         {remainingDays > 0 ? `${remainingDays} days left` : 'Campaign completed'}
                     </div>
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* Progress bar */}
-            <div className="px-6 pb-1">
+            {!isPrebuilt && (
+                <div className="px-6 pb-1">
                 <div className="text-[11px] text-zinc-400 mb-1.5">
                     Campaign progress — Day {todayDay} of {duration}
                 </div>
@@ -428,9 +487,10 @@ export default function StrategyBoardPage() {
                         return <div key={i} className={cn('flex-1 rounded-sm', bg)} />;
                     })}
                 </div>
-            </div>
+                </div>
+            )}
 
-            {/* Toolbar: filters + add post */}
+            {/* Toolbar: filters + add post (disabled for prebuilt read-only) */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 px-6 py-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     {goalFilters.map((f) => (
@@ -449,37 +509,28 @@ export default function StrategyBoardPage() {
                         </button>
                     ))}
                 </div>
-                <Button
-                    size="sm"
-                    onClick={() => handleAddPost(1)}
-                    className="rounded-[20px] bg-[#F5C842] hover:bg-[#f2c112] text-zinc-900 font-medium text-[13px] gap-1.5"
-                >
-                    <Plus className="h-4 w-4" />
-                    Add post
-                </Button>
+                {!isPrebuilt && (
+                    <Button
+                        size="sm"
+                        onClick={() => handleAddPost(1)}
+                        className="rounded-[20px] bg-[#F5C842] hover:bg-[#f2c112] text-zinc-900 font-medium text-[13px] gap-1.5"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add post
+                    </Button>
+                )}
             </div>
 
             <div className="w-full px-6 pb-6">
                 {viewMode === 'cards' ? (
-                    filteredPosts.length === 0 ? (
+                    playbookDays.length === 0 ? (
                         <div className="py-12 text-center text-zinc-400 text-[13px]">
                             No posts match this filter.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                            {[...filteredPosts].sort((a, b) => a.day - b.day).map((post) => (
-                                <StrategyPostCard
-                                    key={post.id}
-                                    post={post}
-                                    dateLabel={dateLabels[post.day] || undefined}
-                                    onEdit={() => handleEditPost(post)}
-                                    onClone={() => handleClonePost(post)}
-                                    onPostToPlatforms={() => handlePostToPlatforms(post)}
-                                    onScheduleToCalendar={() => handleScheduleToCalendar(post)}
-                                    onContent={() => setContentPost(post)}
-                                    onDelete={() => handleDeletePost(post)}
-                                    onIncludeChange={(c) => handleIncludeChange(post, c)}
-                                />
+                        <div className={cn('grid gap-4', isPrebuilt ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4')}>
+                            {playbookDays.map((day) => (
+                                <StrategyDayCard key={day.id} day={day} />
                             ))}
                         </div>
                     )
@@ -487,92 +538,102 @@ export default function StrategyBoardPage() {
                     <StrategyTableView
                         posts={filteredPosts}
                         startDate={strategy.start_date}
-                        onRowClick={(post) => setSidebarPost(post)}
-                        onEdit={handleEditPost}
-                        onClone={handleClonePost}
-                        onPostToPlatforms={handlePostToPlatforms}
-                        onScheduleToCalendar={handleScheduleToCalendar}
-                        onContent={(post) => setContentPost(post)}
-                        onDelete={handleDeletePost}
-                        onIncludeChange={handleIncludeChange}
-                        onAddPost={() => handleAddPost(1)}
+                        readonly={isPrebuilt}
+                        onRowClick={isPrebuilt ? () => {} : (post) => setSidebarPost(post)}
+                        onEdit={isPrebuilt ? () => {} : handleEditPost}
+                        onClone={isPrebuilt ? () => {} : handleClonePost}
+                        onPostToPlatforms={isPrebuilt ? () => {} : handlePostToPlatforms}
+                        onScheduleToCalendar={isPrebuilt ? undefined : handleScheduleToCalendar}
+                        onContent={isPrebuilt ? () => {} : (post) => setContentPost(post)}
+                        onDelete={isPrebuilt ? () => {} : handleDeletePost}
+                        onIncludeChange={isPrebuilt ? () => {} : handleIncludeChange}
+                        onAddPost={isPrebuilt ? () => {} : () => handleAddPost(1)}
                     />
                 )}
             </div>
 
-            <ScheduleToCalendarModal
-                open={!!postForSchedule}
-                onClose={() => setPostForSchedule(null)}
-                post={postForSchedule}
-                strategyId={id}
-                startDate={strategy?.start_date ?? null}
-                durationDays={strategy?.duration_days ?? 30}
-                onSuccess={() => { fetchStrategy(); setPostForSchedule(null); }}
-            />
+            <div className="space-y-6">
+                <ExecutionGuide points={MOCK_EXECUTION_POINTS} />
+                <StrategyTips tips={MOCK_TIPS} />
+            </div>
 
-            <PostToPlatformsModal
-                open={postToPlatformsOpen}
-                onOpenChange={setPostToPlatformsOpen}
-                post={postForPlatforms}
-                strategyId={id}
-                allPosts={strategy?.posts ?? []}
-                onSuccess={() => {
-                    fetchStrategy();
-                    toast.success('Added to more platforms');
-                }}
-            />
+            {!isPrebuilt && (
+                <>
+                    <ScheduleToCalendarModal
+                        open={!!postForSchedule}
+                        onClose={() => setPostForSchedule(null)}
+                        post={postForSchedule}
+                        strategyId={id}
+                        startDate={strategy?.start_date ?? null}
+                        durationDays={strategy?.duration_days ?? 30}
+                        onSuccess={() => { fetchStrategy(); setPostForSchedule(null); }}
+                    />
 
-            <StrategyPostContentModal
-                post={contentPost}
-                open={!!contentPost}
-                onClose={() => setContentPost(null)}
-                strategyId={id}
-                onSuccess={() => { fetchStrategy(); setContentPost(null); }}
-            />
+                    <PostToPlatformsModal
+                        open={postToPlatformsOpen}
+                        onOpenChange={setPostToPlatformsOpen}
+                        post={postForPlatforms}
+                        strategyId={id}
+                        allPosts={strategy?.posts ?? []}
+                        onSuccess={() => {
+                            fetchStrategy();
+                            toast.success('Added to more platforms');
+                        }}
+                    />
 
-            <StrategyPostDetailSidebar
-                post={sidebarPost}
-                open={!!sidebarPost}
-                onClose={() => setSidebarPost(null)}
-                startDate={strategy.start_date ?? null}
-                onEdit={() => {
-                    if (sidebarPost) {
-                        handleEditPost(sidebarPost);
-                        setSidebarPost(null);
-                    }
-                }}
-                onContent={() => {
-                    if (sidebarPost) {
-                        setContentPost(sidebarPost);
-                        setSidebarPost(null);
-                    }
-                }}
-                onScheduleToCalendar={() => {
-                    if (sidebarPost) {
-                        handleScheduleToCalendar(sidebarPost);
-                        setSidebarPost(null);
-                    }
-                }}
-            />
+                    <StrategyPostContentModal
+                        post={contentPost}
+                        open={!!contentPost}
+                        onClose={() => setContentPost(null)}
+                        strategyId={id}
+                        onSuccess={() => { fetchStrategy(); setContentPost(null); }}
+                    />
 
-            <EditStrategyPostModal
-                open={editModalOpen}
-                onOpenChange={(open) => {
-                    setEditModalOpen(open);
-                    if (!open) {
-                        setAddDay(null);
-                        setCloneFrom(null);
-                    }
-                }}
-                post={editingPost}
-                strategyId={id}
-                durationDays={duration}
-                startDate={strategy.start_date ?? null}
-                onSave={handleModalSave}
-                isCreate={!!addDay || !!cloneFrom}
-                initialDay={cloneFrom ? cloneFrom.day : (addDay ?? 1)}
-                cloneFrom={cloneFrom}
-            />
+                    <StrategyPostDetailSidebar
+                        post={sidebarPost}
+                        open={!!sidebarPost}
+                        onClose={() => setSidebarPost(null)}
+                        startDate={strategy.start_date ?? null}
+                        onEdit={() => {
+                            if (sidebarPost) {
+                                handleEditPost(sidebarPost);
+                                setSidebarPost(null);
+                            }
+                        }}
+                        onContent={() => {
+                            if (sidebarPost) {
+                                setContentPost(sidebarPost);
+                                setSidebarPost(null);
+                            }
+                        }}
+                        onScheduleToCalendar={() => {
+                            if (sidebarPost) {
+                                handleScheduleToCalendar(sidebarPost);
+                                setSidebarPost(null);
+                            }
+                        }}
+                    />
+
+                    <EditStrategyPostModal
+                        open={editModalOpen}
+                        onOpenChange={(open) => {
+                            setEditModalOpen(open);
+                            if (!open) {
+                                setAddDay(null);
+                                setCloneFrom(null);
+                            }
+                        }}
+                        post={editingPost}
+                        strategyId={id}
+                        durationDays={duration}
+                        startDate={strategy.start_date ?? null}
+                        onSave={handleModalSave}
+                        isCreate={!!addDay || !!cloneFrom}
+                        initialDay={cloneFrom ? cloneFrom.day : (addDay ?? 1)}
+                        cloneFrom={cloneFrom}
+                    />
+                </>
+            )}
         </div>
     );
 }

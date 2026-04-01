@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/lib/auth-context';
 import {
     Select,
     SelectContent,
@@ -18,8 +19,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
-const BUSINESS_TYPES = ['Ecommerce', 'SaaS', 'Restaurant', 'Personal Brand', 'Agency', 'Other'];
+const BUSINESS_TYPES = [
+    'Gym',
+    'Jewellery',
+    'Ecommerce',
+    'SaaS',
+    'Restaurant',
+    'Personal Brand',
+    'Agency',
+    'Other',
+];
 const GOALS = ['Increase Followers', 'Increase Sales', 'Brand Awareness', 'Engagement'];
+const STRATEGY_TYPES = [
+    { id: 'social_growth', label: 'Grow on Social Media' },
+    { id: 'marketing_plan', label: 'Marketing Strategy' },
+    { id: 'knowledge_based', label: 'Knowledge-based' },
+    { id: 'customer_engagement', label: 'Customer Engagement' },
+] as const;
 const PLATFORMS = [
     { id: 'instagram', label: 'Instagram' },
     { id: 'linkedin', label: 'LinkedIn' },
@@ -46,10 +62,14 @@ export function GenerateStrategyModal({
     prefill,
 }: GenerateStrategyModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { user, getIdToken } = useAuth();
+    const isTemplateFlow = !!prefill;
     const [businessType, setBusinessType] = useState('');
     const [brandName, setBrandName] = useState('');
+    const [isBrandNameLocked, setIsBrandNameLocked] = useState(false);
     const [targetAudience, setTargetAudience] = useState('');
     const [goal, setGoal] = useState('');
+    const [strategyType, setStrategyType] = useState<string>('');
     const [platforms, setPlatforms] = useState<string[]>([]);
     const [theme, setTheme] = useState('');
     const [durationDays, setDurationDays] = useState(30);
@@ -59,15 +79,62 @@ export function GenerateStrategyModal({
     useEffect(() => {
         if (open) {
             setCoverImage(null);
+            setIsBrandNameLocked(false);
+
+            // Default to today's date so prebuilt templates don't require manual entry.
+            // Users can still edit the date after it's filled.
+            setStartDate((prev) => {
+                if (prev) return prev;
+                const now = new Date();
+                const localIsoDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+                return localIsoDate;
+            });
+
             if (prefill) {
                 if (prefill.businessType) setBusinessType(prefill.businessType);
                 if (prefill.goal) setGoal(prefill.goal);
+                if (prefill.strategyType) setStrategyType(prefill.strategyType);
                 if (prefill.theme) setTheme(prefill.theme);
                 if (prefill.platforms?.length) setPlatforms(prefill.platforms);
                 if (prefill.durationDays) setDurationDays(prefill.durationDays);
             }
+
+            // For prefilled/template flows: pick brand name from user's settings/profile.
+            if (prefill) {
+                const fromFirebase = user?.displayName?.trim();
+                if (fromFirebase) {
+                    setBrandName(fromFirebase);
+                    setIsBrandNameLocked(true);
+                    return;
+                }
+
+                if (!brandName.trim()) {
+                    let cancelled = false;
+
+                    (async () => {
+                        try {
+                            const token = await getIdToken();
+                            const res = await fetch('/api/user', {
+                                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                            });
+                            if (!res.ok) return;
+                            const data = (await res.json()) as { name?: string };
+                            const fromDb = data?.name?.trim();
+                            if (!fromDb || cancelled) return;
+                            setBrandName(fromDb);
+                            setIsBrandNameLocked(true);
+                        } catch {
+                            // Keep unlocked so user can enter manually.
+                        }
+                    })();
+
+                    return () => {
+                        cancelled = true;
+                    };
+                }
+            }
         }
-    }, [open, prefill]);
+    }, [open, prefill, user?.displayName, getIdToken]);
 
     const togglePlatform = (id: string) => {
         setPlatforms((prev) =>
@@ -98,7 +165,8 @@ export function GenerateStrategyModal({
                     businessType: businessType || 'Other',
                     brandName: brandName.trim(),
                     targetAudience: targetAudience.trim(),
-                    goal: goal || 'Brand Awareness',
+                    goal: goal || 'brand_awareness',
+                    strategyType: strategyType.trim() || undefined,
                     platforms,
                     theme: theme.trim() || undefined,
                     durationDays,
@@ -131,8 +199,10 @@ export function GenerateStrategyModal({
             // Reset form
             setBusinessType('');
             setBrandName('');
+            setIsBrandNameLocked(false);
             setTargetAudience('');
             setGoal('');
+            setStrategyType('');
             setPlatforms([]);
             setTheme('');
             setDurationDays(30);
@@ -181,7 +251,10 @@ export function GenerateStrategyModal({
                     <div>
                         <Label className="text-sm font-bold text-zinc-600">Business Type</Label>
                         <Select value={businessType} onValueChange={setBusinessType}>
-                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white">
+                            <SelectTrigger
+                                disabled={isTemplateFlow}
+                                className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white"
+                            >
                                 <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -195,13 +268,21 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Brand Name *</Label>
+                        <Label className="text-sm font-bold text-zinc-600">
+                            Brand Name {isBrandNameLocked ? '' : '*'}
+                        </Label>
                         <Input
                             placeholder="e.g. Nike"
                             value={brandName}
                             onChange={(e) => setBrandName(e.target.value)}
+                            disabled={isBrandNameLocked}
                             className="mt-1.5 h-11 rounded-xl border-zinc-200"
                         />
+                        {isBrandNameLocked && (
+                            <p className="mt-2 text-[12px] text-zinc-500">
+                                Using your settings profile name.
+                            </p>
+                        )}
                     </div>
 
                     <div>
@@ -231,7 +312,41 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Platforms *</Label>
+                        <Label className="text-sm font-bold text-zinc-600">Strategy Focus</Label>
+                        <Select value={strategyType} onValueChange={setStrategyType}>
+                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white">
+                                <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {STRATEGY_TYPES.map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>
+                                        {t.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center justify-between gap-3">
+                            <Label className="text-sm font-bold text-zinc-600">
+                                Platforms {isTemplateFlow ? '' : '*'}
+                            </Label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-8 px-2 text-sm font-semibold text-zinc-600 hover:bg-zinc-100"
+                                onClick={() => {
+                                    const allIds = PLATFORMS.map((p) => p.id);
+                                    const hasAll = allIds.every((id) => platforms.includes(id));
+                                    setPlatforms(hasAll ? [] : allIds);
+                                }}
+                            >
+                                {PLATFORMS.map((p) => p.id).every((id) => platforms.includes(id))
+                                    ? 'Deselect all'
+                                    : 'Select all'}
+                            </Button>
+                        </div>
                         <div className="mt-2 flex flex-wrap gap-3">
                             {PLATFORMS.map((p) => (
                                 <label
@@ -254,6 +369,7 @@ export function GenerateStrategyModal({
                             placeholder="e.g. Holi, Product Launch, Summer Sale"
                             value={theme}
                             onChange={(e) => setTheme(e.target.value)}
+                            disabled={isTemplateFlow}
                             className="mt-1.5 h-11 rounded-xl border-zinc-200"
                         />
                     </div>
@@ -264,7 +380,9 @@ export function GenerateStrategyModal({
                             value={String(durationDays)}
                             onValueChange={(v) => setDurationDays(Number(v))}
                         >
-                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white">
+                            <SelectTrigger
+                                className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -278,11 +396,14 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Start Date *</Label>
+                        <Label className="text-sm font-bold text-zinc-600">
+                            Start Date {isTemplateFlow ? '' : '*'}
+                        </Label>
                         <Input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
+                            disabled={false}
                             className="mt-1.5 h-11 rounded-xl border-zinc-200"
                         />
                     </div>

@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
             brandName,
             targetAudience,
             goal,
+            strategyType,
             platforms,
             theme,
             durationDays,
@@ -34,14 +35,25 @@ export async function POST(req: NextRequest) {
             brandName: String(brandName).trim(),
             targetAudience: targetAudience || '',
             goal: goal || 'brand_awareness',
+            strategyType: typeof strategyType === 'string' ? strategyType : undefined,
             platforms: Array.isArray(platforms) ? platforms : [],
             theme: theme || undefined,
             durationDays: Number(durationDays) || 30,
         });
 
-        const strategyName = theme
-            ? `${String(brandName).trim()} – ${String(theme).trim()}`
-            : String(brandName).trim();
+        const strategyName = (() => {
+            const rawTheme = typeof theme === 'string' ? theme.trim() : '';
+            if (!rawTheme) return String(brandName).trim();
+
+            // Keep DB tagging in `theme`, but show a human-friendly name in the UI.
+            const displayTheme = rawTheme
+                .replace(/^prebuilt_[a-z]+_/, '')
+                .replace(/^gym_/, '')
+                .replace(/^jewellery_/, '')
+                .replace(/^ecom_/, '')
+                .replace(/_/g, ' ');
+            return `${String(brandName).trim()} – ${displayTheme}`;
+        })();
 
         const { data: strategy, error: strategyError } = await supabaseAdmin
             .from('strategies')
@@ -53,7 +65,7 @@ export async function POST(req: NextRequest) {
                 target_audience: targetAudience || null,
                 goal: goal || null,
                 platforms: platforms || [],
-                theme: theme || null,
+                    theme: theme || null,
                 duration_days: Number(durationDays) || 30,
                 start_date: startDate,
             })

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentType } from 'react';
 import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
@@ -31,7 +31,25 @@ const WhatsappIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const sidebarData = [
+type SidebarSubItem = {
+    name: string;
+    href: string;
+    badge?: string;
+    external?: boolean;
+};
+
+type SidebarSection = {
+    name: string;
+    icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+    href?: string;
+    external?: boolean;
+    hasBorderBottom?: boolean;
+    defaultExpanded?: boolean;
+    hasArrow?: boolean;
+    items?: SidebarSubItem[];
+};
+
+const sidebarData: SidebarSection[] = [
     {
         name: 'Dashboard',
         icon: LayoutDashboard,
@@ -61,6 +79,7 @@ const sidebarData = [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
             { name: 'Create Content', href: '/dashboard/posters' },
+            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
             
             { name: 'Create New', href: '/dashboard/create' },
             // { name: 'Billing', href: '/dashboard/billing' },
@@ -179,7 +198,7 @@ export function Sidebar() {
         }, {} as Record<string, boolean>)
     );
 
-    const toggleSection = (name: string, items?: any[]) => {
+    const toggleSection = (name: string, items?: SidebarSubItem[]) => {
         if (isCollapsed) {
             if (items && items.length > 0) {
                 // Always open/keep open the secondary sidebar when clicking a parent icon
@@ -207,6 +226,7 @@ export function Sidebar() {
 
     // On navigation: expand on dashboard home only; otherwise collapse.
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCollapsed(!isDashboardHomePath(pathname));
         setShowSecondary(false);
         setActiveSectionName(null);
@@ -223,6 +243,7 @@ export function Sidebar() {
 
     useEffect(() => {
         if (!isCollapsed) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowSecondary(false);
             setActiveSectionName(null);
         } else {
@@ -366,7 +387,7 @@ export function Sidebar() {
                                 {section.items?.map(item => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
-                                        if ((item as any).external) {
+                                        if (item.external) {
                                             return (
                                                 <a
                                                     key={item.name}
@@ -402,12 +423,12 @@ export function Sidebar() {
                                                     "truncate transition-all duration-300",
                                                     isCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible w-auto"
                                                 )}>{item.name}</span>
-                                                {(item as any).badge && (
+                                                {item.badge && (
                                                     <span className={cn(
                                                         "text-[11px] uppercase tracking-wider bg-emerald-500/20 text-emerald-200 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
                                                         isCollapsed ? "opacity-0 scale-0 invisible w-0" : "opacity-100 scale-100 visible w-auto"
                                                     )}>
-                                                        {(item as any).badge}
+                                                        {item.badge}
                                                     </span>
                                                 )}
                                             </Link>
@@ -478,7 +499,7 @@ export function Sidebar() {
 
                     const singleLinkItem = (
                         <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
-                            {(section as any).external ? (
+                            {section.external ? (
                                 <a
                                     href={section.href!}
                                     target="_blank"
