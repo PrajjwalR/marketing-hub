@@ -8,10 +8,12 @@ import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    LayoutGrid, BarChart2
+    BarChart2, Target, Home, Brain, LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { getAuth, signOut } from "firebase/auth";
+import { app } from "@/lib/firebase";
 import { usePlanLimits } from '@/hooks/use-plan-limits';
 import {
     Tooltip,
@@ -47,14 +49,16 @@ type SidebarSection = {
     defaultExpanded?: boolean;
     hasArrow?: boolean;
     items?: SidebarSubItem[];
+    id?: string;
 };
 
 const sidebarData: SidebarSection[] = [
     {
         name: 'Dashboard',
-        icon: LayoutDashboard,
+        icon: Home,
         href: '/dashboard',
         hasBorderBottom: true,
+        id: 'sidebar-dashboard',
     },
     {
         name: 'Strategy',
@@ -68,17 +72,20 @@ const sidebarData: SidebarSection[] = [
     {
         name: 'Competitors',
         icon: BarChart2,
-        href: '/dashboard/competitors'
+        href: '/dashboard/competitors',
+        id: 'sidebar-competitors',
     },
     {
         name: 'Postings Calendar',
         icon: CalendarDays,
-        href: '/dashboard/calendar'
+        href: '/dashboard/calendar',
+        id: 'sidebar-calendar',
     },
     {
         name: 'Content Creation',
         icon: Film,
         defaultExpanded: true,
+        id: 'sidebar-content',
         items: [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
@@ -169,7 +176,8 @@ const sidebarData: SidebarSection[] = [
         name: 'Admin Settings',
         icon: Settings,
         href: '/dashboard/settings',
-        hasArrow: true
+        hasArrow: true,
+        id: 'sidebar-settings',
     }
 ];
 
@@ -185,6 +193,17 @@ export function Sidebar() {
     const router = useRouter();
     const { currentPlan } = usePlanLimits();
     const showUpgrade = false; // All features enabled
+
+    const handleSignOut = async () => {
+        try {
+            const auth = getAuth(app);
+            await signOut(auth);
+            document.cookie = '__session=; path=/; max-age=0';
+            router.push('/');
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
 
     // Default: collapsed except on dashboard home (expanded like Sprout reference).
     const [isCollapsed, setIsCollapsed] = useState(
@@ -339,6 +358,7 @@ export function Sidebar() {
                     const sidebarItem = (
                         <div key={section.name} className="flex flex-col">
                             <button
+                                id={section.id}
                                 onClick={() => toggleSection(section.name, section.items)}
                                 className={cn(
                                     "group flex cursor-pointer items-center text-[14px] font-bold transition-colors",
@@ -505,6 +525,7 @@ export function Sidebar() {
                         <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
                             {section.external ? (
                                 <a
+                                    id={section.id}
                                     href={section.href!}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -515,6 +536,7 @@ export function Sidebar() {
                                 </a>
                             ) : (
                                 <Link
+                                    id={section.id}
                                     href={section.href!}
                                     className={linkClasses}
                                     onClick={() => setShowSecondary(false)}
@@ -545,7 +567,41 @@ export function Sidebar() {
                 })}
             </div>
 
-                <div className="mt-auto h-4 border-t border-white/[0.07] bg-black/25" />
+            {/* Bottom Actions */}
+            <div className={cn("mt-auto border-t border-white/[0.07] pt-2 pb-3 shrink-0", isCollapsed ? "px-2" : "px-3")}>
+                {isCollapsed ? (
+                    <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={handleSignOut}
+                                    className="group mx-auto my-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl p-0 text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+                                >
+                                    <LogOut className="h-4 w-4 shrink-0 transition-all duration-300 group-hover:-translate-x-0.5" strokeWidth={2.5} />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="right"
+                                sideOffset={4}
+                                showArrow={false}
+                                className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
+                            >
+                                Sign out
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                ) : (
+                    <button
+                        onClick={handleSignOut}
+                        className="group my-1 flex w-full cursor-pointer items-center rounded-xl px-2 py-2 text-[14px] font-bold text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+                    >
+                        <div className="flex items-center overflow-hidden gap-2.5">
+                            <LogOut className="h-4 w-4 shrink-0 transition-all duration-300 group-hover:-translate-x-0.5" strokeWidth={2.5} />
+                            <span className="truncate transition-all duration-300">Sign out</span>
+                        </div>
+                    </button>
+                )}
+            </div>
 
                 <style jsx global>{`
                     .custom-scrollbar::-webkit-scrollbar { width: 4px; }

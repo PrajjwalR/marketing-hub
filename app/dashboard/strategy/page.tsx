@@ -70,7 +70,7 @@ export default function StrategyPage() {
         <div className="space-y-6 w-full max-w-7xl mx-auto">
             <div className="bg-white p-6 rounded-[10px] border border-zinc-200 shadow-sm">
                 <div className="space-y-1 mb-6">
-                    <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 leading-tight">
+                    <h1 id="strategy-header" className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 leading-tight">
                         Strategy Planner
                     </h1>
                     <p className="text-base leading-relaxed text-zinc-500 max-w-2xl">
@@ -82,7 +82,7 @@ export default function StrategyPage() {
                     <p className="text-sm font-bold tracking-widest uppercase text-[#239047]">
                         Choose a strategy template or create your own
                     </p>
-                    <div className="flex gap-4 overflow-x-auto pb-2 -mx-1">
+                    <div id="strategy-templates" className="flex gap-4 overflow-x-auto pb-2 -mx-1">
                         {STRATEGY_TEMPLATES.map((t) => (
                             <StrategyTemplateCard
                                 key={t.id}
@@ -95,6 +95,7 @@ export default function StrategyPage() {
                         ))}
                     </div>
                     <Button
+                        id="strategy-generate-btn"
                         onClick={() => {
                             setPrefill(null);
                             setModalOpen(true);

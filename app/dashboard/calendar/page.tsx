@@ -59,6 +59,7 @@ function CalendarContent() {
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1 bg-zinc-100 p-1 rounded-xl border border-zinc-200">
                         <button
+                            id="calendar-nav"
                             onClick={goPrev}
                             className="h-10 w-10 rounded-lg hover:bg-white text-zinc-600 hover:text-zinc-900 transition-colors flex items-center justify-center"
                             aria-label="Previous"
@@ -79,7 +80,7 @@ function CalendarContent() {
                             <ChevronRight className="h-5 w-5" />
                         </button>
                     </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-3">
+                    <h1 id="calendar-title" className="text-xl sm:text-2xl font-bold text-zinc-900 flex items-center gap-3">
                         {displayMode === 'list' && <Calendar className="h-6 w-6 text-zinc-500" />}
                         {title}
                     </h1>
@@ -88,6 +89,7 @@ function CalendarContent() {
                 {/* Right group: view switcher + Add New */}
                 <div className="flex items-center gap-4">
                     <select
+                        id="calendar-labels"
                         value={activeLabelId}
                         onChange={(e) => setActiveLabelId(e.target.value)}
                         className="h-11 min-w-[180px] rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -99,7 +101,7 @@ function CalendarContent() {
                             </option>
                         ))}
                     </select>
-                    <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
+                    <div id="calendar-view-switcher" className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
                         {(['list', 'week', 'month'] as const).map(mode => (
                             <button
                                 key={mode}
@@ -116,6 +118,7 @@ function CalendarContent() {
                         ))}
                     </div>
                     <Button
+                        id="calendar-add-btn"
                         onClick={() => openCreateDialog()}
                         className="bg-amber-300 hover:bg-amber-400 text-zinc-900 font-bold h-11 px-6 shadow-sm transition-all active:scale-95 gap-2 rounded-xl border border-amber-200 text-base"
                     >
