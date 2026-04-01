@@ -57,9 +57,13 @@ const sidebarData: SidebarSection[] = [
         hasBorderBottom: true,
     },
     {
-        name: 'Strategy Planner',
+        name: 'Strategy',
         icon: LayoutGrid,
-        href: '/dashboard/strategy'
+        defaultExpanded: true,
+        items: [
+            { name: 'Strategy Planner', href: '/dashboard/strategy' },
+            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
+        ]
     },
     {
         name: 'Competitors',
@@ -79,8 +83,6 @@ const sidebarData: SidebarSection[] = [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
             { name: 'Create Content', href: '/dashboard/posters' },
-            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
-            
             { name: 'Create New', href: '/dashboard/create' },
             // { name: 'Billing', href: '/dashboard/billing' },
         ]
