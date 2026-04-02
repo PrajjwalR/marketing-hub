@@ -8,7 +8,7 @@ import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    BarChart2, Target, Home, Brain, LogOut
+    BarChart2, Target, Home, Brain, LogOut, GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -168,7 +168,12 @@ const sidebarData: SidebarSection[] = [
     //     icon: ShieldCheck,
     //     href: '/dashboard/deliverability'
     // },
-   
+    {
+        name: 'Academy',
+        icon: GraduationCap,
+        href: '/dashboard/academy',
+        id: 'sidebar-academy',
+    },
     {
         name: 'Admin Settings',
         icon: Settings,

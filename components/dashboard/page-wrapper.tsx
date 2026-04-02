@@ -9,9 +9,13 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
         pathname === '/dashboard' ||
         pathname === '/dashboard/calendar' ||
         pathname === '/dashboard/inbox-activity' ||
-        pathname === '/dashboard/ad-insights';
+        pathname === '/dashboard/ad-insights' ||
+        pathname.startsWith('/dashboard/academy');
+        
     const isDashboardHome =
-        pathname === '/dashboard' || pathname === '/dashboard/';
+        pathname === '/dashboard' || 
+        pathname === '/dashboard/' || 
+        pathname.startsWith('/dashboard/academy');
 
     return (
         <div
