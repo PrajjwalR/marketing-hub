@@ -97,7 +97,7 @@ export function WeekView() {
             </div>
 
             {/* Week Columns — 7 equal columns, vertical scroll only */}
-            <div className="grid grid-cols-7 gap-2 items-start overflow-y-auto max-h-[calc(100vh-280px)]">
+            <div className="grid grid-cols-7 gap-2 items-start">
                 {days.map((day) => {
                     const isToday = isSameDay(day, new Date());
                     const key = format(day, 'yyyy-MM-dd');
@@ -140,10 +140,17 @@ export function WeekView() {
                                     </button>
                                 </div>
                             </div>
+                            
+                            {/* Festivals Banner for the day */}
+                            {dayEvents.filter(e => e.type === 'festival').map(fest => (
+                                <div key={fest.id} className="mx-3 mt-3 px-2 py-1.5 rounded-lg bg-[#fff7ed] text-[#ea580c] text-xs font-bold flex items-center justify-center gap-1.5 border border-[#ffedd5] shadow-sm text-center leading-tight">
+                                    🪔 {fest.title}
+                                </div>
+                            ))}
 
                             {/* Cards */}
                             <div className="flex flex-col gap-2 p-3">
-                                {dayEvents.length === 0 ? (
+                                {dayEvents.filter(e => e.type !== 'festival').length === 0 ? (
                                     <button
                                         onClick={() => openCreateDialog(defaultCreateDate)}
                                         className="w-full min-h-[140px] rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center text-center p-4 hover:border-amber-300 hover:bg-amber-50/40 transition-colors"
@@ -152,7 +159,7 @@ export function WeekView() {
                                         <div className="text-sm font-bold text-zinc-400">No posts</div>
                                     </button>
                                 ) : (
-                                    dayEvents.map((event) => {
+                                    dayEvents.filter(e => e.type !== 'festival').map((event) => {
                                         const when = parseISO(event.scheduled_at);
                                         const account = resolveAccount(event.account_id);
                                         const media = event.media_url?.split(',')[0]?.trim();

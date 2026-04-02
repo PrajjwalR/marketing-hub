@@ -20,7 +20,7 @@ export function MonthView() {
 
     return (
         // Match Week view behavior: keep page header fixed by scrolling inside month grid.
-        <div className="flex flex-col text-zinc-900 w-full overflow-y-auto max-h-[calc(100vh-280px)]">
+        <div className="flex flex-col text-zinc-900 w-full">
             <div className="grid grid-cols-7 auto-rows-min gap-2 bg-zinc-50 p-2">
                     
                     {/* Days of Week Headers */}
@@ -63,7 +63,12 @@ export function MonthView() {
                                 
                                 {/* Month cards: show full platform preview; day cell grows to fit all cards */}
                                 <div className="flex flex-col gap-2 mt-2 z-10 w-full relative">
-                                    {dayEvents.map(event => {
+                                    {dayEvents.filter(e => e.type === 'festival').map(fest => (
+                                        <div key={fest.id} className="w-full text-center px-1 py-1 rounded bg-[#fff7ed] text-[#c2410c] text-[10px] font-bold mb-0.5 truncate border border-[#ffedd5] shadow-sm" title={fest.description || fest.title}>
+                                            🪔 {fest.title}
+                                        </div>
+                                    ))}
+                                    {dayEvents.filter(e => e.type !== 'festival').map(event => {
                                         const when = parseISO(event.scheduled_at);
                                         const whenLabel = format(when, 'h:mm a');
                                         const media = event.media_url?.split(',')[0]?.trim();

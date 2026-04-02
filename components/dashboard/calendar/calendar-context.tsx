@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { getIndianFestivalsAsEvents } from '@/lib/indian-festivals';
 
 export interface CalendarEvent {
     id: string;
@@ -95,10 +96,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
                 const normalized = (data || []).map((event: CalendarEvent) => ({
                     ...event,
                     labels: (event.post_labels || [])
-                        .map((item) => item?.label)
+                        .map((item: any) => item?.label)
                         .filter(Boolean) as LabelItem[],
                 }));
-                setEvents(normalized);
+                const withFestivals = [...normalized, ...getIndianFestivalsAsEvents()] as CalendarEvent[];
+                setEvents(withFestivals);
             }
             if (socialRes.ok) {
                 const data = await socialRes.json();
