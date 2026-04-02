@@ -212,6 +212,7 @@ export function WeekView() {
                                                     description={event.description}
                                                     media={media}
                                                     onUpload={() => openEditDialog(event)}
+                                                    isRecurring={!!event.is_recurring}
                                                 />
                                             </button>
                                         );

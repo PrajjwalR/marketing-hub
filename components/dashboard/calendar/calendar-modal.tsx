@@ -3,11 +3,12 @@
 import { useCalendar, CalendarEvent, SocialConnection, LabelItem } from './calendar-context';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil, Sparkles } from 'lucide-react';
+import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil, Sparkles, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -81,6 +82,13 @@ export function CalendarModal() {
     const [selectedReviewerIds, setSelectedReviewerIds] = useState<string[]>([]);
     const [approvalRequired, setApprovalRequired] = useState(false);
     const [approvalStatus, setApprovalStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested'>('none');
+
+    // Recycling / Recurring States
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [repeatInterval, setRepeatInterval] = useState<'daily' | 'weekly' | 'monthly' | 'custom' | null>('weekly');
+    const [repeatFrequency, setRepeatFrequency] = useState(1);
+    const [repeatEndAt, setRepeatEndAt] = useState('');
+    const [repeatCount, setRepeatCount] = useState<number | null>(null);
 
     // AI Vernacular states
     const [aiAssistOpen, setAiAssistOpen] = useState(false);
@@ -194,6 +202,11 @@ export function CalendarModal() {
         setSelectedReviewerIds([]);
         setAiAssistOpen(false);
         setAiPrompt('');
+        setIsRecurring(false);
+        setRepeatInterval('weekly');
+        setRepeatFrequency(1);
+        setRepeatEndAt('');
+        setRepeatCount(null);
     };
 
     useEffect(() => {
@@ -217,6 +230,11 @@ export function CalendarModal() {
                 setSelectedLabelIds((editingEvent.labels || []).map((label) => label.id));
                 setApprovalRequired(!!editingEvent.approval_required);
                 setApprovalStatus((editingEvent.approval_status as any) || 'none');
+                setIsRecurring(!!editingEvent.is_recurring);
+                setRepeatInterval(editingEvent.repeat_interval || 'weekly');
+                setRepeatFrequency(editingEvent.repeat_frequency || 1);
+                setRepeatEndAt(editingEvent.repeat_end_at ? format(parseISO(editingEvent.repeat_end_at), 'yyyy-MM-dd') : '');
+                setRepeatCount(editingEvent.repeat_count || null);
             } else {
                 resetForm();
                 if (currentDate) {
@@ -329,6 +347,11 @@ export function CalendarModal() {
             end_at,
             label_ids: selectedLabelIds,
             approval_required: approvalRequired,
+            is_recurring: isRecurring,
+            repeat_interval: isRecurring ? repeatInterval : null,
+            repeat_frequency: isRecurring ? repeatFrequency : 1,
+            repeat_end_at: isRecurring && repeatEndAt ? new Date(repeatEndAt).toISOString() : null,
+            repeat_count: isRecurring ? repeatCount : null
         };
 
         if (formType === 'post') {
@@ -1052,6 +1075,85 @@ export function CalendarModal() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Evergreen / Post Recycling Section */}
+                            {formType === 'post' && (
+                                <div className="p-4 rounded-xl border-2 border-amber-100 bg-amber-50/30 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
+                                                <RefreshCw className={cn("h-4 w-4", isRecurring && "animate-spin-slow")} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-amber-900">Evergreen Recycling</h4>
+                                                <p className="text-[11px] text-amber-700/70 font-medium leading-tight">Automatically repost this content to maximize reach</p>
+                                            </div>
+                                        </div>
+                                        <Switch 
+                                            checked={isRecurring}
+                                            onCheckedChange={setIsRecurring}
+                                            className="data-[state=checked]:bg-amber-500"
+                                        />
+                                    </div>
+
+                                    {isRecurring && (
+                                        <div className="space-y-4 pt-2 border-t border-amber-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">Repeat Every</label>
+                                                    <Select value={repeatInterval || 'weekly'} onValueChange={(v: any) => setRepeatInterval(v)}>
+                                                        <SelectTrigger className="h-9 bg-white border-amber-200 text-xs font-bold text-amber-900">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="daily">Days</SelectItem>
+                                                            <SelectItem value="weekly">Weeks</SelectItem>
+                                                            <SelectItem value="monthly">Months</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">Frequency</label>
+                                                    <div className="flex items-center gap-2 h-9 p-1.5 bg-white border border-amber-200 rounded-lg">
+                                                        <button 
+                                                            onClick={() => setRepeatFrequency(Math.max(1, repeatFrequency - 1))}
+                                                            className="h-6 w-6 flex items-center justify-center rounded bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                                        >-</button>
+                                                        <span className="flex-1 text-center text-xs font-black text-amber-900">{repeatFrequency}</span>
+                                                        <button 
+                                                            onClick={() => setRepeatFrequency(repeatFrequency + 1)}
+                                                            className="h-6 w-6 flex items-center justify-center rounded bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                                        >+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">End Recycling After</label>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <Input 
+                                                        type="date"
+                                                        value={repeatEndAt}
+                                                        onChange={(e) => setRepeatEndAt(e.target.value)}
+                                                        className="h-9 bg-white border-amber-200 text-xs text-amber-900"
+                                                        placeholder="Optional: Stop date"
+                                                    />
+                                                    <div className="relative">
+                                                        <Input 
+                                                            type="number"
+                                                            placeholder="X times"
+                                                            value={repeatCount || ''}
+                                                            onChange={(e) => setRepeatCount(e.target.value ? parseInt(e.target.value) : null)}
+                                                            className="h-9 bg-white border-amber-200 text-xs text-amber-900 pr-12"
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-amber-400">times</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">

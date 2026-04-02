@@ -107,6 +107,7 @@ export function MonthView() {
                                                     density="compact"
                                                     onUpload={() => openEditDialog(event)}
                                                     mediaLayout="auto"
+                                                    isRecurring={!!event.is_recurring}
                                                 />
                                             </div>
                                         );

@@ -4,7 +4,7 @@ import { useCalendar } from './calendar-context';
 import { useAuth } from '@/lib/auth-context';
 import { format, addDays, isSameDay, parseISO, startOfWeek, isFirstDayOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock } from 'lucide-react';
+import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock, RefreshCw } from 'lucide-react';
 import { EventApprovalBadge } from './event-approval-badge';
 import { useMemo } from 'react';
 
@@ -187,6 +187,12 @@ export function ListView() {
                                                             {account?.profile_name || event.title}
                                                         </span>
                                                         <EventApprovalBadge event={event} />
+                                                        {event.is_recurring && (
+                                                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-black uppercase tracking-tighter">
+                                                                <RefreshCw className="h-3 w-3 animate-spin-slow" />
+                                                                Recycling
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="text-sm text-zinc-500 mt-1">
                                                         {cfg.label} {account?.platform ? '•' : ''} {statusLabel}

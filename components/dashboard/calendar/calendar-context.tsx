@@ -30,6 +30,11 @@ export interface CalendarEvent {
     post_labels?: { label?: LabelItem | null }[];
     video?: { id: string; title: string; video_url: string; status: string } | null;
     series?: { id: string; series_name: string } | null;
+    is_recurring?: boolean;
+    repeat_interval?: 'daily' | 'weekly' | 'monthly' | 'custom' | null;
+    repeat_frequency?: number | null;
+    repeat_end_at?: string | null;
+    repeat_count?: number | null;
 }
 
 export interface LabelItem {
