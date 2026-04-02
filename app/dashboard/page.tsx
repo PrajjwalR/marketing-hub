@@ -93,7 +93,7 @@ function HeroSection() {
             </div>
             
             <h1 id="dashboard-welcome" className="text-4xl md:text-6xl font-black tracking-tight text-zinc-900 mb-6 leading-[1.1] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-                Generate 30 Days of Content Strategy <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 font-extrabold italic">in Seconds</span>
+                Generate upto 30 Days of Content Strategy <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 font-extrabold italic">in Seconds</span>
             </h1>
             
             <p className="text-lg md:text-xl text-zinc-500 font-medium mb-10 max-w-2xl animate-in fade-in slide-in-from-bottom-5 duration-700 delay-200">
