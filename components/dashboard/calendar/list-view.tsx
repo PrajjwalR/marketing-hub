@@ -109,6 +109,9 @@ export function ListView() {
                         (e) => (e.type || '').toLowerCase() !== 'note'
                     );
 
+                    const festivals = dayEvents.filter(e => e.type === 'festival');
+                    const regularEvents = dayEvents.filter(e => e.type !== 'festival');
+
                     if (dayEvents.length === 0) {
                         return (
                             <div
@@ -123,26 +126,37 @@ export function ListView() {
 
                     return (
                         <>
-                            {dayEvents.map((event) => {
-                                if (event.type === 'festival') {
-                                    return (
-                                        <div key={event.id} className="w-full rounded-2xl border-2 border-orange-200 bg-[#fff7ed] shadow-sm flex flex-col sm:flex-row items-center sm:justify-between py-5 px-6 gap-4 group hover:border-[#ea580c] transition-colors relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 h-40 w-40 -mr-10 -mt-10 bg-orange-300/20 rounded-full blur-2xl pointer-events-none" />
-                                            <div className="flex items-start gap-4 relative z-10 w-full sm:w-auto">
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-sm border border-orange-200">
-                                                    🪔
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h4 className="font-bold text-[#b45309] text-lg leading-tight">{event.title}</h4>
-                                                    <p className="text-sm font-semibold text-orange-800/70 mt-0.5">{event.description}</p>
-                                                </div>
+                            {/* Festival Hero Banner */}
+                            {festivals.map(fest => (
+                                <div key={fest.id} className="relative w-full rounded-2xl overflow-hidden mb-2 border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 shadow-sm">
+                                    {/* Subtle decorative circles */}
+                                    <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-amber-200/30 pointer-events-none" />
+                                    <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-orange-200/20 pointer-events-none" />
+                                    
+                                    <div className="relative z-10 flex flex-col sm:flex-row items-center sm:justify-between py-5 px-6 gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-3xl border border-amber-200">
+                                                🪔
                                             </div>
-                                            <button className="whitespace-nowrap rounded-xl bg-[#ea580c] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#c2410c] active:scale-95 sm:w-auto w-full relative z-10">
-                                                Suggest Campaign
-                                            </button>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-0.5">Indian Holiday</p>
+                                                <h4 className="font-bold text-amber-900 text-xl leading-tight">{fest.title}</h4>
+                                                {fest.description && (
+                                                    <p className="text-sm text-amber-700/80 mt-0.5">{fest.description}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                    );
-                                }
+                                        <button
+                                            onClick={() => openCreateDialog(currentDate)}
+                                            className="whitespace-nowrap rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 sm:w-auto w-full"
+                                        >
+                                            🎯 Plan Festival Campaign
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {regularEvents.map((event) => {
 
                                 const when = parseISO(event.scheduled_at);
                                 const addedAt = event.created_at ? parseISO(event.created_at) : null;
