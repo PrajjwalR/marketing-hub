@@ -33,7 +33,7 @@ export function formatStrategyContextBlock(ctx: StrategyPostersContext): string 
     return lines.filter(Boolean).join('\n');
 }
 
-export function buildGenericSuggestionsPrompt(type: 'image' | 'video'): string {
+export function buildGenericSuggestionsPrompt(type: 'image' | 'video', style?: string, tone?: string): string {
     const medium =
         type === 'image'
             ? 'Image editing / poster generation — backgrounds, style changes, product shots, portraits, promotional visuals'
@@ -45,7 +45,7 @@ Generate exactly 8 diverse prompt suggestions that users can pick from.
 Each prompt should be 1-2 sentences, specific and evocative - like trending prompts on creative AI galleries.
 
 Context: ${medium}
-
+${style ? `\nCRITICAL CONSTRAINTS:\n- The outputs MUST follow this visual style / regional trend: ${style}\n` : ''}${tone ? `- The outputs MUST follow this content tone: ${tone}\n` : ''}
 Requirements:
 - Each prompt must be unique and cover different styles (cinematic, minimalist, bold, vintage, etc.)
 - Mix use cases: product promo, portrait editing, background replacement, brand assets, social media
@@ -58,7 +58,9 @@ Example format: ["Prompt one...", "Prompt two...", ...]
 
 export function buildStrategyAnchoredSuggestionsPrompt(
     type: 'image' | 'video',
-    ctx: StrategyPostersContext
+    ctx: StrategyPostersContext,
+    style?: string,
+    tone?: string
 ): string {
     const block = formatStrategyContextBlock(ctx);
     const medium =
@@ -70,6 +72,8 @@ export function buildStrategyAnchoredSuggestionsPrompt(
 You are an expert social creative director. The user is creating ${type === 'image' ? 'an image or poster' : 'a video or reel'} for ONE scheduled post inside an existing marketing strategy — not a random idea.
 
 You MUST anchor every suggestion to the strategy and post context below. Prompts should feel like direct production briefs for THIS brand, THIS platform, THIS content type, and THIS day — variations on the same post, not unrelated concepts.
+
+${style ? `CRITICAL CONSTRAINTS:\n- The outputs MUST follow this visual style / regional trend: ${style}\n` : ''}${tone ? `- The outputs MUST follow this content tone: ${tone}\n` : ''}
 
 STRATEGY + POST CONTEXT:
 ---
