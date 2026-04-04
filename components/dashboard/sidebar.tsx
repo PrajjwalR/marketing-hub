@@ -8,7 +8,7 @@ import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    BarChart2, Target, Home, Brain, LogOut
+    BarChart2, Target, Home, Brain, LogOut, Bell, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -104,17 +104,18 @@ const sidebarData: SidebarSection[] = [
         href: '/api/whathub/sso',
         external: true,
     },
-    // {
-    //     name: 'CRM',
-    //     icon: CreditCard,
-    //     href: '/dashboard/billing',
-    //     items: [
-    //         { name: 'Contacts', href: '/dashboard/contacts' },
-    //         { name: 'Companies', href: '/dashboard/companies' },
-    //         { name: 'Lists', href: '/dashboard/lists' },
-    //         { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
-    //     ]
-    // },
+    {
+        name: 'CRM',
+        icon: CreditCard,
+        href: '/dashboard/billing',
+        items: [
+            { name: 'Contacts', href: '/dashboard/contacts' },
+            { name: 'Events & Notifications', href: '/dashboard/events' },
+            { name: 'Companies', href: '/dashboard/companies' },
+            { name: 'Lists', href: '/dashboard/lists' },
+            { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
+        ]
+    },
     // {
     //     name: 'Engage',
     //     icon: Send,
