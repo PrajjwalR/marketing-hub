@@ -1,9 +1,10 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Ghost, Clock } from "lucide-react";
+import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Ghost, Clock, Info, Edit2, TrendingUp, Dumbbell, Gem, ShoppingBag, CheckCircle2, Building2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 import {
     Sheet,
     SheetContent,
@@ -14,433 +15,267 @@ import {
 } from "@/components/ui/sheet";
 
 import { INDIAN_HOLIDAYS_DATA } from "@/lib/indian-holidays";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+
+const NICHE_IMPORTANCE = {
+    "ecommerce": ["Diwali", "Dussehra (Vijayadashami)", "Navratri", "Christmas", "Eid ul-Fitr", "Eid ul-Adha (Bakrid)", "Raksha Bandhan", "Karva Chauth", "Onam", "Baisakhi", "Durga Puja", "Pongal", "Makar Sankranti", "Valentine's Day", "New Year"],
+    "gym": ["New Year", "Makar Sankranti", "Maha Shivaratri", "Ramadan", "Navratri", "International Yoga Day"],
+    "jewellery": ["Akshaya Tritiya", "Dhanteras", "Diwali", "Karva Chauth", "Navratri", "Durga Puja", "Gudi Padwa", "Ugadi", "Onam", "Makar Sankranti", "Baisakhi", "Wedding Season (General)"]
+};
+
+// RENAMED: Standardized personal labels instead of "E-commerce Priority"
+const NICHE_CONFIG: Record<string, { label: string, Icon: any, color: string }> = {
+    "ecommerce": { label: "Strategically Important for You", Icon: ShoppingBag, color: "bg-purple-50 text-purple-600 border-purple-200" },
+    "jewellery": { label: "Strategically Important for You", Icon: Gem, color: "bg-amber-50 text-amber-600 border-amber-200" },
+    "gym": { label: "Strategically Important for You", Icon: Dumbbell, color: "bg-indigo-50 text-indigo-600 border-indigo-200" }
+};
 
 const holidayCategories = [
-    { name: 'National Holidays', key: 'national_holidays', color: 'text-rose-600 bg-rose-50' },
-    { name: 'Pan-India Festivals', key: 'pan_india_festivals', color: 'text-amber-600 bg-amber-50' },
-    { name: 'Regional Festivals', key: 'regional_festivals', color: 'text-indigo-600 bg-indigo-50' },
-    { name: 'Observances', key: 'observances', color: 'text-emerald-600 bg-emerald-50' }
+    { name: 'National Holidays', key: 'national_holidays', color: 'text-rose-600 bg-rose-50 border-rose-100' },
+    { name: 'Pan-India Festivals', key: 'pan_india_festivals', color: 'text-amber-600 bg-amber-50 border-amber-100' },
+    { name: 'Regional Festivals', key: 'regional_festivals', color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+    { name: 'Observances', key: 'observances', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
 ];
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const getDaysRemaining = (dateStr: string) => {
+    if (!dateStr || dateStr === 'Annual') return null;
+    const cleanStr = dateStr.split('-')[0].trim();
+    const parts = cleanStr.split(' ');
+    let day = 1; let monthName = '';
+    if (parts.length >= 2) { day = parseInt(parts[0]) || 1; monthName = parts[1]; } else { monthName = parts[0]; }
+    const monthIndex = MONTHS.findIndex(m => m.toLowerCase().includes(monthName.toLowerCase()));
+    if (monthIndex === -1) return null;
+    const today = new Date(2026, 3, 4); // April 4, 2026
+    let eventDate = new Date(2026, monthIndex, day);
+    if (eventDate < today) eventDate = new Date(2027, monthIndex, day);
+    const diffTime = eventDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 export default function EventsPage() {
+    const { user } = useAuth();
+    const [userVertical, setUserVertical] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<'notifications' | 'library' | 'calendar'>('notifications');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedLibraryItem, setSelectedLibraryItem] = useState<any>(null);
-    const [config, setConfig] = useState({
-        title: '',
-        type: 'Holiday',
-        subType: 'Today',
-        message: '',
-        schedule: 'Daily at 9:00 AM',
-        leadTime: 0,
-        customDate: '', // New field
-    });
+    const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+    
+    // Config state
+    const [config, setConfig] = useState({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '', niches: [] as string[] });
+
+    const fetchUserVertical = async () => {
+        if (!user) return;
+        const { data, error } = await supabase
+            .from('users')
+            .select('business_vertical')
+            .eq('user_id', user.uid)
+            .maybeSingle();
+        
+        if (!error && data?.business_vertical) {
+            setUserVertical(data.business_vertical.toLowerCase());
+        } else {
+            setUserVertical('ecommerce'); // FALLBACK FOR TEST: set as ecommerce
+        }
+    };
 
     const fetchAutomations = async () => {
         try {
             const res = await fetch('/api/crm/automations');
             if (res.ok) {
                 const data = await res.json();
-                
-                const allHolidays = [
-                    ...INDIAN_HOLIDAYS_DATA.national_holidays,
-                    ...INDIAN_HOLIDAYS_DATA.pan_india_festivals,
-                    ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(),
-                    ...INDIAN_HOLIDAYS_DATA.observances
-                ];
-
+                const allHolidays = [...INDIAN_HOLIDAYS_DATA.national_holidays, ...INDIAN_HOLIDAYS_DATA.pan_india_festivals, ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(), ...INDIAN_HOLIDAYS_DATA.observances];
                 setCampaigns(data.map((d: any) => {
                     const match = allHolidays.find(h => h.name === d.event_name);
-                    const eventDate = match 
-                        ? (match.date || match.month || (match.months && match.months[0])) 
-                        : (d.custom_date || null);
-                    
-                    return {
-                        ...d,
-                        icon: d.trigger_type === 'Birthday' ? Sparkles : Calendar,
-                        color: d.trigger_type === 'Birthday' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                        trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`,
-                        displayDate: eventDate
-                    };
+                    const eventDate = match ? (match.date || match.month || (match.months && match.months[0])) : (d.custom_date || null);
+                    let niches: string[] = [];
+                    try { if (d.category?.startsWith('[')) niches = JSON.parse(d.category); } catch (e) {}
+                    return { ...d, trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`, displayDate: eventDate, niches: niches };
                 }));
             }
-        } finally {
-            setIsLoading(false);
+        } finally { setIsLoading(false); }
+    };
+
+    useEffect(() => { if (user) { fetchUserVertical(); fetchAutomations(); } }, [user]);
+
+    const handleCreateOrUpdate = async () => {
+        if (!config.title || !config.message) { alert('Please fill in both title and message'); return; }
+        const payload = { title: config.title, event_name: selectedLibraryItem?.name || config.title, trigger_type: config.type, lead_time_days: config.leadTime, message: config.message, category: JSON.stringify(config.niches), status: 'Active' };
+        const method = editingCampaignId ? 'PUT' : 'POST';
+        const url = editingCampaignId ? `/api/crm/automations?id=${editingCampaignId}` : '/api/crm/automations';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (res.ok) { fetchAutomations(); closeSheet(); }
+    };
+
+    const openSheet = (item: any, isEdit = false) => {
+        const eventName = item?.name || item?.event_name || '';
+        const activeCamp = campaigns.find(c => c.event_name === eventName);
+        const isActuallyImportant = userVertical && NICHE_IMPORTANCE[userVertical as keyof typeof NICHE_IMPORTANCE]?.some(n => eventName.includes(n));
+        const defaultNiches = activeCamp ? activeCamp.niches : (isActuallyImportant && userVertical ? [userVertical] : []);
+
+        if (isEdit) {
+            setEditingCampaignId(activeCamp?.id || null); 
+            setSelectedLibraryItem(item); 
+            setConfig({ title: activeCamp?.title || `${eventName} Campaign`, type: activeCamp?.trigger_type || 'Holiday', subType: 'Today', message: activeCamp?.message || `Wishing you a Happy ${eventName}!`, schedule: 'Daily at 9:00 AM', leadTime: activeCamp?.lead_time_days || 7, customDate: item.date || item.month || (item.months && item.months[0]) || '', niches: defaultNiches }); 
+            setIsModalOpen(true);
+        } else {
+            setSelectedLibraryItem(null); setEditingCampaignId(null);
+            setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '', niches: [] }); setIsModalOpen(true);
         }
     };
 
-    useEffect(() => {
-        fetchAutomations();
-    }, []);
+    const closeSheet = () => { setIsModalOpen(false); setEditingCampaignId(null); setSelectedLibraryItem(null); setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '', niches: [] }); };
 
-    const handleCreate = async () => {
-        if (!config.title || !config.message) {
-            alert('Please fill in both title and message');
-            return;
-        }
+    const toggleNiche = (niche: string) => { setConfig(prev => ({ ...prev, niches: prev.niches.includes(niche) ? [] : [niche] })); };
 
-        const payload = {
-            title: config.title,
-            event_name: selectedLibraryItem?.name || config.title,
-            trigger_type: config.type,
-            lead_time_days: config.leadTime,
-            message: config.message,
-            category: selectedLibraryItem?.category || 'Custom',
-            status: 'Active',
-            custom_date: config.customDate // Send new field
-        };
+    const handleDelete = async (id: string) => { if (!id || id.startsWith('temp-')) return; setCampaigns(prev => prev.filter(c => c.id !== id)); const res = await fetch(`/api/crm/automations?id=${id}`, { method: 'DELETE' }); if (res.ok) fetchAutomations(); };
 
-        const res = await fetch('/api/crm/automations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            fetchAutomations();
-            setIsModalOpen(false);
-            setSelectedLibraryItem(null);
-            setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '' });
-            if (activeTab === 'library') setActiveTab('notifications');
-        }
-    };
-
-    const openEnableDialog = (item: any) => {
-        setSelectedLibraryItem(item);
-        setConfig({
-            ...config,
-            title: `${item.name} Campaign`,
-            type: 'Holiday',
-            message: `Wishing you a very Happy ${item.name}! Celebrate with us.`,
-            leadTime: 7,
-            customDate: item.date || item.month || (item.months && item.months[0]) || ''
-        });
-        setIsModalOpen(true);
-    };
-
-    const handleDelete = async (id: string) => {
-        setCampaigns(campaigns.filter(c => c.id !== id));
-        fetch(`/api/crm/automations?id=${id}`, { method: 'DELETE' });
+    const onToggle = async (item: any, checked: boolean) => {
+        if (checked) {
+            const eventName = item.name;
+            const isActuallyImportant = userVertical && NICHE_IMPORTANCE[userVertical as keyof typeof NICHE_IMPORTANCE]?.some(n => eventName.includes(n));
+            const niches = isActuallyImportant && userVertical ? [userVertical] : [];
+            const payload = { title: `${item.name} Campaign`, event_name: item.name, trigger_type: 'Holiday', lead_time_days: 7, message: `Wishing you a very Happy ${item.name}! Celebrate with us.`, category: JSON.stringify(niches), status: 'Active' };
+            setCampaigns(prev => [...prev, { ...payload, id: 'temp-' + Date.now(), niches }]);
+            const res = await fetch('/api/crm/automations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (res.ok) fetchAutomations();
+        } else { const camp = campaigns.find(c => c.event_name === item.name); if (camp) handleDelete(camp.id); }
     };
 
     const filterList = (list: any[]) => {
         if (!search) return list;
         const s = search.toLowerCase();
-        return list.filter(item => 
-            item.name?.toLowerCase().includes(s) || 
-            item.title?.toLowerCase().includes(s) || 
-            item.date?.toLowerCase().includes(s) ||
-            item.month?.toLowerCase().includes(s) ||
-            (item.months && item.months.some((m: string) => m.toLowerCase().includes(s))) ||
-            item.custom_date?.toLowerCase().includes(s)
+        return list.filter(item => item.name?.toLowerCase().includes(s) || item.title?.toLowerCase().includes(s) || item.date?.toLowerCase().includes(s) || item.month?.toLowerCase().includes(s) || (item.months && item.months.some((m: string) => m.toLowerCase().includes(s))));
+    };
+
+    const UnifiedCard = ({ item, isAutomation = false }: { item: any, isAutomation?: boolean }) => {
+        const activeCamp = campaigns.find(c => c.event_name === (item.event_name || item.name));
+        const isEnabled = !!activeCamp;
+        const displayDate = item.displayDate || item.date || item.month || (item.months && item.months[0]) || 'Annual';
+        const daysRemaining = getDaysRemaining(displayDate);
+        const eventName = item.event_name || item.name;
+
+        // VISIBILITY LOGIC: Proactive suggestion + manual selection sync
+        const isNaturallyImportant = userVertical && NICHE_IMPORTANCE[userVertical as keyof typeof NICHE_IMPORTANCE]?.some(n => eventName.includes(n));
+        const isManuallyImportant = activeCamp?.niches?.includes(userVertical);
+        const shouldShowBadge = isManuallyImportant || (isNaturallyImportant && (!activeCamp || activeCamp.niches?.includes(userVertical)));
+
+        const myConfig = userVertical ? NICHE_CONFIG[userVertical] : null;
+        const MyIcon = myConfig?.Icon;
+
+        return (
+            <div className="bg-white border border-zinc-200 rounded-3xl p-6 flex flex-col justify-between hover:border-[#f2d412]/50 hover:shadow-xl hover:shadow-[#f2d412]/5 transition-all duration-300 relative group border-b-4 uppercase tracking-tight">
+                <div>
+                   <div className="flex justify-between items-start mb-4">
+                        <div className="flex flex-col gap-1.5">
+                            <h3 className="text-sm font-black text-zinc-900 tracking-tight leading-none uppercase pr-8 overflow-hidden">{item.title || item.name}</h3>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {shouldShowBadge && myConfig && MyIcon && (
+                                    <span className={cn("flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-md border uppercase tracking-tighter shadow-sm", myConfig.color)}>
+                                        <MyIcon className="h-2 w-2" /> {myConfig.label}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        {isEnabled && <div className="bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-100 italic">Sync Active</div>}
+                    </div>
+                </div>
+                <div className="flex items-center justify-between pt-6 border-t border-zinc-50">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-100 uppercase tracking-widest w-fit">{displayDate}</span>
+                        {daysRemaining !== null ? (
+                            <div className="flex items-center gap-1.5 pl-1 text-zinc-400 font-bold"><Clock className="h-3 w-3" /><span className={cn("text-[9px] uppercase", daysRemaining <= 7 ? "text-rose-500 animate-pulse font-black" : "")}>{daysRemaining} Days Left</span></div>
+                        ) : (
+                             <div className="flex items-center gap-1.5 pl-1 text-zinc-300 font-bold"><Clock className="h-3 w-3" /><span className="text-[8px] opacity-50 uppercase tracking-tighter">Recurring</span></div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-4 pl-2">
+                        <div className="flex flex-col items-end text-right"><span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-1.5">Enable</span><Switch checked={isEnabled} onCheckedChange={() => onToggle(isAutomation ? { ...item, name: item.event_name } : item, !isEnabled)} className="data-[state=checked]:bg-[#f2d412] scale-90" /></div>
+                        <div className="flex gap-2">
+                            <button onClick={() => openSheet(item, true)} className={cn("h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-50 transition-all", isEnabled ? "text-zinc-900 shadow-sm border border-zinc-100" : "text-zinc-200 opacity-50")} disabled={!isEnabled}><Edit2 className="h-4 w-4" /></button>
+                            {isAutomation && (<button onClick={() => handleDelete(item.id)} className="h-10 w-10 flex items-center justify-center rounded-2xl bg-rose-50 text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>)}
+                        </div>
+                    </div>
+                </div>
+            </div>
         );
     };
 
+    const groupedByMonth = useMemo(() => {
+        const all = [...INDIAN_HOLIDAYS_DATA.national_holidays, ...INDIAN_HOLIDAYS_DATA.pan_india_festivals, ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(), ...INDIAN_HOLIDAYS_DATA.observances];
+        const filtered = filterList(all);
+        const result: Record<string, any[]> = {}; MONTHS.forEach(m => result[m] = []);
+        filtered.forEach(h => {
+             const dateStr = h.date || h.month || (h.months && h.months[0]) || '';
+             const foundMonth = MONTHS.find(m => dateStr.toLowerCase().includes(m.toLowerCase()));
+             if (foundMonth) result[foundMonth].push(h);
+        });
+        return result;
+    }, [search]);
+
+    const myCurrentConfig = userVertical ? NICHE_CONFIG[userVertical] : null;
+    const CurrentVerticalIcon = myCurrentConfig?.Icon;
+
     return (
         <div className="flex flex-col min-h-full bg-zinc-50/50">
-            {/* New Automation Sidebar */}
             <Sheet open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <SheetContent side="right" className="sm:max-w-md p-0 gap-0 border-l border-zinc-200 flex flex-col bg-white">
-                    <SheetHeader className="shrink-0 border-b border-zinc-200 px-6 py-5 text-left space-y-1">
-                        <SheetTitle className="text-[17px] font-bold flex items-center gap-2 text-zinc-900">
-                            <Sparkles className="h-4.5 w-4.5 text-[#f2d412]" />
-                            {selectedLibraryItem ? `Enable ${selectedLibraryItem.name}` : 'New Automation'}
-                        </SheetTitle>
-                        <SheetDescription className="text-zinc-500 text-xs font-normal">
-                            {selectedLibraryItem ? `Configure the campaign for ${selectedLibraryItem.name}` : 'Configure your event trigger and notification message'}
-                        </SheetDescription>
+                <SheetContent side="right" className="sm:max-w-md p-0 flex flex-col bg-white">
+                    <SheetHeader className="p-6 border-b border-zinc-200 text-left">
+                        <SheetTitle className="text-lg font-black flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#f2d412]" />Settings: Customized Focus</SheetTitle>
                     </SheetHeader>
-                    
-                    <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Automation Title</label>
-                                <input 
-                                    type="text"
-                                    className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm"
-                                    value={config.title}
-                                    placeholder="e.g. Store Anniversary"
-                                    onChange={e => setConfig({...config, title: e.target.value})}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Event Date</label>
-                                <div className="relative">
-                                    <input 
-                                        type="text"
-                                        className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm"
-                                        placeholder="e.g. 26 January or 10 October"
-                                        value={config.customDate}
-                                        onChange={e => setConfig({...config, customDate: e.target.value})}
-                                    />
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                                </div>
-                            </div>
-                        </div>
-
-                        {!selectedLibraryItem && (
-                            <div className="space-y-3">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Select Trigger Type</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {['Birthday', 'Location', 'Purchase', 'Holiday'].map((t) => (
-                                        <button 
-                                            key={t}
-                                            onClick={() => setConfig({...config, type: t})}
-                                            className={cn(
-                                                "p-4 rounded-xl border flex flex-col items-center gap-3 transition-all",
-                                                config.type === t ? "border-[#f2d412] bg-[#f2d412]/5 shadow-sm" : "border-zinc-100 bg-zinc-50/50 hover:border-zinc-200 text-zinc-600 hover:bg-zinc-100/50"
-                                            )}
-                                        >
-                                            <div className={cn("h-5 w-5", config.type === t ? "text-[#f2d412]" : "text-zinc-400")}>
-                                                {t === 'Birthday' && <Sparkles className="h-full w-full" />}
-                                                {t === 'Location' && <MapPin className="h-full w-full" />}
-                                                {t === 'Purchase' && <UserCheck className="h-full w-full" />}
-                                                {t === 'Holiday' && <Calendar className="h-full w-full" />}
-                                            </div>
-                                            <span className={cn("text-xs font-bold", config.type === t ? "text-zinc-900" : "text-zinc-500")}>{t}</span>
-                                        </button>
-                                    ))}
-                                </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-10">
+                        {userVertical && myCurrentConfig && (
+                            <div className="space-y-4">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Industry Importance</label>
+                                <button onClick={() => toggleNiche(userVertical)} className={cn("flex items-center gap-4 p-5 rounded-3xl border-2 transition-all text-left w-full", config.niches.includes(userVertical) ? myCurrentConfig.color + " border-current shadow-lg shadow-current/10" : "bg-white border-zinc-100 text-zinc-300")}>
+                                    <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-white/50"><CurrentVerticalIcon className="h-5 w-5" /></div>
+                                    <div className="flex-1 text-[11px] font-black uppercase tracking-widest">Mark as: Strategically Important for You</div>
+                                    {config.niches.includes(userVertical) && <CheckCircle2 className="h-5 w-5" />}
+                                </button>
+                                <p className="text-[9px] font-bold text-zinc-400 uppercase leading-relaxed">This event is highly relevant for your domain. Toggling this will highlight the strategic value on your dashboard.</p>
                             </div>
                         )}
-
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Campaign Lead Time</label>
-                                <div className="relative">
-                                    <select 
-                                        value={config.leadTime}
-                                        onChange={e => setConfig({...config, leadTime: Number(e.target.value)})}
-                                        className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 appearance-none shadow-sm"
-                                    >
-                                        <option value={0}>On the event day</option>
-                                        <option value={3}>3 days before</option>
-                                        <option value={7}>7 days before</option>
-                                        <option value={10}>10 days before</option>
-                                        <option value={15}>15 days before</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 pb-6">
-                            <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Notification Message</label>
-                            <textarea 
-                                className="w-full h-32 bg-white border border-zinc-200 rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 resize-none italic shadow-sm"
-                                placeholder="Enter the message customers will receive..."
-                                value={config.message}
-                                onChange={e => setConfig({...config, message: e.target.value})}
-                            />
-                        </div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Campaign Label</label><input type="text" className="w-full h-11 border border-zinc-200 rounded-xl px-4 text-sm font-medium" value={config.title} onChange={e => setConfig({...config, title: e.target.value})} /></div>
+                        <div className="space-y-2"><label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Automation Message</label><textarea className="w-full h-40 border border-zinc-200 rounded-xl p-4 text-sm font-medium focus:ring-0 italic" value={config.message} onChange={e => setConfig({...config, message: e.target.value})} /></div>
                     </div>
-
-                    <SheetFooter className="shrink-0 bg-zinc-50 px-6 py-4 border-t border-zinc-200 mt-0">
-                       <div className="flex w-full gap-3">
-                            <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 h-11 text-sm font-bold text-zinc-600 rounded-full">Cancel</Button>
-                            <Button className="flex-1 h-11 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold rounded-full shadow-md" onClick={handleCreate}>
-                                {selectedLibraryItem ? 'Enable Event' : 'Activate Event'}
-                            </Button>
-                       </div>
+                    <SheetFooter className="p-6 bg-zinc-50 border-t border-zinc-200">
+                        <Button className="w-full h-11 bg-[#f2d412] text-zinc-900 font-bold rounded-full shadow-lg" onClick={handleCreateOrUpdate}>Update Strategy</Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
 
-            {/* Topbar */}
-            <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                        <Bell className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-zinc-900 leading-tight">Events & Notifications</h1>
-                        <p className="text-xs text-zinc-500">Automate customer holidays and birthdays</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4 flex-1 max-w-xl mx-8">
-                     <div className="relative w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                        <input 
-                            type="text"
-                            placeholder="Global Search (Name, Date, Month)..."
-                            className="w-full h-10 bg-zinc-50 border border-zinc-200 rounded-full pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                     </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Button onClick={() => { setSelectedLibraryItem(null); setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '' }); setIsModalOpen(true); }} className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-5 rounded-full shadow-md gap-2">
-                        <Plus className="h-4 w-4" /> New Automation
-                    </Button>
-                </div>
+            <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-4 shadow-sm z-10 font-bold">
+                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center"><Bell className="h-5 w-5 text-orange-600" /></div><div><h1 className="text-lg font-black text-zinc-900 tracking-tight leading-none mb-1 uppercase">CRM Campaigns</h1><p className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest leading-none">Automated Roadmap Intelligence</p></div></div>
+                <div className="flex items-center gap-4 flex-1 max-w-xl mx-8 relative"><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" /><input type="text" placeholder="Search events..." className="w-full h-11 bg-zinc-50 border border-zinc-200 rounded-full pl-11 shadow-inner text-[13px] font-bold" value={search} onChange={e => setSearch(e.target.value)} /></div>
+                <Button onClick={() => openSheet({name: 'New Event'}, false)} className="h-10 bg-[#f2d412] text-zinc-900 font-bold px-6 rounded-full shadow-lg gap-2 active:scale-95 border-b-2 border-orange-200 uppercase tracking-widest"><Plus className="h-4 w-4" /> Custom</Button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-zinc-200 bg-white px-6">
-                <button onClick={() => setActiveTab('notifications')} className={cn("py-3 text-[13px] font-bold transition-colors mr-6 border-b-2", activeTab === 'notifications' ? "text-zinc-900 border-zinc-900" : "text-zinc-400 border-transparent hover:text-zinc-600")}>
-                    Your Automations ({campaigns.length})
-                </button>
-                <button onClick={() => setActiveTab('library')} className={cn("py-3 text-[13px] font-bold transition-colors mr-6 border-b-2", activeTab === 'library' ? "text-zinc-900 border-zinc-900" : "text-zinc-400 border-transparent hover:text-zinc-600")}>
-                    Event Library
-                </button>
-                <button onClick={() => setActiveTab('calendar')} className={cn("py-3 text-[13px] font-bold transition-colors border-b-2", activeTab === 'calendar' ? "text-zinc-900 border-zinc-900" : "text-zinc-400 border-transparent hover:text-zinc-600")}>
-                    Holiday Calendar
-                </button>
+            <div className="flex border-b border-zinc-200 bg-white px-6 space-x-12 uppercase">
+                {['notifications', 'library', 'calendar'].map(tab => (
+                    <button key={tab} onClick={() => setActiveTab(tab as any)} className={cn("py-4 text-[13px] font-black transition-all border-b-2 tracking-widest", activeTab === tab ? "text-zinc-900 border-[#f2d412]" : "text-zinc-400 border-transparent hover:text-zinc-600")}>{tab === 'notifications' ? `Automations (${campaigns.length})` : tab.replace('_', ' ')}</button>
+                ))}
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 p-6 overflow-y-auto">
-                {activeTab === 'notifications' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {isLoading ? (
-                            <div className="col-span-full py-20 text-center text-zinc-400">Loading automations...</div>
-                        ) : filterList(campaigns).length === 0 ? (
-                           <div className="col-span-full py-20 text-center">
-                              <Ghost className="h-12 w-12 text-zinc-300 mx-auto mb-2" />
-                              <p className="text-sm font-bold text-zinc-400">No campaigns found matching &ldquo;{search}&rdquo;</p>
-                           </div>
-                        ) : filterList(campaigns).map((camp, i) => (
-                            <div key={i} className="group relative rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition-all border-l-4 border-emerald-400">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className={cn("p-2 rounded-lg", camp.color)}>
-                                        <camp.icon className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-500 uppercase mb-1">{camp.category}</span>
-                                        {camp.displayDate && (
-                                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                                                {camp.displayDate}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <h3 className="text-sm font-bold text-zinc-900 mb-1">{camp.title}</h3>
-                                <p className="text-[11px] text-zinc-500 font-medium mb-3">{camp.trigger}</p>
-                                <div className="bg-zinc-50 rounded-lg p-3 mb-4">
-                                    <p className="text-xs text-zinc-600 italic line-clamp-2">"{camp.message}"</p>
-                                </div>
-                                <div className="flex justify-between pt-2 border-t border-zinc-100">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                                        <span className="text-[11px] text-zinc-500 font-medium">Daily Check</span>
-                                    </div>
-                                    <button className="text-zinc-400 hover:text-rose-600" onClick={() => handleDelete(camp.id)}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {activeTab === 'library' && (
-                    <div className="space-y-8">
-                        {holidayCategories.map(cat => {
-                            let rawItems: any[] = [];
-                            if (cat.key === 'regional_festivals') {
-                                rawItems = Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat();
-                            } else if (cat.key === 'national_holidays' || cat.key === 'pan_india_festivals' || cat.key === 'observances') {
-                                rawItems = INDIAN_HOLIDAYS_DATA[cat.key as keyof typeof INDIAN_HOLIDAYS_DATA] as any[];
-                            }
-                            
-                            const items = filterList(rawItems);
-                            if (search && items.length === 0) return null;
-
-                            return (
-                                <div key={cat.name} className="space-y-4">
-                                    <h2 className={cn("text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded w-fit", cat.color)}>{cat.name}</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {items.map((item: any) => (
-                                            <div key={item.name} className="bg-white border border-zinc-200 rounded-2xl p-5 flex flex-col justify-between hover:border-zinc-300 transition-colors shadow-sm">
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <h3 className="text-sm font-bold text-zinc-900">{item.name}</h3>
-                                                    </div>
-                                                    <p className="text-xs text-zinc-500 leading-relaxed mb-4">{item.description || `Celebrate ${item.name} with your customers.`}</p>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
-                                                        {item.date || item.month || (item.months && item.months[0]) || 'Upcoming'}
-                                                    </span>
-                                                    <Button size="sm" className="h-8 rounded-full bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 text-[11px] font-bold px-4 transition-all shadow-sm" onClick={() => openEnableDialog(item)}>
-                                                        Enable Event
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-
-                {activeTab === 'calendar' && (
-                    <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
-                        <div className="p-4 bg-zinc-50 border-b border-zinc-200 flex justify-between items-center px-6">
-                            <h3 className="text-sm font-bold text-zinc-700 uppercase tracking-widest">Upcoming Holiday Status</h3>
-                            <div className="flex gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-rose-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">NOT ENABLED</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">ACTIVE CAMPAIGN</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 divide-y divide-zinc-100">
-                            {filterList([
-                                ...INDIAN_HOLIDAYS_DATA.national_holidays,
-                                ...INDIAN_HOLIDAYS_DATA.pan_india_festivals,
-                                ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(),
-                                ...INDIAN_HOLIDAYS_DATA.observances
-                            ]).map((item: any, i: number) => {
-                                const isEnabled = campaigns.some(c => c.event_name === item.name);
-                                return (
-                                    <div key={i} className="flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors px-6">
-                                        <div className="flex items-center gap-6">
-                                            <div className={cn("flex flex-col items-center justify-center w-12 h-12 rounded-xl border shrink-0 transition-all", 
-                                                isEnabled ? "bg-emerald-50 border-emerald-200 shadow-sm" : "bg-zinc-50 border-zinc-100")}>
-                                                <span className={cn("text-[10px] font-bold uppercase", isEnabled ? "text-emerald-700" : "text-zinc-500")}>
-                                                    {item.date?.split(' ')[1]?.slice(0,3) || item.month?.slice(0,3) || (item.months && item.months[0]?.slice(0,3)) || 'JAN'}
-                                                </span>
-                                                <span className={cn("text-lg font-black leading-none", isEnabled ? "text-emerald-600" : "text-zinc-900")}>
-                                                    {item.date?.split(' ')[0] || '10'}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-bold text-zinc-900">{item.name}</h4>
-                                                <p className="text-[11px] text-zinc-500">{isEnabled ? 'Campaign automatically starting according to lead time' : 'Ready to enable'}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {isEnabled ? (
-                                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100">
-                                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase italic">Live Campaign</span>
-                                                </div>
-                                            ) : (
-                                              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-100">
-                                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                                                  <span className="text-[10px] font-bold text-rose-700 uppercase italic">Not Active</span>
-                                              </div>
-                                            )}
-                                            <Button size="sm" className={cn("h-8 text-[11px] px-4 font-bold border-none rounded-full shadow-sm", isEnabled ? "bg-zinc-100 text-zinc-600 border border-zinc-200" : "bg-[#f2d412] text-zinc-900 hover:bg-[#f2c112]")} onClick={() => isEnabled ? setActiveTab('notifications') : openEnableDialog(item)}>
-                                                {isEnabled ? 'Manage' : 'Enable Now'}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+            <div className="flex-1 p-8 overflow-y-auto font-medium">
+                {activeTab === 'notifications' ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{isLoading ? (<div className="col-span-full py-20 text-center text-zinc-400 font-black italic uppercase">Synchronizing Roadmap...</div>) : filterList(campaigns).length === 0 ? (<div className="col-span-full py-40 text-center opacity-30"><Ghost className="h-16 w-16 mx-auto mb-4" /><p className="text-sm font-black uppercase tracking-widest">No Active Workflows</p></div>) : filterList(campaigns).map((camp, i) => (<UnifiedCard key={i} item={camp} isAutomation />))}</div>
+                ) : activeTab === 'library' ? (
+                   <div className="space-y-16 pb-12 uppercase">{holidayCategories.map(cat => {
+                       const items = filterList(cat.key === 'regional_festivals' ? Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat() : INDIAN_HOLIDAYS_DATA[cat.key as keyof typeof INDIAN_HOLIDAYS_DATA] as any[]);
+                       if (items.length === 0) return null;
+                       return (<div key={cat.name} className="space-y-8"><div className="flex items-center gap-4"><div className={cn("h-4 w-1.5 rounded-full shadow-sm", cat.color.split(' ')[1])} /><h2 className={cn("text-[13px] font-black uppercase tracking-[0.25em] px-4 py-1.5 rounded-xl border-b-2 shadow-sm", cat.color)}>{cat.name}</h2></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{items.map((item: any, i) => <UnifiedCard key={i} item={item} />)}</div></div>);
+                   })}</div>
+                ) : (
+                   <div className="space-y-16 pb-12 uppercase">{MONTHS.map(m => {
+                       const items = groupedByMonth[m] || [];
+                       if (items.length === 0) return null;
+                       return (<div key={m} className="space-y-8"><div className="flex items-center gap-6"><h2 className="text-[18px] font-black text-zinc-900 tracking-tighter uppercase px-2">{m}</h2><div className="h-[1px] flex-1 bg-zinc-200/60" /></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{items.map((item: any, i) => <UnifiedCard key={i} item={item} />)}</div></div>);
+                   })}</div>
                 )}
             </div>
         </div>
