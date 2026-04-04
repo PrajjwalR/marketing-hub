@@ -4,7 +4,7 @@ import { useCalendar } from './calendar-context';
 import { useAuth } from '@/lib/auth-context';
 import { format, addDays, isSameDay, parseISO, startOfWeek, isFirstDayOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock } from 'lucide-react';
+import { List, PenSquare, Tag, Copy, Eye, Pencil, Instagram, Linkedin, Youtube, Facebook, Clock, RefreshCw } from 'lucide-react';
 import { EventApprovalBadge } from './event-approval-badge';
 import { useMemo } from 'react';
 
@@ -47,7 +47,7 @@ export function ListView() {
         name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
 
     return (
-        <div className="w-full text-zinc-900 overflow-y-auto max-h-[calc(100vh-280px)] pr-1">
+        <div className="w-full text-zinc-900">
             {/* Post Volume — horizontal date timeline */}
             <div className="mb-4">
                 <div className="text-sm font-semibold text-zinc-500 mb-3">Post Volume</div>
@@ -109,6 +109,9 @@ export function ListView() {
                         (e) => (e.type || '').toLowerCase() !== 'note'
                     );
 
+                    const festivals = dayEvents.filter(e => e.type === 'festival');
+                    const regularEvents = dayEvents.filter(e => e.type !== 'festival');
+
                     if (dayEvents.length === 0) {
                         return (
                             <div
@@ -123,7 +126,38 @@ export function ListView() {
 
                     return (
                         <>
-                            {dayEvents.map((event) => {
+                            {/* Festival Hero Banner */}
+                            {festivals.map(fest => (
+                                <div key={fest.id} className="relative w-full rounded-2xl overflow-hidden mb-2 border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 shadow-sm">
+                                    {/* Subtle decorative circles */}
+                                    <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-amber-200/30 pointer-events-none" />
+                                    <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-orange-200/20 pointer-events-none" />
+                                    
+                                    <div className="relative z-10 flex flex-col sm:flex-row items-center sm:justify-between py-5 px-6 gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-3xl border border-amber-200">
+                                                🪔
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-0.5">Indian Holiday</p>
+                                                <h4 className="font-bold text-amber-900 text-xl leading-tight">{fest.title}</h4>
+                                                {fest.description && (
+                                                    <p className="text-sm text-amber-700/80 mt-0.5">{fest.description}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => openCreateDialog(currentDate)}
+                                            className="whitespace-nowrap rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all active:scale-95 sm:w-auto w-full"
+                                        >
+                                            🎯 Plan Festival Campaign
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {regularEvents.map((event) => {
+
                                 const when = parseISO(event.scheduled_at);
                                 const addedAt = event.created_at ? parseISO(event.created_at) : null;
                                 const account = resolveAccount(event.account_id);
@@ -153,6 +187,12 @@ export function ListView() {
                                                             {account?.profile_name || event.title}
                                                         </span>
                                                         <EventApprovalBadge event={event} />
+                                                        {event.is_recurring && (
+                                                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-black uppercase tracking-tighter">
+                                                                <RefreshCw className="h-3 w-3 animate-spin-slow" />
+                                                                Recycling
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="text-sm text-zinc-500 mt-1">
                                                         {cfg.label} {account?.platform ? '•' : ''} {statusLabel}

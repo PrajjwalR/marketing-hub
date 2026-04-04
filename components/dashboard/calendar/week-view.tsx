@@ -97,7 +97,7 @@ export function WeekView() {
             </div>
 
             {/* Week Columns — 7 equal columns, vertical scroll only */}
-            <div className="grid grid-cols-7 gap-2 items-start overflow-y-auto max-h-[calc(100vh-280px)]">
+            <div className="grid grid-cols-7 gap-2 items-start">
                 {days.map((day) => {
                     const isToday = isSameDay(day, new Date());
                     const key = format(day, 'yyyy-MM-dd');
@@ -105,26 +105,41 @@ export function WeekView() {
                     const defaultCreateDate = new Date(day);
                     defaultCreateDate.setHours(9, 0, 0, 0);
 
+                    const festivals = dayEvents.filter(e => e.type === 'festival');
+                    const isFestival = festivals.length > 0;
+
                     return (
                         <div
                             key={key}
                             className={cn(
-                                'rounded-2xl border bg-white overflow-hidden flex flex-col',
-                                isToday ? 'border-amber-300 shadow-md' : 'border-zinc-200 shadow-sm'
+                                'rounded-2xl border-2 overflow-hidden flex flex-col',
+                                isFestival
+                                    ? 'border-amber-200 shadow-sm bg-gradient-to-b from-amber-50/60 to-orange-50/30'
+                                    : isToday
+                                        ? 'border-amber-300 shadow-md bg-white'
+                                        : 'border-zinc-200 shadow-sm bg-white'
                             )}
                         >
                             {/* Column header */}
                             <div className={cn(
                                 'px-3 pt-3 pb-2 border-b flex flex-col gap-2',
-                                isToday ? 'bg-amber-50 border-amber-200' : 'bg-zinc-50 border-zinc-200'
+                                isFestival
+                                    ? 'bg-amber-50 border-amber-200'
+                                    : isToday
+                                        ? 'bg-amber-50 border-amber-200'
+                                        : 'bg-zinc-50 border-zinc-200'
                             )}>
                                 {/* Row 1: date + add post */}
                                 <div className="flex items-center justify-between gap-2">
                                     <div className="min-w-0">
-                                        <div className={cn('text-sm font-medium truncate', isToday ? 'text-amber-600' : 'text-zinc-500')}>
+                                        <div className={cn('text-sm font-medium truncate',
+                                            isFestival ? 'text-amber-600' : isToday ? 'text-amber-600' : 'text-zinc-500'
+                                        )}>
                                             {format(day, 'EEE')}
                                         </div>
-                                        <div className={cn('text-base font-semibold truncate', isToday ? 'text-amber-800' : 'text-zinc-900')}>
+                                        <div className={cn('text-base font-semibold truncate',
+                                            isFestival ? 'text-amber-800 font-bold' : isToday ? 'text-amber-800' : 'text-zinc-900'
+                                        )}>
                                             {format(day, 'MMM d, yyyy')}
                                         </div>
                                     </div>
@@ -133,26 +148,41 @@ export function WeekView() {
                                         title="Add post"
                                         className={cn(
                                             'h-9 w-9 rounded-xl flex items-center justify-center transition-colors shrink-0',
-                                            isToday ? 'bg-amber-300 hover:bg-amber-400 text-zinc-900' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
+                                            isFestival ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600' : isToday ? 'bg-amber-300 hover:bg-amber-400 text-zinc-900' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600'
                                         )}
                                     >
                                         <Plus className="h-5 w-5" />
                                     </button>
                                 </div>
                             </div>
+                            
+                            {/* Festivals Banner for the day */}
+                            {festivals.map(fest => (
+                                <div key={fest.id} className="mx-3 mt-3 px-3 py-2 rounded-xl bg-amber-100 text-amber-800 text-xs font-semibold flex items-center justify-center gap-1.5 border border-amber-200 text-center leading-tight">
+                                    🪔 {fest.title}
+                                    {fest.description && <span className="font-normal opacity-70 ml-1 text-[10px] truncate hidden sm:inline">— {fest.description}</span>}
+                                </div>
+                            ))}
 
                             {/* Cards */}
                             <div className="flex flex-col gap-2 p-3">
-                                {dayEvents.length === 0 ? (
+                                {dayEvents.filter(e => e.type !== 'festival').length === 0 ? (
                                     <button
                                         onClick={() => openCreateDialog(defaultCreateDate)}
-                                        className="w-full min-h-[140px] rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 flex flex-col items-center justify-center text-center p-4 hover:border-amber-300 hover:bg-amber-50/40 transition-colors"
+                                        className={cn(
+                                            "w-full min-h-[140px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-center p-4 transition-colors",
+                                            isFestival
+                                                ? "border-orange-200 bg-orange-50/50 hover:border-orange-300 hover:bg-orange-100/40"
+                                                : "border-zinc-200 bg-zinc-50 hover:border-amber-300 hover:bg-amber-50/40"
+                                        )}
                                     >
-                                        <Megaphone className="h-8 w-8 text-zinc-300 mb-2" />
-                                        <div className="text-sm font-bold text-zinc-400">No posts</div>
+                                        <Megaphone className={cn("h-8 w-8 mb-2", isFestival ? "text-orange-300" : "text-zinc-300")} />
+                                        <div className={cn("text-sm font-bold", isFestival ? "text-orange-400" : "text-zinc-400")}>
+                                            {isFestival ? "Plan a campaign!" : "No posts"}
+                                        </div>
                                     </button>
                                 ) : (
-                                    dayEvents.map((event) => {
+                                    dayEvents.filter(e => e.type !== 'festival').map((event) => {
                                         const when = parseISO(event.scheduled_at);
                                         const account = resolveAccount(event.account_id);
                                         const media = event.media_url?.split(',')[0]?.trim();
@@ -164,8 +194,8 @@ export function WeekView() {
                                                 key={event.id}
                                                 onClick={() => openEditDialog(event)}
                                                 className={cn(
-                                                    'relative w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all hover:shadow-md hover:border-amber-300 overflow-hidden',
-                                                    event.status === 'cancelled' ? 'opacity-50 border-zinc-200' : 'border-zinc-200'
+                                                    'relative w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all hover:shadow-md overflow-hidden',
+                                                    isFestival ? 'border-orange-200 hover:border-orange-400' : event.status === 'cancelled' ? 'opacity-50 border-zinc-200' : 'border-zinc-200 hover:border-amber-300'
                                                 )}
                                             >
                                                 <EventApprovalBadge
@@ -182,6 +212,7 @@ export function WeekView() {
                                                     description={event.description}
                                                     media={media}
                                                     onUpload={() => openEditDialog(event)}
+                                                    isRecurring={!!event.is_recurring}
                                                 />
                                             </button>
                                         );
