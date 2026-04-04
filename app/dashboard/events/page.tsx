@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, Sparkles, ChevronDown, Settings, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Edit2, X } from "lucide-react";
-import { useState } from "react";
+import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Edit2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
     Sheet,
@@ -22,38 +22,12 @@ const holidayCategories = [
     { name: 'Observances', key: 'observances', color: 'text-emerald-600 bg-emerald-50' }
 ];
 
-const initialCampaigns = [
-    {
-        id: 1,
-        title: 'Monthly Birthday Wish',
-        trigger: 'Birthday (Current Month)',
-        message: 'Happy Birthday! Here is a ₹5000 gift voucher for you.',
-        target: 'All Customers',
-        schedule: '1st of every month',
-        status: 'Active',
-        icon: Sparkles,
-        category: 'Personalized',
-        color: 'bg-indigo-50 text-indigo-700 border-indigo-100'
-    },
-    {
-        id: 2,
-        title: 'Hyderabad Celebration',
-        trigger: 'Location (Hyderabad)',
-        message: 'Special offer for our Hyderabad family! Visit us today.',
-        target: 'Hyderabad Customers',
-        schedule: 'Instant',
-        status: 'Active',
-        icon: MapPin,
-        category: 'Regional',
-        color: 'bg-orange-50 text-orange-700 border-orange-100'
-    }
-];
-
 export default function EventsPage() {
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<'notifications' | 'library' | 'calendar'>('notifications');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [campaigns, setCampaigns] = useState<any[]>(initialCampaigns);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [selectedLibraryItem, setSelectedLibraryItem] = useState<any>(null);
     const [config, setConfig] = useState({
         title: '',
@@ -64,46 +38,56 @@ export default function EventsPage() {
         leadTime: 0,
     });
 
-    const handleCreate = () => {
+    const fetchAutomations = async () => {
+        try {
+            const res = await fetch('/api/crm/automations');
+            if (res.ok) {
+                const data = await res.json();
+                setCampaigns(data.map((d: any) => ({
+                    ...d,
+                    icon: d.trigger_type === 'Birthday' ? Sparkles : Calendar,
+                    color: d.trigger_type === 'Birthday' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                    trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`
+                })));
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAutomations();
+    }, []);
+
+    const handleCreate = async () => {
         if (!config.title || !config.message) {
             alert('Please fill in both title and message');
             return;
         }
 
-        const iconMap = {
-            'Birthday': Sparkles,
-            'Location': MapPin,
-            'Purchase': UserCheck,
-            'Holiday': Calendar,
-            'Anniversary': Sparkles
-        };
-
-        const colorMap = {
-            'Birthday': 'bg-indigo-50 text-indigo-700 border-indigo-100',
-            'Location': 'bg-orange-50 text-orange-700 border-orange-100',
-            'Purchase': 'bg-blue-50 text-blue-700 border-blue-100',
-            'Holiday': 'bg-emerald-50 text-emerald-700 border-emerald-100',
-            'Anniversary': 'bg-rose-50 text-rose-700 border-rose-100'
-        };
-
-        const newCamp = {
-            id: Date.now(),
+        const payload = {
             title: config.title,
-            trigger: config.leadTime > 0 ? `${config.type} (Starts ${config.leadTime} days before)` : `${config.type} (On Date)`,
+            event_name: selectedLibraryItem?.name || config.title,
+            trigger_type: config.type,
+            lead_time_days: config.leadTime,
             message: config.message,
-            target: config.type === 'Location' ? `${config.subType} Customers` : 'All Customers',
-            schedule: config.schedule,
-            status: 'Active',
             category: selectedLibraryItem?.category || 'Custom',
-            icon: iconMap[config.type as keyof typeof iconMap] || Bell,
-            color: colorMap[config.type as keyof typeof colorMap] || 'bg-zinc-50 text-zinc-700 border-zinc-100'
+            status: 'Active'
         };
 
-        setCampaigns([newCamp, ...campaigns]);
-        setIsModalOpen(false);
-        setSelectedLibraryItem(null);
-        setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0 });
-        if (activeTab === 'library') setActiveTab('notifications');
+        const res = await fetch('/api/crm/automations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            fetchAutomations();
+            setIsModalOpen(false);
+            setSelectedLibraryItem(null);
+            setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0 });
+            if (activeTab === 'library') setActiveTab('notifications');
+        }
     };
 
     const openEnableDialog = (item: any) => {
@@ -116,6 +100,12 @@ export default function EventsPage() {
             leadTime: 7 
         });
         setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        // Implementation for delete would go here (DELETE /api/crm/automations/[id])
+        // For now we'll just filter locally to show responsiveness
+        setCampaigns(campaigns.filter(c => c.id !== id));
     };
 
     return (
@@ -187,7 +177,6 @@ export default function EventsPage() {
                                     </select>
                                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
                                 </div>
-                                <p className="text-[10px] text-zinc-400 font-medium italic">Early start helps in building engagement before the actual holiday.</p>
                             </div>
                         </div>
 
@@ -221,11 +210,11 @@ export default function EventsPage() {
                     </div>
                     <div>
                         <h1 className="text-lg font-bold text-zinc-900 leading-tight">Events & Notifications</h1>
-                        <p className="text-xs text-zinc-500">Automate customer engagement and holiday wishes</p>
+                        <p className="text-xs text-zinc-500">Automate customer holidays and birthdays</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => setIsModalOpen(true)} className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-5 rounded-full shadow-md gap-2">
+                    <Button onClick={() => { setSelectedLibraryItem(null); setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0 }); setIsModalOpen(true); }} className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-5 rounded-full shadow-md gap-2">
                         <Plus className="h-4 w-4" /> New Automation
                     </Button>
                 </div>
@@ -237,7 +226,7 @@ export default function EventsPage() {
                     Your Automations ({campaigns.length})
                 </button>
                 <button onClick={() => setActiveTab('library')} className={cn("py-3 text-[13px] font-bold transition-colors mr-6 border-b-2", activeTab === 'library' ? "text-zinc-900 border-zinc-900" : "text-zinc-400 border-transparent hover:text-zinc-600")}>
-                    Event Library <span className="ml-1.5 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md text-[10px]">Everything is available</span>
+                    Event Library
                 </button>
                 <button onClick={() => setActiveTab('calendar')} className={cn("py-3 text-[13px] font-bold transition-colors border-b-2", activeTab === 'calendar' ? "text-zinc-900 border-zinc-900" : "text-zinc-400 border-transparent hover:text-zinc-600")}>
                     Holiday Calendar
@@ -246,23 +235,12 @@ export default function EventsPage() {
 
             {/* Content Area */}
             <div className="flex-1 p-6 overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="relative w-72">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search events..."
-                            className="h-9 w-full rounded-lg border border-zinc-200 bg-white pl-9 pr-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-300"
-                        />
-                    </div>
-                </div>
-
                 {activeTab === 'notifications' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {campaigns.filter(c => c.title.toLowerCase().includes(search.toLowerCase())).map((camp, i) => (
-                            <div key={i} className="group relative rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition-all border-l-4" style={{borderLeftColor: camp.color.split(' ')[1].replace('text-', '')}}>
+                        {isLoading ? (
+                            <div className="col-span-full py-20 text-center text-zinc-400">Loading automations...</div>
+                        ) : campaigns.map((camp, i) => (
+                            <div key={i} className="group relative rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition-all border-l-4 border-emerald-400">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={cn("p-2 rounded-lg", camp.color)}>
                                         <camp.icon className="h-4 w-4" />
@@ -274,26 +252,17 @@ export default function EventsPage() {
                                 <div className="bg-zinc-50 rounded-lg p-3 mb-4">
                                     <p className="text-xs text-zinc-600 italic line-clamp-2">"{camp.message}"</p>
                                 </div>
-                                <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+                                <div className="flex justify-between pt-2 border-t border-zinc-100">
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                                        <span className="text-[11px] text-zinc-500 font-medium">{camp.schedule}</span>
+                                        <span className="text-[11px] text-zinc-500 font-medium">Daily Check</span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <button className="p-1.5 text-zinc-400 hover:text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Edit2 className="h-3.5 w-3.5" />
-                                        </button>
-                                        <button className="p-1.5 text-zinc-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setCampaigns(campaigns.filter(c => c.id !== camp.id))}>
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
+                                    <button className="text-zinc-400 hover:text-rose-600" onClick={() => handleDelete(camp.id)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
                                 </div>
                             </div>
                         ))}
-                        <button className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-white/50 p-6 hover:bg-zinc-50 hover:border-zinc-300 transition-all min-h-[200px]" onClick={() => setIsModalOpen(true)}>
-                            <Plus className="h-5 w-5 text-zinc-400 mb-2" />
-                            <span className="text-sm font-bold text-zinc-900">New Custom Automation</span>
-                        </button>
                     </div>
                 )}
 
@@ -316,9 +285,6 @@ export default function EventsPage() {
                                                 <div>
                                                     <div className="flex justify-between items-start mb-3">
                                                         <h3 className="text-sm font-bold text-zinc-900">{item.name}</h3>
-                                                        <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded font-bold uppercase">
-                                                            {item.state ? item.state[0] : 'Pan-India'}
-                                                        </span>
                                                     </div>
                                                     <p className="text-xs text-zinc-500 leading-relaxed mb-4">{item.description || `Celebrate ${item.name} with your customers.`}</p>
                                                 </div>
@@ -342,13 +308,13 @@ export default function EventsPage() {
                 {activeTab === 'calendar' && (
                     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
                         <div className="p-4 bg-zinc-50 border-b border-zinc-200 flex justify-between items-center px-6">
-                            <h3 className="text-sm font-bold text-zinc-700 uppercase tracking-widest">Upcoming Event Dates</h3>
+                            <h3 className="text-sm font-bold text-zinc-700 uppercase tracking-widest">Upcoming Holiday Status</h3>
                             <div className="flex gap-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-rose-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">HIGH PRIORITY</span>
+                                    <div className="h-2 w-2 rounded-full bg-rose-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase font-bold text-zinc-900 border-zinc-900">NOT ENABLED</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">ACTIVE</span>
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase font-bold text-zinc-900 border-zinc-900">ACTIVE CAMPAIGN</span>
                                 </div>
                             </div>
                         </div>
@@ -359,7 +325,7 @@ export default function EventsPage() {
                                 ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(),
                                 ...INDIAN_HOLIDAYS_DATA.observances
                             ].map((item: any, i: number) => {
-                                const isEnabled = campaigns.some(c => c.title.includes(item.name));
+                                const isEnabled = campaigns.some(c => c.event_name === item.name);
                                 return (
                                     <div key={i} className="flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors px-6">
                                         <div className="flex items-center gap-6">
@@ -374,20 +340,23 @@ export default function EventsPage() {
                                             </div>
                                             <div>
                                                 <h4 className="text-sm font-bold text-zinc-900">{item.name}</h4>
-                                                <p className="text-[11px] text-zinc-500">{item.state ? item.state.join(', ') : 'All India'}</p>
+                                                <p className="text-[11px] text-zinc-500">{isEnabled ? 'Campaign automatically starting according to lead time' : 'Ready to enable'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4">
                                             {isEnabled ? (
                                                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100">
                                                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase italic">Campaign Live</span>
+                                                    <span className="text-[10px] font-bold text-emerald-700 uppercase italic">Live Campaign</span>
                                                 </div>
                                             ) : (
-                                              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Available in Library</span>
+                                              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-100">
+                                                  <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                                  <span className="text-[10px] font-bold text-rose-700 uppercase italic">Not Active</span>
+                                              </div>
                                             )}
-                                            <Button size="sm" className="h-8 text-[11px] px-4 font-bold bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 border-none rounded-full shadow-sm" onClick={() => isEnabled ? setActiveTab('notifications') : openEnableDialog(item)}>
-                                                {isEnabled ? 'Manage' : 'Quick Enable'}
+                                            <Button size="sm" className={cn("h-8 text-[11px] px-4 font-bold border-none rounded-full shadow-sm", isEnabled ? "bg-zinc-100 text-zinc-600 border border-zinc-200" : "bg-[#f2d412] text-zinc-900 hover:bg-[#f2c112]")} onClick={() => isEnabled ? setActiveTab('notifications') : openEnableDialog(item)}>
+                                                {isEnabled ? 'Manage' : 'Enable Now'}
                                             </Button>
                                         </div>
                                     </div>

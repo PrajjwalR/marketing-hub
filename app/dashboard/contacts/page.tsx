@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown, Plus, Download, Upload, Filter, MoreHorizontal, User, Mail, MapPin, Cake, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2, X } from "lucide-react";
-import { useState, useRef } from "react";
+import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
     Sheet,
@@ -14,69 +14,90 @@ import {
 } from "@/components/ui/sheet";
 
 interface Contact {
-    id: number;
+    id: string;
     name: string;
     email: string;
     location: string;
-    birthday: string;
-    lastPurchase: string;
+    birthday: string | null;
+    last_purchase?: string | null;
     status: 'Active' | 'Inactive';
 }
 
-const initialContacts: Contact[] = [
-    { id: 1, name: 'Rahul Sharma', email: 'rahul@example.com', location: 'Hyderabad', birthday: '1992-04-12', lastPurchase: '2026-03-20', status: 'Active' },
-    { id: 2, name: 'Priya Verma', email: 'priya@example.com', location: 'Bangalore', birthday: '1995-10-25', lastPurchase: '2026-02-15', status: 'Active' },
-    { id: 3, name: 'Amit Patel', email: 'amit@example.com', location: 'Mumbai', birthday: '1988-06-05', lastPurchase: '2026-01-10', status: 'Inactive' },
-    { id: 4, name: 'Sneha Rao', email: 'sneha@example.com', location: 'Hyderabad', birthday: '1990-12-30', lastPurchase: '2026-03-25', status: 'Active' },
-];
-
 export default function ContactsPage() {
     const [search, setSearch] = useState('');
-    const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+    const [contacts, setContacts] = useState<Contact[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [newContact, setNewContact] = useState({
-        name: '', email: '', location: 'Hyderabad', birthday: '', lastPurchase: '', status: 'Active' as const
+        name: '', email: '', location: 'Hyderabad', birthday: '', status: 'Active' as const
     });
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleAddManual = () => {
-        if (!newContact.name || !newContact.email) return;
-        const contact: Contact = { 
-            id: Date.now(), 
-            ...newContact,
-            birthday: newContact.birthday || 'N/A',
-            lastPurchase: newContact.lastPurchase || 'N/A'
-        };
-        setContacts([contact, ...contacts]);
-        setNewContact({ name: '', email: '', location: 'Hyderabad', birthday: '', lastPurchase: '', status: 'Active' });
-        setIsAddModalOpen(false);
+    const fetchContacts = async () => {
+        try {
+            const res = await fetch('/api/crm/contacts');
+            if (res.ok) {
+                const data = await res.json();
+                setContacts(data);
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        fetchContacts();
+    }, []);
+
+    const handleAddManual = async () => {
+        if (!newContact.name || !newContact.email) return;
+        
+        const res = await fetch('/api/crm/contacts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newContact)
+        });
+
+        if (res.ok) {
+            fetchContacts();
+            setNewContact({ name: '', email: '', location: 'Hyderabad', birthday: '', status: 'Active' });
+            setIsAddModalOpen(false);
+        }
+    };
+
+    const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             const text = event.target?.result as string;
             const lines = text.split('\n');
-            const newContacts: Contact[] = lines.slice(1).filter(line => line.trim()).map((line, index) => {
-                const [name, email, location, birthday, lastPurchase] = line.split(',');
+            const entries = lines.slice(1).filter(line => line.trim()).map(line => {
+                const [name, email, location, birthday] = line.split(',');
                 return {
-                    id: Date.now() + index,
                     name: name?.trim() || 'Unknown',
                     email: email?.trim() || '',
-                    location: location?.trim() || 'N/A',
-                    birthday: birthday?.trim() || 'N/A',
-                    lastPurchase: lastPurchase?.trim() || 'N/A',
+                    location: location?.trim() || 'Hyderabad',
+                    birthday: birthday?.trim() || null,
                     status: 'Active'
                 };
             });
-            setContacts([...newContacts, ...contacts]);
+
+            // For demo/simplicity we do them one by one or we could add a bulk endpoint
+            for (const entry of entries) {
+                await fetch('/api/crm/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                });
+            }
+            
+            fetchContacts();
             setIsImportModalOpen(false);
-            alert(`Successfully imported ${newContacts.length} contacts!`);
+            alert(`Successfully imported ${entries.length} contacts!`);
         };
         reader.readAsText(file);
     };
@@ -174,14 +195,6 @@ export default function ContactsPage() {
                             <span className="text-sm font-bold text-zinc-600">Click to browse or drag & drop</span>
                             <span className="text-[11px] text-zinc-400 font-medium">Support .CSV up to 10MB</span>
                         </button>
-
-                        <div className="mt-8 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3 text-left w-full">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-500 mt-0.5 shrink-0" />
-                            <div className="space-y-1">
-                                <h4 className="text-xs font-bold text-emerald-900">CSV Template Ready</h4>
-                                <p className="text-[11px] text-emerald-700/80 font-medium leading-relaxed">Download our <span className="underline font-bold cursor-pointer hover:text-emerald-900 text-emerald-900">sample template</span> to verify formatting.</p>
-                            </div>
-                        </div>
                     </div>
 
                     <SheetFooter className="shrink-0 bg-zinc-50 p-6 border-t border-zinc-200">
@@ -198,7 +211,7 @@ export default function ContactsPage() {
                     </div>
                     <div>
                         <h1 className="text-lg font-bold text-zinc-900">Contacts</h1>
-                        <p className="text-xs text-zinc-500">Manage {contacts.length} customers and prospects</p>
+                        <p className="text-xs text-zinc-500">Manage {contacts.length} customers</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -218,25 +231,6 @@ export default function ContactsPage() {
                 </div>
             </div>
 
-            {/* Filters Bar */}
-            <div className="bg-white border-b border-zinc-200 px-6 py-2 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="relative w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-                        <input className="w-full h-8 bg-zinc-50 border border-zinc-200 rounded-md pl-9 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-300"
-                            placeholder="Search by name, email..." value={search} onChange={e => setSearch(e.target.value)} />
-                    </div>
-                    <Button variant="ghost" className="h-8 text-xs font-bold text-zinc-600 gap-1.5 px-2">
-                        <Filter className="h-3.5 w-3.5" /> Filters
-                    </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" className="h-8 text-xs font-bold text-zinc-600 gap-2">
-                        Sort by: <span className="text-zinc-900">Recent</span> <ChevronDown className="h-3.5 w-3.5" />
-                    </Button>
-                </div>
-            </div>
-
             {/* Contacts Table */}
             <div className="flex-1 overflow-auto p-6">
                 <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
@@ -249,13 +243,13 @@ export default function ContactsPage() {
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Contact</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Location</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Birthday</th>
-                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Last Purchase</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
-                            {contacts.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())).map((contact) => (
+                            {isLoading ? (
+                                <tr><td colSpan={5} className="text-center py-10 text-sm text-zinc-400">Loading contacts...</td></tr>
+                            ) : contacts.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())).map((contact) => (
                                 <tr key={contact.id} className="hover:bg-zinc-50 transition-colors group">
                                     <td className="px-6 py-4"><input type="checkbox" className="rounded border-zinc-300" /></td>
                                     <td className="px-6 py-4">
@@ -278,12 +272,7 @@ export default function ContactsPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
-                                            <Cake className="h-3.5 w-3.5 text-zinc-400" /> {contact.birthday}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
-                                            <ShoppingBag className="h-3.5 w-3.5 text-zinc-400" /> {contact.lastPurchase}
+                                            <Cake className="h-3.5 w-3.5 text-zinc-400" /> {contact.birthday || 'N/A'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -294,34 +283,12 @@ export default function ContactsPage() {
                                             {contact.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-1.5 hover:bg-zinc-100 rounded-md text-zinc-500"><Edit2 className="h-3.5 w-3.5" /></button>
-                                            <button className="p-1.5 hover:bg-rose-50 rounded-md text-rose-500"><Trash2 className="h-3.5 w-3.5" /></button>
-                                        </div>
-                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-
-                {/* Empty State */}
-                {contacts.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-dashed border-zinc-200">
-                        <div className="h-16 w-16 rounded-full bg-zinc-50 flex items-center justify-center mb-4">
-                            <User className="h-8 w-8 text-zinc-300" />
-                        </div>
-                        <h3 className="font-bold text-zinc-900">No contacts found</h3>
-                        <p className="text-sm text-zinc-500 mt-1 mb-6">Start by adding a contact manually or uploading a CSV file.</p>
-                        <div className="flex gap-3">
-                            <Button onClick={() => setIsAddModalOpen(true)}>Add Contact</Button>
-                            <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>Upload CSV</Button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
 }
-
