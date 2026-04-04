@@ -147,32 +147,39 @@ export function StrategyTableView({
                                     key={post.id}
                                     className={cn(
                                         'border-zinc-100 group transition-colors odd:bg-white even:bg-zinc-50/60',
-                                        readonly ? 'cursor-default' : 'cursor-pointer hover:bg-zinc-50'
+                                        readonly ? 'cursor-default' : 'cursor-pointer hover:bg-zinc-50',
+                                        (post as any).isCRM && 'bg-amber-50/30 hover:bg-amber-50/50 border-l-4 border-l-amber-400'
                                     )}
                                     onClick={() => {
-                                        if (!readonly) onRowClick(post);
+                                        if (!readonly && !(post as any).isCRM) onRowClick(post);
                                     }}
                                 >
                                     {!readonly && (
                                         <TableCell className="px-3 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
-                                            <button
-                                                type="button"
-                                                className={cn(
-                                                    'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                                                    post.include_in_calendar
-                                                        ? 'bg-zinc-900 text-white'
-                                                        : 'bg-white border border-zinc-300'
-                                                )}
-                                                onClick={() => onIncludeChange(post, !post.include_in_calendar)}
-                                            >
-                                                {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
-                                            </button>
+                                            {!(post as any).isCRM && (
+                                                <button
+                                                    type="button"
+                                                    className={cn(
+                                                        'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
+                                                        post.include_in_calendar
+                                                            ? 'bg-zinc-900 text-white'
+                                                            : 'bg-white border border-zinc-300'
+                                                    )}
+                                                    onClick={() => onIncludeChange(post, !post.include_in_calendar)}
+                                                >
+                                                    {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
+                                                </button>
+                                            )}
+                                            {(post as any).isCRM && <div className="w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center"><Calendar className="h-2.5 w-2.5 text-white" /></div>}
                                         </TableCell>
                                     )}
                                     <TableCell className="px-3.5 py-3 max-w-[220px]">
                                         <div className="font-medium text-[13px] text-zinc-900 line-clamp-2 truncate">
                                             {post.idea || 'Untitled'}
                                         </div>
+                                        {(post as any).isCRM && (
+                                             <span className="inline-flex text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded mt-1 tracking-wider uppercase">CRM AUTOMATION</span>
+                                        )}
                                         {post.caption && (
                                             <p className="text-[11px] text-zinc-400 line-clamp-1 truncate mt-0.5">{post.caption}</p>
                                         )}
@@ -186,112 +193,124 @@ export function StrategyTableView({
                                         <span className="text-xs font-medium text-[#C87D3A]">{getDateLabel(post.day)}</span>
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
-                                        <div className="flex items-center gap-1.5">
-                                            <div
-                                                className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                                                style={{ background: platformCfg?.gradient ?? 'linear-gradient(135deg, #71717a, #3f3f46)' }}
-                                            >
-                                                <PlatformIcon className="h-3.5 w-3.5 text-white" />
+                                        {(post as any).isCRM ? (
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
+                                                    <Share2 className="h-3.5 w-3.5 text-white" />
+                                                </div>
+                                                <span className="text-xs text-zinc-600">Sync Channels</span>
                                             </div>
-                                            <span className="text-xs text-zinc-600">{platformLabel}</span>
-                                        </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1.5">
+                                                <div
+                                                    className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                                                    style={{ background: platformCfg?.gradient ?? 'linear-gradient(135deg, #71717a, #3f3f46)' }}
+                                                >
+                                                    <PlatformIcon className="h-3.5 w-3.5 text-white" />
+                                                </div>
+                                                <span className="text-xs text-zinc-600">{platformLabel}</span>
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
                                         <span
                                             className={cn(
                                                 'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-xl',
-                                                typeStyle.bg,
-                                                typeStyle.text
+                                                (post as any).isCRM ? 'bg-zinc-100 text-zinc-500' : typeStyle.bg,
+                                                (post as any).isCRM ? '' : typeStyle.text
                                             )}
                                         >
-                                            {formatLabel(post.content_type)}
+                                            {(post as any).isCRM ? 'Message' : formatLabel(post.content_type)}
                                         </span>
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3 text-xs text-zinc-600">
-                                        {post.goal ? formatLabel(post.goal) : '—'}
+                                        {(post as any).isCRM ? (post as any).goal || 'CRM Sync' : (post.goal ? formatLabel(post.goal) : '—')}
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
                                         <span
                                             className={cn(
-                                                'inline-flex items-center text-[11px] font-medium px-2.5 py-1 rounded-xl',
-                                                statusStyle.bg,
-                                                statusStyle.text,
+                                                'inline-flex items-center text-[11px] font-medium px-2.5 py-1 rounded-xl uppercase',
+                                                (post as any).isCRM ? 'bg-emerald-100 text-emerald-800' : statusStyle.bg,
+                                                (post as any).isCRM ? '' : (statusStyle.text),
                                                 statusStyle.border
                                             )}
                                         >
-                                            {formatLabel(post.status)}
+                                            {(post as any).isCRM ? 'ENABLED' : formatLabel(post.status)}
                                         </span>
                                     </TableCell>
                                     {!readonly && (
                                         <TableCell className="px-3.5 py-3" onClick={(e) => e.stopPropagation()}>
-                                            <div className="flex items-center gap-1.5">
-                                                <button
-                                                    type="button"
-                                                    className="w-7 h-7 rounded-lg border border-zinc-200 bg-white flex items-center justify-center text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
-                                                    onClick={() => onEdit(post)}
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </button>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className="h-7 w-7 shrink-0 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <MoreVertical className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
-                                                    <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onEdit(post); }}
-                                                        className="gap-2 rounded-md"
+                                            {!(post as any).isCRM && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        className="w-7 h-7 rounded-lg border border-zinc-200 bg-white flex items-center justify-center text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+                                                        onClick={() => onEdit(post)}
+                                                        title="Edit"
                                                     >
                                                         <Pencil className="h-3.5 w-3.5" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onClone(post); }}
-                                                        className="gap-2 rounded-md"
-                                                    >
-                                                        <Copy className="h-3.5 w-3.5" />
-                                                        Clone
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onPostToPlatforms(post); }}
-                                                        className="gap-2 rounded-md"
-                                                    >
-                                                        <Share2 className="h-3.5 w-3.5" />
-                                                        Post to more
-                                                    </DropdownMenuItem>
-                                                    {onScheduleToCalendar && (
-                                                        <DropdownMenuItem
-                                                            onClick={(e) => { e.stopPropagation(); onScheduleToCalendar(post); }}
-                                                            className="gap-2 rounded-md"
-                                                        >
-                                                            <Calendar className="h-3.5 w-3.5" />
-                                                            Schedule to calendar
-                                                        </DropdownMenuItem>
-                                                    )}
-                                                    <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onContent(post); }}
-                                                        className="gap-2 rounded-md"
-                                                    >
-                                                        <ImagePlus className="h-3.5 w-3.5" />
-                                                        Create / Upload content
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={(e) => { e.stopPropagation(); onDelete(post); }}
-                                                        className="gap-2 rounded-md text-red-600 focus:text-red-600"
-                                                    >
-                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                        Delete
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                            </div>
+                                                    </button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-7 w-7 shrink-0 rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <MoreVertical className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="rounded-lg border border-zinc-200">
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); onEdit(post); }}
+                                                                className="gap-2 rounded-md"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Edit
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); onClone(post); }}
+                                                                className="gap-2 rounded-md"
+                                                            >
+                                                                <Copy className="h-3.5 w-3.5" />
+                                                                Clone
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); onPostToPlatforms(post); }}
+                                                                className="gap-2 rounded-md"
+                                                            >
+                                                                <Share2 className="h-3.5 w-3.5" />
+                                                                Post to more
+                                                            </DropdownMenuItem>
+                                                            {onScheduleToCalendar && (
+                                                                <DropdownMenuItem
+                                                                    onClick={(e) => { e.stopPropagation(); onScheduleToCalendar(post); }}
+                                                                    className="gap-2 rounded-md"
+                                                                >
+                                                                    <Calendar className="h-3.5 w-3.5" />
+                                                                    Schedule to calendar
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); onContent(post); }}
+                                                                className="gap-2 rounded-md"
+                                                            >
+                                                                <ImagePlus className="h-3.5 w-3.5" />
+                                                                Create / Upload content
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); onDelete(post); }}
+                                                                className="gap-2 rounded-md text-red-600 focus:text-red-600"
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            )}
+                                            {(post as any).isCRM && <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Locked</span>}
                                         </TableCell>
                                     )}
                                 </TableRow>
