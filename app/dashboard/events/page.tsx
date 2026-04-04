@@ -1,8 +1,8 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Edit2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Ghost, Clock } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
     Sheet,
@@ -36,6 +36,7 @@ export default function EventsPage() {
         message: '',
         schedule: 'Daily at 9:00 AM',
         leadTime: 0,
+        customDate: '', // New field
     });
 
     const fetchAutomations = async () => {
@@ -43,12 +44,28 @@ export default function EventsPage() {
             const res = await fetch('/api/crm/automations');
             if (res.ok) {
                 const data = await res.json();
-                setCampaigns(data.map((d: any) => ({
-                    ...d,
-                    icon: d.trigger_type === 'Birthday' ? Sparkles : Calendar,
-                    color: d.trigger_type === 'Birthday' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                    trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`
-                })));
+                
+                const allHolidays = [
+                    ...INDIAN_HOLIDAYS_DATA.national_holidays,
+                    ...INDIAN_HOLIDAYS_DATA.pan_india_festivals,
+                    ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(),
+                    ...INDIAN_HOLIDAYS_DATA.observances
+                ];
+
+                setCampaigns(data.map((d: any) => {
+                    const match = allHolidays.find(h => h.name === d.event_name);
+                    const eventDate = match 
+                        ? (match.date || match.month || (match.months && match.months[0])) 
+                        : (d.custom_date || null);
+                    
+                    return {
+                        ...d,
+                        icon: d.trigger_type === 'Birthday' ? Sparkles : Calendar,
+                        color: d.trigger_type === 'Birthday' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                        trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`,
+                        displayDate: eventDate
+                    };
+                }));
             }
         } finally {
             setIsLoading(false);
@@ -72,7 +89,8 @@ export default function EventsPage() {
             lead_time_days: config.leadTime,
             message: config.message,
             category: selectedLibraryItem?.category || 'Custom',
-            status: 'Active'
+            status: 'Active',
+            custom_date: config.customDate // Send new field
         };
 
         const res = await fetch('/api/crm/automations', {
@@ -85,7 +103,7 @@ export default function EventsPage() {
             fetchAutomations();
             setIsModalOpen(false);
             setSelectedLibraryItem(null);
-            setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0 });
+            setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '' });
             if (activeTab === 'library') setActiveTab('notifications');
         }
     };
@@ -97,15 +115,28 @@ export default function EventsPage() {
             title: `${item.name} Campaign`,
             type: 'Holiday',
             message: `Wishing you a very Happy ${item.name}! Celebrate with us.`,
-            leadTime: 7 
+            leadTime: 7,
+            customDate: item.date || item.month || (item.months && item.months[0]) || ''
         });
         setIsModalOpen(true);
     };
 
     const handleDelete = async (id: string) => {
-        // Implementation for delete would go here (DELETE /api/crm/automations/[id])
-        // For now we'll just filter locally to show responsiveness
         setCampaigns(campaigns.filter(c => c.id !== id));
+        fetch(`/api/crm/automations?id=${id}`, { method: 'DELETE' });
+    };
+
+    const filterList = (list: any[]) => {
+        if (!search) return list;
+        const s = search.toLowerCase();
+        return list.filter(item => 
+            item.name?.toLowerCase().includes(s) || 
+            item.title?.toLowerCase().includes(s) || 
+            item.date?.toLowerCase().includes(s) ||
+            item.month?.toLowerCase().includes(s) ||
+            (item.months && item.months.some((m: string) => m.toLowerCase().includes(s))) ||
+            item.custom_date?.toLowerCase().includes(s)
+        );
     };
 
     return (
@@ -124,19 +155,36 @@ export default function EventsPage() {
                     </SheetHeader>
                     
                     <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Automation Title</label>
-                            <input 
-                                type="text"
-                                className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm"
-                                value={config.title}
-                                onChange={e => setConfig({...config, title: e.target.value})}
-                            />
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Automation Title</label>
+                                <input 
+                                    type="text"
+                                    className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm"
+                                    value={config.title}
+                                    placeholder="e.g. Store Anniversary"
+                                    onChange={e => setConfig({...config, title: e.target.value})}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Event Date</label>
+                                <div className="relative">
+                                    <input 
+                                        type="text"
+                                        className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm"
+                                        placeholder="e.g. 26 January or 10 October"
+                                        value={config.customDate}
+                                        onChange={e => setConfig({...config, customDate: e.target.value})}
+                                    />
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                                </div>
+                            </div>
                         </div>
 
                         {!selectedLibraryItem && (
                             <div className="space-y-3">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Select Trigger Event</label>
+                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Select Trigger Type</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     {['Birthday', 'Location', 'Purchase', 'Holiday'].map((t) => (
                                         <button 
@@ -162,7 +210,7 @@ export default function EventsPage() {
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Campaign Lead Time</label>
+                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Campaign Lead Time</label>
                                 <div className="relative">
                                     <select 
                                         value={config.leadTime}
@@ -181,7 +229,7 @@ export default function EventsPage() {
                         </div>
 
                         <div className="space-y-2 pb-6">
-                            <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Notification Message</label>
+                            <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest text-[#666]">Notification Message</label>
                             <textarea 
                                 className="w-full h-32 bg-white border border-zinc-200 rounded-xl p-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 resize-none italic shadow-sm"
                                 placeholder="Enter the message customers will receive..."
@@ -213,8 +261,22 @@ export default function EventsPage() {
                         <p className="text-xs text-zinc-500">Automate customer holidays and birthdays</p>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-4 flex-1 max-w-xl mx-8">
+                     <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                        <input 
+                            type="text"
+                            placeholder="Global Search (Name, Date, Month)..."
+                            className="w-full h-10 bg-zinc-50 border border-zinc-200 rounded-full pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                     </div>
+                </div>
+
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => { setSelectedLibraryItem(null); setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0 }); setIsModalOpen(true); }} className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-5 rounded-full shadow-md gap-2">
+                    <Button onClick={() => { setSelectedLibraryItem(null); setConfig({ title: '', type: 'Holiday', subType: 'Today', message: '', schedule: 'Daily at 9:00 AM', leadTime: 0, customDate: '' }); setIsModalOpen(true); }} className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-5 rounded-full shadow-md gap-2">
                         <Plus className="h-4 w-4" /> New Automation
                     </Button>
                 </div>
@@ -239,13 +301,25 @@ export default function EventsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {isLoading ? (
                             <div className="col-span-full py-20 text-center text-zinc-400">Loading automations...</div>
-                        ) : campaigns.map((camp, i) => (
+                        ) : filterList(campaigns).length === 0 ? (
+                           <div className="col-span-full py-20 text-center">
+                              <Ghost className="h-12 w-12 text-zinc-300 mx-auto mb-2" />
+                              <p className="text-sm font-bold text-zinc-400">No campaigns found matching &ldquo;{search}&rdquo;</p>
+                           </div>
+                        ) : filterList(campaigns).map((camp, i) => (
                             <div key={i} className="group relative rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition-all border-l-4 border-emerald-400">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={cn("p-2 rounded-lg", camp.color)}>
                                         <camp.icon className="h-4 w-4" />
                                     </div>
-                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-500 uppercase">{camp.category}</span>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-500 uppercase mb-1">{camp.category}</span>
+                                        {camp.displayDate && (
+                                            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                                                {camp.displayDate}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <h3 className="text-sm font-bold text-zinc-900 mb-1">{camp.title}</h3>
                                 <p className="text-[11px] text-zinc-500 font-medium mb-3">{camp.trigger}</p>
@@ -269,12 +343,15 @@ export default function EventsPage() {
                 {activeTab === 'library' && (
                     <div className="space-y-8">
                         {holidayCategories.map(cat => {
-                            let items: any[] = [];
+                            let rawItems: any[] = [];
                             if (cat.key === 'regional_festivals') {
-                                items = Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat();
+                                rawItems = Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat();
                             } else if (cat.key === 'national_holidays' || cat.key === 'pan_india_festivals' || cat.key === 'observances') {
-                                items = INDIAN_HOLIDAYS_DATA[cat.key as keyof typeof INDIAN_HOLIDAYS_DATA] as any[];
+                                rawItems = INDIAN_HOLIDAYS_DATA[cat.key as keyof typeof INDIAN_HOLIDAYS_DATA] as any[];
                             }
+                            
+                            const items = filterList(rawItems);
+                            if (search && items.length === 0) return null;
 
                             return (
                                 <div key={cat.name} className="space-y-4">
@@ -289,7 +366,7 @@ export default function EventsPage() {
                                                     <p className="text-xs text-zinc-500 leading-relaxed mb-4">{item.description || `Celebrate ${item.name} with your customers.`}</p>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-zinc-400">
+                                                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100">
                                                         {item.date || item.month || (item.months && item.months[0]) || 'Upcoming'}
                                                     </span>
                                                     <Button size="sm" className="h-8 rounded-full bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 text-[11px] font-bold px-4 transition-all shadow-sm" onClick={() => openEnableDialog(item)}>
@@ -311,20 +388,20 @@ export default function EventsPage() {
                             <h3 className="text-sm font-bold text-zinc-700 uppercase tracking-widest">Upcoming Holiday Status</h3>
                             <div className="flex gap-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-rose-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase font-bold text-zinc-900 border-zinc-900">NOT ENABLED</span>
+                                    <div className="h-2 w-2 rounded-full bg-rose-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">NOT ENABLED</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase font-bold text-zinc-900 border-zinc-900">ACTIVE CAMPAIGN</span>
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500" /> <span className="text-[10px] font-bold text-zinc-500 uppercase">ACTIVE CAMPAIGN</span>
                                 </div>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 divide-y divide-zinc-100">
-                            {[
+                            {filterList([
                                 ...INDIAN_HOLIDAYS_DATA.national_holidays,
                                 ...INDIAN_HOLIDAYS_DATA.pan_india_festivals,
                                 ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(),
                                 ...INDIAN_HOLIDAYS_DATA.observances
-                            ].map((item: any, i: number) => {
+                            ]).map((item: any, i: number) => {
                                 const isEnabled = campaigns.some(c => c.event_name === item.name);
                                 return (
                                     <div key={i} className="flex items-center justify-between p-4 hover:bg-zinc-50 transition-colors px-6">
