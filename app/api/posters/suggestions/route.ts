@@ -19,6 +19,26 @@ export async function POST(req: Request) {
         const refine = body?.refine as { originalPrompt?: string; feedback?: string } | undefined;
         const strategyContext = body?.strategyContext as StrategyPostersContext | undefined;
         const anchored = strategyContext && isStrategyPostersContext(strategyContext);
+        const rawStyle = body?.style as string | undefined;
+        const rawTone = body?.tone as string | undefined;
+
+        const STYLE_MAP: Record<string, string> = {
+            'clean-modern': 'Standard Corporate / Clean modern design',
+            'bollywood-drama': 'Bollywood Cinematic Drama / Desi Movie Poster',
+            'ipl-fever': 'Cricket / IPL Match Day Sports Hype',
+            'desi-wedding': 'Big Fat Indian Wedding / Traditional Festive Vibe',
+            'gully-rap': 'Indian Street / Gully Rap / Raw Desi Hip-hop',
+        };
+
+        const TONE_MAP: Record<string, string> = {
+            'brand-safe': 'Brand-safe, professional, and corporate',
+            'gen-z-hinglish': 'Gen-Z Hinglish Slang, local pop culture references',
+            'dramatic-desi': 'Dramatic, emotional, hyper-expressive Indian soap opera vibe',
+            'cricket-hype': 'Sports stadium hype, aggressive, loud, cheering',
+        };
+
+        const style = rawStyle ? (STYLE_MAP[rawStyle] || rawStyle) : undefined;
+        const tone = rawTone ? (TONE_MAP[rawTone] || rawTone) : undefined;
 
         const systemPrompt = refine?.originalPrompt
             ? anchored
@@ -31,8 +51,8 @@ export async function POST(req: Request) {
                       feedback: refine.feedback,
                   })
             : anchored
-              ? buildStrategyAnchoredSuggestionsPrompt(type, strategyContext)
-              : buildGenericSuggestionsPrompt(type);
+              ? buildStrategyAnchoredSuggestionsPrompt(type, strategyContext, style, tone)
+              : buildGenericSuggestionsPrompt(type, style, tone);
 
         const result = await posterSuggestionsModel.generateContent(systemPrompt);
         const text = result.response.text();

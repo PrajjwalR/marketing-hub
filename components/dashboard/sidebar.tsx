@@ -54,17 +54,27 @@ type SidebarSection = {
 
 const sidebarData: SidebarSection[] = [
     {
-        name: 'Dashboard',
-        icon: Home,
+        name: 'Launchpad',
+        icon: LayoutDashboard,
         href: '/dashboard',
+        hasBorderBottom: false,
+    },
+    {
+        name: 'Analytics Dashboard',
+        icon: BarChart2,
+        href: '/dashboard/analytics-dashboard',
         hasBorderBottom: true,
         id: 'sidebar-dashboard',
     },
     {
-        name: 'Strategy Planner',
-        icon: Brain,
-        href: '/dashboard/strategy',
+        name: 'Strategy',
+        icon: Target,
+        defaultExpanded: true,
         id: 'sidebar-strategy',
+        items: [
+            { name: 'Strategy Planner', href: '/dashboard/strategy' },
+            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
+        ]
     },
     {
         name: 'Competitors',
@@ -87,17 +97,9 @@ const sidebarData: SidebarSection[] = [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
             { name: 'Create Content', href: '/dashboard/posters' },
-            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
-            
             { name: 'Create New', href: '/dashboard/create' },
-            // { name: 'Billing', href: '/dashboard/billing' },
         ]
     },
-    // {
-    //     name: 'Billing',
-    //     icon: CreditCard,
-    //     href: '/dashboard/billing'
-    // },
     {
         name: 'Whathub',
         icon: WhatsappIcon,
@@ -247,24 +249,14 @@ export function Sidebar() {
 
     // On navigation: expand on dashboard home only; otherwise collapse.
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsCollapsed(!isDashboardHomePath(pathname));
         setShowSecondary(false);
         setActiveSectionName(null);
         setSearchTerm("");
     }, [pathname]);
 
-    // Close secondary sidebar when expanding main sidebar
-    // useEffect(() => {
-    //     if (!isCollapsed) {
-    //         setShowSecondary(false);
-    //         setActiveSectionName(null);
-    //     }
-    // }, [isCollapsed]);
-
     useEffect(() => {
         if (!isCollapsed) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowSecondary(false);
             setActiveSectionName(null);
         } else {
@@ -360,7 +352,6 @@ export function Sidebar() {
                                 onClick={() => toggleSection(section.name, section.items)}
                                 className={cn(
                                     "group flex cursor-pointer items-center text-[14px] font-bold transition-colors",
-                                    // isCollapsed ? "justify-center w-8 h-8 p-0 mx-auto" : "justify-between w-full px-2 py-2 my-1",
                                     isCollapsed ? "mx-auto my-1.5 h-8 w-8 justify-center p-0" : "my-1 w-full justify-between px-2 py-2",
                                     (isCollapsed && (
                                         activeSectionName === section.name && showSecondary ||
@@ -373,9 +364,6 @@ export function Sidebar() {
                                 <div className={cn("flex items-center overflow-hidden", isCollapsed ? "gap-0" : "gap-2.5")}>
                                     <Icon className={cn(
                                         "h-4 w-4 shrink-0 transition-colors",
-                                        // (isCollapsed && activeSectionName === section.name && showSecondary)
-                                        //     ? "text-white"
-                                        //     : "text-zinc-500 group-hover:text-zinc-900"
                                         (isCollapsed && (
                                             (activeSectionName === section.name && showSecondary) ||
                                             section.items?.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))

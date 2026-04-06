@@ -15,6 +15,7 @@ import {
   Instagram,
   Facebook,
   Video,
+  RefreshCw,
 } from 'lucide-react';
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -61,6 +62,7 @@ export function PlatformPreviewCard({
   onUpload,
   mediaLayout = 'fixed',
   className,
+  isRecurring = false,
 }: {
   platformKey: string;
   whenLabel: string;
@@ -73,6 +75,7 @@ export function PlatformPreviewCard({
   onUpload?: () => void;
   mediaLayout?: 'fixed' | 'auto';
   className?: string;
+  isRecurring?: boolean;
 }) {
   const platformLabel = getPlatformLabel(platformKey);
   const key = platformKey?.toLowerCase();
@@ -85,6 +88,18 @@ export function PlatformPreviewCard({
         <div className="flex items-center gap-2 min-w-0">
           <PlatformIcon platformKey={platformKey} className={cn('h-4 w-4 shrink-0', headerStyle.icon)} />
           <span className={cn('text-sm font-bold truncate', headerStyle.text)}>{platformLabel}</span>
+          {isRecurring && (
+            <div 
+              title="Recurring Evergreen Post"
+              className={cn(
+                "flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full bg-white/40 border border-current text-[10px] font-black uppercase tracking-tighter",
+                density === 'compact' && "px-1"
+              )}
+            >
+              <RefreshCw className="h-2.5 w-2.5 animate-spin-slow" />
+              {density !== 'compact' && <span>Recycle</span>}
+            </div>
+          )}
         </div>
         <span className={cn('text-xs font-semibold shrink-0', headerStyle.text, 'opacity-80')}>{whenLabel}</span>
       </div>

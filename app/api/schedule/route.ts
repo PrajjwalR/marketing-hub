@@ -56,7 +56,12 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { title, description, media_url, type, platform, platforms, account_id, color, scheduled_at, end_at, status, published_at, video_id, series_id, label_ids, approval_required } = body;
+        const { 
+            title, description, media_url, type, platform, platforms, 
+            account_id, color, scheduled_at, end_at, status, published_at, 
+            video_id, series_id, label_ids, approval_required,
+            is_recurring, repeat_interval, repeat_frequency, repeat_end_at, repeat_count
+        } = body;
 
         if (!title || !scheduled_at) {
             return NextResponse.json(
@@ -92,6 +97,11 @@ export async function POST(req: NextRequest) {
                 video_id: video_id || null,
                 series_id: series_id || null,
                 status: status || 'scheduled',
+                is_recurring: !!is_recurring,
+                repeat_interval: repeat_interval || null,
+                repeat_frequency: repeat_frequency || 1,
+                repeat_end_at: repeat_end_at || null,
+                repeat_count: repeat_count || null,
             })
             .select()
             .single();

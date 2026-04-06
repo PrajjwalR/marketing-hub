@@ -52,14 +52,14 @@ export interface AiHelpSelection {
     description: string;
     requirements: string;
     format: string;
-    style: string;
-    tone: string;
 }
 
 interface PostersAiHelpSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     type: WorkbenchType;
+    currentStyle: string;
+    currentTone: string;
     onApply: (selection: AiHelpSelection) => void;
     /** When set, prompt suggestions are anchored to this strategy post */
     strategyContext?: StrategyPostersContext | null;
@@ -69,6 +69,8 @@ export function PostersAiHelpSheet({
     open,
     onOpenChange,
     type,
+    currentStyle,
+    currentTone,
     onApply,
     strategyContext = null,
 }: PostersAiHelpSheetProps) {
@@ -76,8 +78,6 @@ export function PostersAiHelpSheet({
     const [loading, setLoading] = useState(false);
     const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
     const [format, setFormat] = useState('landscape-16-9');
-    const [style, setStyle] = useState('clean-modern');
-    const [tone, setTone] = useState('brand-safe');
     const [requirements, setRequirements] = useState('');
     const [loadError, setLoadError] = useState<string | null>(null);
     const strategyContextRef = useRef(strategyContext);
@@ -103,6 +103,8 @@ export function PostersAiHelpSheet({
                     headers,
                     body: JSON.stringify({
                         type,
+                        style: currentStyle,
+                        tone: currentTone,
                         ...(strategyContextRef.current
                             ? { strategyContext: strategyContextRef.current }
                             : {}),
@@ -140,8 +142,6 @@ export function PostersAiHelpSheet({
             description: description.trim(),
             requirements: requirements.trim(),
             format,
-            style,
-            tone,
         });
         onOpenChange(false);
         setSelectedPrompt(null);
@@ -215,38 +215,6 @@ export function PostersAiHelpSheet({
                             </SelectTrigger>
                             <SelectContent align="start">
                                 {FORMAT_OPTIONS.map((o) => (
-                                    <SelectItem key={o.value} value={o.value}>
-                                        {o.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2 pt-1">
-                        <p className="text-xs font-semibold text-zinc-700">Style</p>
-                        <Select value={style} onValueChange={setStyle}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                                {STYLE_OPTIONS.map((o) => (
-                                    <SelectItem key={o.value} value={o.value}>
-                                        {o.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2 pt-1">
-                        <p className="text-xs font-semibold text-zinc-700">Tone</p>
-                        <Select value={tone} onValueChange={setTone}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent align="start">
-                                {TONE_OPTIONS.map((o) => (
                                     <SelectItem key={o.value} value={o.value}>
                                         {o.label}
                                     </SelectItem>

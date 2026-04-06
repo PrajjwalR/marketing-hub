@@ -222,6 +222,15 @@
     background-repeat: repeat;
     background-size: 200px 200px;
   }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
 }
 
 /* Modern Dark Glass Driver.js Overrides */

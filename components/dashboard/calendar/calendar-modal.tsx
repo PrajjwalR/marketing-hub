@@ -3,11 +3,13 @@
 import { useCalendar, CalendarEvent, SocialConnection, LabelItem } from './calendar-context';
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil } from 'lucide-react';
+import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil, Sparkles, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -80,6 +82,19 @@ export function CalendarModal() {
     const [selectedReviewerIds, setSelectedReviewerIds] = useState<string[]>([]);
     const [approvalRequired, setApprovalRequired] = useState(false);
     const [approvalStatus, setApprovalStatus] = useState<'none' | 'pending' | 'approved' | 'rejected' | 'changes_requested'>('none');
+
+    // Recycling / Recurring States
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [repeatInterval, setRepeatInterval] = useState<'daily' | 'weekly' | 'monthly' | 'custom' | null>('weekly');
+    const [repeatFrequency, setRepeatFrequency] = useState(1);
+    const [repeatEndAt, setRepeatEndAt] = useState('');
+    const [repeatCount, setRepeatCount] = useState<number | null>(null);
+
+    // AI Vernacular states
+    const [aiAssistOpen, setAiAssistOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiLanguage, setAiLanguage] = useState('hinglish');
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     const selectedAccount = socialConnections.find(c => c.id === formAccountId);
 
@@ -185,6 +200,13 @@ export function CalendarModal() {
         setApprovalRequired(false);
         setApprovalStatus('none');
         setSelectedReviewerIds([]);
+        setAiAssistOpen(false);
+        setAiPrompt('');
+        setIsRecurring(false);
+        setRepeatInterval('weekly');
+        setRepeatFrequency(1);
+        setRepeatEndAt('');
+        setRepeatCount(null);
     };
 
     useEffect(() => {
@@ -208,6 +230,11 @@ export function CalendarModal() {
                 setSelectedLabelIds((editingEvent.labels || []).map((label) => label.id));
                 setApprovalRequired(!!editingEvent.approval_required);
                 setApprovalStatus((editingEvent.approval_status as any) || 'none');
+                setIsRecurring(!!editingEvent.is_recurring);
+                setRepeatInterval(editingEvent.repeat_interval || 'weekly');
+                setRepeatFrequency(editingEvent.repeat_frequency || 1);
+                setRepeatEndAt(editingEvent.repeat_end_at ? format(parseISO(editingEvent.repeat_end_at), 'yyyy-MM-dd') : '');
+                setRepeatCount(editingEvent.repeat_count || null);
             } else {
                 resetForm();
                 if (currentDate) {
@@ -320,6 +347,11 @@ export function CalendarModal() {
             end_at,
             label_ids: selectedLabelIds,
             approval_required: approvalRequired,
+            is_recurring: isRecurring,
+            repeat_interval: isRecurring ? repeatInterval : null,
+            repeat_frequency: isRecurring ? repeatFrequency : 1,
+            repeat_end_at: isRecurring && repeatEndAt ? new Date(repeatEndAt).toISOString() : null,
+            repeat_count: isRecurring ? repeatCount : null
         };
 
         if (formType === 'post') {
@@ -440,6 +472,41 @@ export function CalendarModal() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleGenerateVernacular = async () => {
+        if (!aiPrompt.trim()) return;
+        setIsAiLoading(true);
+        // Mock API delay for effect
+        await new Promise(r => setTimeout(r, 1500));
+        setIsAiLoading(false);
+        
+        let generated = "";
+        const topic = aiPrompt.trim();
+        switch(aiLanguage) {
+            case 'hinglish':
+                generated = `🔥 Bro, yeh deal miss mat karna! The ultimate ${topic} is finally here!\n\nTag your squad aur aa jao jaldi. Limited stock alert! 🚨\n\nLink in bio to shop now. 👇\n#Trending #NewDrop`;
+                break;
+            case 'hindi':
+                generated = `✨ एक शानदार डील आपके लिए! हमारा नया ${topic} अब उपलब्ध है।\n\nअपने दोस्तों को टैग करें और आज ही ऑर्डर करें। स्टॉक सीमित है, जल्दी करें! 🚨\n\nखरीदारी करने के लिए बायो में दिए गए लिंक पर क्लिक करें। 👇`;
+                break;
+            case 'tamil':
+                generated = `🔥 இந்த வாய்ப்பை தவற விடாதீர்கள்! ${topic} வந்துவிட்டது!\n\nஉங்கள் நண்பர்களைக் குறிப்பிட்டு உடனே வாருங்கள். இருப்பு குறைவாக உள்ளது! 🚨\n\nபொருளை வாங்க கீழே உள்ள லிங்கை கிளிக் செய்யவும். 👇 #TamilNadu`;
+                break;
+            case 'telugu':
+                generated = `🔥 ఈ అద్భుతమైన డీల్ మిస్ అవ్వద్దు! మా కొత్త ${topic} వచ్చేసింది!\n\nమీ స్నేహితులను ట్యాగ్ చేసి వెంటనే రండి. స్టాక్ పరిమితం! 🚨\n\nకొనుగోలు చేయడానికి బయోలో ఉన్న లింక్ క్లిక్ చేయండి. 👇`;
+                break;
+            case 'marathi':
+                generated = `🔥 ही भन्नाट ऑफर सोडू नका! ${topic} आता उपलब्ध आहे!\n\nमित्रांना टॅग करा आणि लगेच खरेदी करा. स्टॉक मर्यादित आहे! 🚨\n\nऑर्डर करण्यासाठी बायो मधील लिंकवर क्लिक करा. 👇 #Maharashtra`;
+                break;
+            default:
+                generated = `Check out our amazing new ${topic}!\n\nTag your friends and shop now! Link in bio. 🚨`;
+        }
+        
+        setFormDescription(prev => prev ? prev + '\n\n' + generated : generated);
+        setAiAssistOpen(false);
+        setAiPrompt('');
+        toast.success(`Content generated!`);
     };
 
     return (
@@ -697,14 +764,69 @@ export function CalendarModal() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-bold text-zinc-500 flex items-center justify-between">
-                                    Description
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-bold text-zinc-500">
+                                        Caption / Description
+                                    </label>
+                                    {formType === 'post' && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700 px-2 rounded-md transition-colors"
+                                            onClick={() => setAiAssistOpen(!aiAssistOpen)}
+                                        >
+                                            <Sparkles className="h-3 w-3 mr-1.5" />
+                                            AI Text (Vernacular)
+                                        </Button>
+                                    )}
+                                </div>
+                                
+                                {aiAssistOpen && (
+                                    <div className="p-3.5 mb-2 rounded-xl border border-indigo-200 bg-indigo-50/70 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Select value={aiLanguage} onValueChange={setAiLanguage}>
+                                                <SelectTrigger className="w-full h-10 bg-white border-zinc-200 rounded-lg">
+                                                    <SelectValue placeholder="Select language" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="hinglish">Hinglish (Gen-Z) 🇮🇳</SelectItem>
+                                                    <SelectItem value="hindi">Pure Hindi (हिंदी)</SelectItem>
+                                                    <SelectItem value="tamil">Tamil (தமிழ்)</SelectItem>
+                                                    <SelectItem value="telugu">Telugu (తెలుగు)</SelectItem>
+                                                    <SelectItem value="marathi">Marathi (मराठी)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Input
+                                            placeholder="What is this post about? (e.g. 'Diwali sale 50% off')"
+                                            value={aiPrompt}
+                                            onChange={(e) => setAiPrompt(e.target.value)}
+                                            className="h-10 text-sm bg-white border-zinc-200 focus-visible:ring-indigo-500"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleGenerateVernacular();
+                                                }
+                                            }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            disabled={!aiPrompt.trim() || isAiLoading}
+                                            onClick={handleGenerateVernacular}
+                                            className="w-full h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm transition-all"
+                                        >
+                                            {isAiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                                            {isAiLoading ? "Writing Localized Copy..." : "Generate Magic Copy"}
+                                        </Button>
+                                    </div>
+                                )}
+
                                 <Textarea
                                     placeholder="Add post caption or event details..."
                                     value={formDescription}
                                     onChange={(e) => setFormDescription(e.target.value)}
-                                    className="rounded-xl resize-none bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-indigo-600 min-h-[120px]"
+                                    className="rounded-xl resize-none bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-indigo-600 min-h-[160px]"
                                 />
                             </div>
 
@@ -953,6 +1075,85 @@ export function CalendarModal() {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Evergreen / Post Recycling Section */}
+                            {formType === 'post' && (
+                                <div className="p-4 rounded-xl border-2 border-amber-100 bg-amber-50/30 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
+                                                <RefreshCw className={cn("h-4 w-4", isRecurring && "animate-spin-slow")} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-amber-900">Evergreen Recycling</h4>
+                                                <p className="text-[11px] text-amber-700/70 font-medium leading-tight">Automatically repost this content to maximize reach</p>
+                                            </div>
+                                        </div>
+                                        <Switch 
+                                            checked={isRecurring}
+                                            onCheckedChange={setIsRecurring}
+                                            className="data-[state=checked]:bg-amber-500"
+                                        />
+                                    </div>
+
+                                    {isRecurring && (
+                                        <div className="space-y-4 pt-2 border-t border-amber-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">Repeat Every</label>
+                                                    <Select value={repeatInterval || 'weekly'} onValueChange={(v: any) => setRepeatInterval(v)}>
+                                                        <SelectTrigger className="h-9 bg-white border-amber-200 text-xs font-bold text-amber-900">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="daily">Days</SelectItem>
+                                                            <SelectItem value="weekly">Weeks</SelectItem>
+                                                            <SelectItem value="monthly">Months</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">Frequency</label>
+                                                    <div className="flex items-center gap-2 h-9 p-1.5 bg-white border border-amber-200 rounded-lg">
+                                                        <button 
+                                                            onClick={() => setRepeatFrequency(Math.max(1, repeatFrequency - 1))}
+                                                            className="h-6 w-6 flex items-center justify-center rounded bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                                        >-</button>
+                                                        <span className="flex-1 text-center text-xs font-black text-amber-900">{repeatFrequency}</span>
+                                                        <button 
+                                                            onClick={() => setRepeatFrequency(repeatFrequency + 1)}
+                                                            className="h-6 w-6 flex items-center justify-center rounded bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                                        >+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] uppercase tracking-wider font-bold text-amber-800/60">End Recycling After</label>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <Input 
+                                                        type="date"
+                                                        value={repeatEndAt}
+                                                        onChange={(e) => setRepeatEndAt(e.target.value)}
+                                                        className="h-9 bg-white border-amber-200 text-xs text-amber-900"
+                                                        placeholder="Optional: Stop date"
+                                                    />
+                                                    <div className="relative">
+                                                        <Input 
+                                                            type="number"
+                                                            placeholder="X times"
+                                                            value={repeatCount || ''}
+                                                            onChange={(e) => setRepeatCount(e.target.value ? parseInt(e.target.value) : null)}
+                                                            className="h-9 bg-white border-amber-200 text-xs text-amber-900 pr-12"
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-amber-400">times</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">

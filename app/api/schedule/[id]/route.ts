@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth-helpers";
+import { calculateNextScheduledAt } from "@/lib/recurrence";
 
 export async function PATCH(
     req: NextRequest,
@@ -19,7 +20,7 @@ export async function PATCH(
 
         const { data: existingPost, error: existingError } = await supabaseAdmin
             .from('calendar_events')
-            .select('id,user_id,approval_required,approval_status')
+            .select('*')
             .eq('id', id)
             .eq('user_id', userId)
             .single();
@@ -28,7 +29,7 @@ export async function PATCH(
             return NextResponse.json({ error: "Post not found" }, { status: 404 });
         }
 
-        const allowedFields = ['title', 'description', 'media_url', 'type', 'platform', 'platforms', 'account_id', 'color', 'scheduled_at', 'end_at', 'status', 'published_at', 'video_id', 'series_id', 'approval_required'];
+        const allowedFields = ['title', 'description', 'media_url', 'type', 'platform', 'platforms', 'account_id', 'color', 'scheduled_at', 'end_at', 'status', 'published_at', 'video_id', 'series_id', 'approval_required', 'is_recurring', 'repeat_interval', 'repeat_frequency', 'repeat_end_at', 'repeat_count'];
         const updates: Record<string, unknown> = {};
         for (const key of allowedFields) {
             if (body[key] !== undefined) {
@@ -59,6 +60,64 @@ export async function PATCH(
 
         if (!hasCalendarUpdates && !hasLabelUpdate && !hasReviewerUpdate) {
             return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+        }
+
+        // --- Recurrence & Recycling Logic ---
+        // If the post is being published and is recurring
+        const postIsNowPublished = (existingPost.status !== 'published' && updates.status === 'published') || action === 'publish_now';
+        const postRecurrenceEnabled = updates.is_recurring ?? existingPost.is_recurring;
+
+        if (postIsNowPublished && postRecurrenceEnabled) {
+            const interval = updates.repeat_interval ?? existingPost.repeat_interval;
+            const frequency = updates.repeat_frequency ?? existingPost.repeat_frequency;
+            const endAt = updates.repeat_end_at ?? existingPost.repeat_end_at;
+            const repeatCount = updates.repeat_count ?? existingPost.repeat_count;
+            const recycledCount = (existingPost.recycled_count ?? 0);
+
+            const nextDate = calculateNextScheduledAt(
+                new Date().toISOString(),
+                interval,
+                frequency,
+                endAt,
+                repeatCount,
+                recycledCount + 1
+            );
+
+            if (nextDate) {
+                // Create the next iteration
+                const nextPostPayload = {
+                    user_id: userId,
+                    title: updates.title ?? existingPost.title,
+                    description: updates.description ?? existingPost.description,
+                    media_url: updates.media_url ?? existingPost.media_url,
+                    type: updates.type ?? existingPost.type,
+                    platform: updates.platform ?? existingPost.platform,
+                    platforms: updates.platforms ?? existingPost.platforms,
+                    account_id: updates.account_id ?? existingPost.account_id,
+                    color: updates.color ?? existingPost.color,
+                    scheduled_at: nextDate.toISOString(),
+                    status: 'scheduled',
+                    video_id: updates.video_id ?? existingPost.video_id,
+                    series_id: updates.series_id ?? existingPost.series_id,
+                    approval_required: updates.approval_required ?? existingPost.approval_required,
+                    is_recurring: true,
+                    repeat_interval: interval,
+                    repeat_frequency: frequency,
+                    repeat_end_at: endAt,
+                    repeat_count: repeatCount,
+                    recycled_count: recycledCount + 1,
+                    source_post_id: id
+                };
+
+                const { error: recycleError } = await supabaseAdmin
+                    .from('calendar_events')
+                    .insert(nextPostPayload);
+
+                if (recycleError) {
+                    console.error("[RECYCLE_ERROR]", recycleError);
+                    // Silently fail or log it; we don't want to stop the main publish
+                }
+            }
         }
 
         if (hasCalendarUpdates) {
