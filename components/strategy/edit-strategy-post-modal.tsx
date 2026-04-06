@@ -36,6 +36,7 @@ export interface StrategyPost {
     status: string;
     include_in_calendar: boolean;
     media_url?: string | null;
+    isCRM?: boolean;
 }
 
 interface EditStrategyPostModalProps {

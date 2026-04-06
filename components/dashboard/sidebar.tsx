@@ -8,7 +8,7 @@ import {
     LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
-    BarChart2, Target, Home, Brain, LogOut, GraduationCap
+    BarChart2, Target, Home, Brain, LogOut, GraduationCap,Bell, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -176,6 +176,72 @@ const sidebarData: SidebarSection[] = [
         href: '/dashboard/academy',
         id: 'sidebar-academy',
     },
+    {
+        name: 'CRM',
+        icon: CreditCard,
+        href: '/dashboard/billing',
+        items: [
+            { name: 'Contacts', href: '/dashboard/contacts' },
+            { name: 'Events & Notifications', href: '/dashboard/events' },
+            { name: 'Companies', href: '/dashboard/companies' },
+            { name: 'Lists', href: '/dashboard/lists' },
+            { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
+        ]
+    },
+    // {
+    //     name: 'Engage',
+    //     icon: Send,
+    //     defaultExpanded: true,
+    //     items: [
+    //         { name: 'Sequences', href: '/dashboard/sequences' },
+    //         { name: 'Emails', href: '/dashboard/emails' },
+    //         { name: 'Calls', href: '/dashboard/calls' },
+    //         { name: 'Tasks', href: '/dashboard/tasks' },
+    //     ]
+    // },
+    // {
+    //     name: 'Win deals',
+    //     icon: DollarSign,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Meetings', href: '/dashboard/meetings' },
+    //         { name: 'Conversations', href: '/dashboard/conversations' },
+    //         { name: 'Deals', href: '/dashboard/deals' },
+    //     ]
+    // },
+    // {
+    //     name: 'Tools and automation',
+    //     icon: Wrench,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Workflows', href: '/dashboard/workflows' },
+    //         { name: 'Analytics', href: '/dashboard/analytics' },
+    //         { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
+    //     ]
+    // },
+    // {
+    //     name: 'Inbound',
+    //     icon: ArrowDownLeft,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'Website visitors', href: '/dashboard/website-visitors', badge: 'New' },
+    //         { name: 'Forms', href: '/dashboard/forms' },
+    //     ]
+    // },
+    // {
+    //     name: 'Saved records',
+    //     icon: Bookmark,
+    //     defaultExpanded: false,
+    //     items: [
+    //         { name: 'People', href: '/dashboard/saved-people' },
+    //     ]
+    // },
+    // {
+    //     name: 'Deliverability suite',
+    //     icon: ShieldCheck,
+    //     href: '/dashboard/deliverability'
+    // },
+   
     {
         name: 'Admin Settings',
         icon: Settings,
