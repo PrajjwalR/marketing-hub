@@ -563,6 +563,39 @@ export function PostersWorkbench({
                                     className="min-h-16"
                                 />
                             </div>
+                            
+                            <div className="grid grid-cols-2 gap-2 pb-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Regional Trend (Style)</label>
+                                    <Select value={style} onValueChange={setStyle}>
+                                        <SelectTrigger className="w-full h-8 text-xs bg-zinc-50 border-zinc-200">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="clean-modern">Standard (Corporate)</SelectItem>
+                                            <SelectItem value="bollywood-drama">Bollywood Dramatic ✨</SelectItem>
+                                            <SelectItem value="ipl-fever">Cricket / Match Day 🏏</SelectItem>
+                                            <SelectItem value="desi-wedding">Big Fat Indian Wedding 🎊</SelectItem>
+                                            <SelectItem value="gully-rap">Indian Street / Gully Rap 🎤</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Local Tone</label>
+                                    <Select value={tone} onValueChange={setTone}>
+                                        <SelectTrigger className="w-full h-8 text-xs bg-zinc-50 border-zinc-200">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="brand-safe">Brand Safe (Pro)</SelectItem>
+                                            <SelectItem value="gen-z-hinglish">Hinglish Slang</SelectItem>
+                                            <SelectItem value="dramatic-desi">Desi Emotional</SelectItem>
+                                            <SelectItem value="cricket-hype">Sports Hype</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
                             <Button
                                 variant="outline"
                                 className="w-full h-9 rounded-full gap-1.5 text-sm"
@@ -891,13 +924,13 @@ export function PostersWorkbench({
             open={aiHelpOpen}
             onOpenChange={setAiHelpOpen}
             type={type}
+            currentStyle={style}
+            currentTone={tone}
             strategyContext={strategyContext}
             onApply={(sel: AiHelpSelection) => {
                 setDescription(sel.description);
                 setRequirements(sel.requirements);
                 setFormat(sel.format);
-                setStyle(sel.style);
-                setTone(sel.tone);
             }}
         />
     </>

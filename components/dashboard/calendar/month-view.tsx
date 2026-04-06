@@ -20,7 +20,7 @@ export function MonthView() {
 
     return (
         // Match Week view behavior: keep page header fixed by scrolling inside month grid.
-        <div className="flex flex-col text-zinc-900 w-full overflow-y-auto max-h-[calc(100vh-280px)]">
+        <div className="flex flex-col text-zinc-900 w-full">
             <div className="grid grid-cols-7 auto-rows-min gap-2 bg-zinc-50 p-2">
                     
                     {/* Days of Week Headers */}
@@ -42,6 +42,9 @@ export function MonthView() {
                             .filter(e => (e.type || '').toLowerCase() !== 'note' && isSameDay(parseISO(e.scheduled_at), day))
                             .sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime());
 
+                        const festivals = dayEvents.filter(e => e.type === 'festival');
+                        const isFestival = festivals.length > 0;
+
                         return (
                             <div 
                                 key={day.toString()}
@@ -50,20 +53,30 @@ export function MonthView() {
                                     openCreateDialog(day);
                                 }}
                                 className={cn(
-                                    "flex flex-col rounded-xl min-h-[120px] p-2 cursor-pointer group hover:border-amber-400 border-2 border-transparent transition-all relative",
-                                    isCurrentMonth ? "bg-white" : "bg-zinc-100 opacity-60"
+                                    "flex flex-col rounded-xl min-h-[120px] p-2 cursor-pointer group border-2 transition-all relative",
+                                    isFestival
+                                        ? "bg-gradient-to-br from-amber-50/80 to-orange-50/60 border-amber-200 hover:border-amber-300"
+                                        : isCurrentMonth
+                                            ? "bg-white border-transparent hover:border-amber-400"
+                                            : "bg-zinc-100 opacity-60 border-transparent"
                                 )}
                             >
                                 <div className={cn(
                                     "text-base font-medium pt-1 px-1",
-                                    isToday ? "text-amber-700 font-bold" : "text-zinc-500"
+                                    isFestival ? "text-amber-700 font-semibold" : isToday ? "text-amber-700 font-bold" : "text-zinc-500"
                                 )}>
                                     {format(day, 'd')}
+                                    {isFestival && <span className="ml-1 text-[10px] opacity-70">🪔</span>}
                                 </div>
                                 
                                 {/* Month cards: show full platform preview; day cell grows to fit all cards */}
                                 <div className="flex flex-col gap-2 mt-2 z-10 w-full relative">
-                                    {dayEvents.map(event => {
+                                    {festivals.map(fest => (
+                                        <div key={fest.id} className="w-full text-center px-1.5 py-1 rounded-md bg-amber-100 text-amber-800 text-[10px] font-semibold mb-0.5 truncate border border-amber-200" title={fest.description || fest.title}>
+                                            🪔 {fest.title}
+                                        </div>
+                                    ))}
+                                    {dayEvents.filter(e => e.type !== 'festival').map(event => {
                                         const when = parseISO(event.scheduled_at);
                                         const whenLabel = format(when, 'h:mm a');
                                         const media = event.media_url?.split(',')[0]?.trim();
@@ -94,13 +107,14 @@ export function MonthView() {
                                                     density="compact"
                                                     onUpload={() => openEditDialog(event)}
                                                     mediaLayout="auto"
+                                                    isRecurring={!!event.is_recurring}
                                                 />
                                             </div>
                                         );
                                     })}
                                 </div>
 
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 rounded-xl z-0 pointer-events-none">
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 rounded-xl z-20 pointer-events-none">
                                     <div className="h-12 w-12 rounded-xl bg-amber-400 text-zinc-900 flex items-center justify-center font-bold text-xl shadow-md">
                                         <Plus className="h-6 w-6" />
                                     </div>

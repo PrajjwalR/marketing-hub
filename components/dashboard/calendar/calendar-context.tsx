@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { getIndianFestivalsAsEvents } from '@/lib/indian-festivals';
 
 export interface CalendarEvent {
     id: string;
@@ -29,6 +30,11 @@ export interface CalendarEvent {
     post_labels?: { label?: LabelItem | null }[];
     video?: { id: string; title: string; video_url: string; status: string } | null;
     series?: { id: string; series_name: string } | null;
+    is_recurring?: boolean;
+    repeat_interval?: 'daily' | 'weekly' | 'monthly' | 'custom' | null;
+    repeat_frequency?: number | null;
+    repeat_end_at?: string | null;
+    repeat_count?: number | null;
 }
 
 export interface LabelItem {
@@ -95,10 +101,11 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
                 const normalized = (data || []).map((event: CalendarEvent) => ({
                     ...event,
                     labels: (event.post_labels || [])
-                        .map((item) => item?.label)
+                        .map((item: any) => item?.label)
                         .filter(Boolean) as LabelItem[],
                 }));
-                setEvents(normalized);
+                const withFestivals = [...normalized, ...getIndianFestivalsAsEvents()] as CalendarEvent[];
+                setEvents(withFestivals);
             }
             if (socialRes.ok) {
                 const data = await socialRes.json();
