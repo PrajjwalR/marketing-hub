@@ -171,6 +171,7 @@ export function GenerateStrategyModal({
                     theme: theme.trim() || undefined,
                     durationDays,
                     startDate,
+                    is_prebuilt: isTemplateFlow,
                 }),
             });
 
@@ -222,11 +223,11 @@ export function GenerateStrategyModal({
             title="Generate AI Strategy"
             size="half"
             footer={
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-3 bg-white">
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="rounded-full font-medium text-[15px] border-zinc-200"
+                        className="rounded-full font-bold text-[15px] border border-zinc-300 text-zinc-900 bg-white hover:bg-zinc-50"
                     >
                         Cancel
                     </Button>
@@ -247,13 +248,13 @@ export function GenerateStrategyModal({
                 </div>
             }
         >
-            <div className="space-y-5 px-6 py-4">
+            <div className="space-y-5 px-6 py-4 text-zinc-900">
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Business Type</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Business Type</Label>
                         <Select value={businessType} onValueChange={setBusinessType}>
                             <SelectTrigger
                                 disabled={isTemplateFlow}
-                                className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white"
+                                className="mt-1.5 h-11 rounded-xl border-zinc-300 bg-white text-zinc-900"
                             >
                                 <SelectValue placeholder="Select..." />
                             </SelectTrigger>
@@ -268,7 +269,7 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">
+                        <Label className="text-sm font-bold text-zinc-900">
                             Brand Name {isBrandNameLocked ? '' : '*'}
                         </Label>
                         <Input
@@ -276,7 +277,7 @@ export function GenerateStrategyModal({
                             value={brandName}
                             onChange={(e) => setBrandName(e.target.value)}
                             disabled={isBrandNameLocked}
-                            className="mt-1.5 h-11 rounded-xl border-zinc-200"
+                            className="mt-1.5 h-11 rounded-xl border-zinc-300 text-zinc-900 placeholder:text-zinc-500"
                         />
                         {isBrandNameLocked && (
                             <p className="mt-2 text-[12px] text-zinc-500">
@@ -286,19 +287,19 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Target Audience</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Target Audience</Label>
                         <Textarea
                             placeholder="Describe your target audience..."
                             value={targetAudience}
                             onChange={(e) => setTargetAudience(e.target.value)}
-                            className="mt-1.5 min-h-[80px] rounded-xl border-zinc-200 resize-none"
+                            className="mt-1.5 min-h-[80px] rounded-xl border-zinc-300 resize-none text-zinc-900 placeholder:text-zinc-500"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Goal</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Goal</Label>
                         <Select value={goal} onValueChange={setGoal}>
-                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white">
+                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-300 bg-white text-zinc-900 font-medium">
                                 <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -312,9 +313,9 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Strategy Focus</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Strategy Focus</Label>
                         <Select value={strategyType} onValueChange={setStrategyType}>
-                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white">
+                            <SelectTrigger className="mt-1.5 h-11 rounded-xl border-zinc-300 bg-white text-zinc-900 font-medium">
                                 <SelectValue placeholder="Select..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -329,7 +330,7 @@ export function GenerateStrategyModal({
 
                     <div>
                         <div className="flex items-center justify-between gap-3">
-                            <Label className="text-sm font-bold text-zinc-600">
+                            <Label className="text-sm font-bold text-zinc-900">
                                 Platforms {isTemplateFlow ? '' : '*'}
                             </Label>
                             <Button
@@ -354,6 +355,7 @@ export function GenerateStrategyModal({
                                     className="flex items-center gap-2 cursor-pointer"
                                 >
                                     <Checkbox
+                                        className="border-zinc-300 shadow-none data-[state=checked]:bg-zinc-900 data-[state=checked]:border-zinc-900"
                                         checked={platforms.includes(p.id)}
                                         onCheckedChange={() => togglePlatform(p.id)}
                                     />
@@ -364,24 +366,24 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Campaign Theme (optional)</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Campaign Theme (optional)</Label>
                         <Input
                             placeholder="e.g. Holi, Product Launch, Summer Sale"
                             value={theme}
                             onChange={(e) => setTheme(e.target.value)}
                             disabled={isTemplateFlow}
-                            className="mt-1.5 h-11 rounded-xl border-zinc-200"
+                            className="mt-1.5 h-11 rounded-xl border-zinc-300 text-zinc-900 placeholder:text-zinc-500"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Strategy Duration</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Strategy Duration</Label>
                         <Select
                             value={String(durationDays)}
                             onValueChange={(v) => setDurationDays(Number(v))}
                         >
                             <SelectTrigger
-                                className="mt-1.5 h-11 rounded-xl border-zinc-200 bg-white"
+                                className="mt-1.5 h-11 rounded-xl border-zinc-300 bg-white text-zinc-900 font-medium"
                             >
                                 <SelectValue />
                             </SelectTrigger>
@@ -396,7 +398,7 @@ export function GenerateStrategyModal({
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">
+                        <Label className="text-sm font-bold text-zinc-900">
                             Start Date {isTemplateFlow ? '' : '*'}
                         </Label>
                         <Input
@@ -404,12 +406,12 @@ export function GenerateStrategyModal({
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             disabled={false}
-                            className="mt-1.5 h-11 rounded-xl border-zinc-200"
+                            className="mt-1.5 h-11 rounded-xl border-zinc-300 text-zinc-900"
                         />
                     </div>
 
                     <div>
-                        <Label className="text-sm font-bold text-zinc-600">Cover Image (optional)</Label>
+                        <Label className="text-sm font-bold text-zinc-900">Cover Image (optional)</Label>
                         <div
                             onClick={() => document.getElementById('cover-image-input')?.click()}
                             className="mt-1.5 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-6 cursor-pointer hover:border-zinc-300 hover:bg-zinc-50 transition-colors"

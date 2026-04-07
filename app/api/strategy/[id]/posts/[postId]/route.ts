@@ -17,7 +17,7 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
@@ -45,6 +45,7 @@ export async function PATCH(
             'status',
             'include_in_calendar',
             'media_url',
+            'post_time',
         ];
         for (const key of allowed) {
             if (key in body) updates[key] = body[key];
@@ -70,11 +71,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    _req: NextRequest,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string; postId: string }> }
 ) {
     try {
-        const { userId } = await getAuthUser();
+        const { userId } = await getAuthUser(req);
         if (!userId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }

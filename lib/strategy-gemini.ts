@@ -9,6 +9,7 @@ export interface StrategyPostInput {
   caption: string;
   goal: string;
   status: string;
+  post_time?: string;
 }
 
 export interface GenerateStrategyInput {
@@ -137,7 +138,7 @@ Detected Vertical: ${vertical}
 
 Requirements:
 - Create exactly ${durationDays} days of content. Distribute posts across the platforms. Not every day needs a post; vary the posting schedule naturally.
-- Each post must have: day (1-${durationDays}), platform, content_type, theme, idea, caption, goal, status
+- Each post must have: day (1-${durationDays}), platform, content_type, theme, idea, caption, goal, status, post_time
 - content_type must be one of: reel, carousel, image, video, text_post
 - platform must be one of: ${platforms.map(p => p.toLowerCase()).join(', ')}
 - goal must be one of: increase_followers, increase_sales, brand_awareness, engagement
@@ -146,6 +147,7 @@ Requirements:
 - theme examples: festival, educational, promotion, behind_the_scenes, product_launch, seasonal, etc.
 - idea: short catchy title for the post concept (e.g. "Holi outfit styling tips")
 - caption: 1-2 sentence caption suggestion (use the strategy focus to choose tone and CTA)
+- post_time: suggesting an optimal time of day to post (e.g. "10:00 AM", "6:30 PM", "9:00 PM") based on typical audience activity.
 
 ${strategyTypeGuidance}
 
@@ -166,7 +168,8 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
       "idea": "Example idea title",
       "caption": "Short caption suggestion",
       "goal": "${normalizedGoal}",
-      "status": "planned"
+      "status": "planned",
+      "post_time": "10:00 AM"
     }
   ]
 }
@@ -199,5 +202,6 @@ export async function generateStrategyPosts(input: GenerateStrategyInput): Promi
     caption: String(p.caption || ''),
     goal: String(p.goal || 'engagement').toLowerCase().replace(/\s/g, '_'),
     status: 'planned',
+    post_time: String(p.post_time || '10:00 AM'),
   }));
 }

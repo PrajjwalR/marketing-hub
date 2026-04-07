@@ -2,18 +2,26 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Calendar, Bell, Sparkles, Ghost, AlertCircle } from 'lucide-react';
+import { Bell, Sparkles, AlertCircle, CalendarClock, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { StrategyTableView } from '@/components/strategy/strategy-table-view';
 import { StrategyBoardSkeleton } from '@/components/strategy/strategy-board-skeleton';
 import { StrategyPostDetailSidebar } from '@/components/strategy/strategy-post-detail-sidebar';
 import { EditStrategyPostModal } from '@/components/strategy/edit-strategy-post-modal';
+import { StrategyPostContentModal } from '@/components/strategy/strategy-post-content-modal';
 import type { StrategyPost } from '@/components/strategy/edit-strategy-post-modal';
-import { addDays, format, differenceInDays, parse } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { differenceInDays, parse } from 'date-fns';
 import { INDIAN_HOLIDAYS_DATA } from '@/lib/indian-holidays';
 import {
     StrategyHeader,
 } from '@/components/strategy/strategy-playbook-sections';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth-context';
+import {
+    buildStrategyPostScheduledAt,
+    normalizeCalendarPlatform,
+    strategyPostHasMedia,
+} from '@/lib/strategy-schedule';
 
 function StatRingCard({ label, valueLabel, subtitle, accentColor }: any) {
     return (
@@ -35,6 +43,7 @@ export default function StrategyBoardPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const id = params.id as string;
+    const { getIdToken } = useAuth();
 
     const [strategy, setStrategy] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +53,9 @@ export default function StrategyBoardPage() {
     const [sidebarPost, setSidebarPost] = useState<StrategyPost | null>(null);
     const [editingPost, setEditingPost] = useState<StrategyPost | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const [schedulingBulk, setSchedulingBulk] = useState(false);
+    const [contentModalOpen, setContentModalOpen] = useState(false);
+    const [contentModalPost, setContentModalPost] = useState<StrategyPost | null>(null);
 
     const fromPrebuilt = searchParams.get('source') === 'prebuilt';
     const fallbackRoute = fromPrebuilt ? '/dashboard/prebuilt-strategy-prompts' : '/dashboard/strategy';
@@ -102,7 +114,11 @@ export default function StrategyBoardPage() {
 
     const allIntegratedPosts = useMemo(() => {
         if (!strategy) return [];
-        const regularPosts = (strategy.posts || []).map((p: any) => ({ ...p, isCRM: false }));
+        const regularPosts = (strategy.posts || []).map((p: any) => ({
+            ...p,
+            isCRM: false,
+            include_in_calendar: p.include_in_calendar !== false,
+        }));
         const crmPosts: any[] = [];
         
         const strategyStartDate = strategy.start_date ? new Date(strategy.start_date) : null;
@@ -120,9 +136,14 @@ export default function StrategyBoardPage() {
                 h.name === evt.title
             );
 
-            if (match && match.date && strategyStartDate) {
+            const matchDate =
+                match && typeof match === 'object' && 'date' in match && typeof (match as { date?: string }).date === 'string'
+                    ? (match as { date: string }).date
+                    : '';
+
+            if (match && matchDate && strategyStartDate) {
                 try {
-                    const holidayDateStr = `${match.date} ${new Date().getFullYear()}`;
+                    const holidayDateStr = `${matchDate} ${new Date().getFullYear()}`;
                     const holidayDate = parse(holidayDateStr, 'd MMMM yyyy', new Date());
                     const dayDiff = differenceInDays(holidayDate, strategyStartDate) + 1;
 
@@ -145,7 +166,7 @@ export default function StrategyBoardPage() {
                             id: `crm-${evt.id}-future`,
                             day: 1,
                             idea: `[FUTURE AUTOMATION] ${evt.title || evt.event_name}`,
-                            goal: `Date: ${match.date}`,
+                            goal: `Date: ${matchDate}`,
                             platform: 'System Global',
                             status: 'UPCOMING',
                             isCRM: true,
@@ -173,6 +194,152 @@ export default function StrategyBoardPage() {
         
         return [...regularPosts, ...crmPosts].sort((a, b) => a.day - b.day);
     }, [strategy, crmEvents]);
+
+    const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
+        const token = await getIdToken();
+        if (!token) return {};
+        return { Authorization: `Bearer ${token}` };
+    }, [getIdToken]);
+
+    const handleIncludeChange = useCallback(
+        async (post: StrategyPost, checked: boolean) => {
+            if ((post as StrategyPost & { isCRM?: boolean }).isCRM) return;
+            setStrategy((s: any) => {
+                if (!s?.posts) return s;
+                return {
+                    ...s,
+                    posts: s.posts.map((p: StrategyPost) =>
+                        p.id === post.id ? { ...p, include_in_calendar: checked } : p
+                    ),
+                };
+            });
+            try {
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json',
+                    ...(await authHeaders()),
+                };
+                const res = await fetch(`/api/strategy/${id}/posts/${post.id}`, {
+                    method: 'PATCH',
+                    headers,
+                    body: JSON.stringify({ include_in_calendar: checked }),
+                });
+                if (!res.ok) throw new Error('patch failed');
+                const updated = await res.json();
+                setStrategy((s: any) => {
+                    if (!s?.posts) return s;
+                    return {
+                        ...s,
+                        posts: s.posts.map((p: StrategyPost) =>
+                            p.id === post.id ? { ...p, ...updated } : p
+                        ),
+                    };
+                });
+            } catch {
+                toast.error('Could not update calendar selection');
+                fetchStrategy();
+            }
+        },
+        [authHeaders, fetchStrategy, id]
+    );
+
+    const schedulePostsToCalendar = useCallback(
+        async (posts: StrategyPost[]) => {
+            if (posts.length === 0) {
+                toast.message('Select at least one row (checkbox)');
+                return;
+            }
+            setSchedulingBulk(true);
+            try {
+                const headers: Record<string, string> = {
+                    'Content-Type': 'application/json',
+                    ...(await authHeaders()),
+                };
+                let ok = 0;
+                let fail = 0;
+                for (const post of posts) {
+                    try {
+                        const scheduledAt = buildStrategyPostScheduledAt(
+                            strategy?.start_date,
+                            post.day,
+                            post.post_time
+                        );
+                        const platform = normalizeCalendarPlatform(post.platform);
+                        const hasMedia = strategyPostHasMedia(post);
+                        const descParts = [post.caption, post.description].filter(Boolean) as string[];
+                        const description = [
+                            ...descParts,
+                            hasMedia
+                                ? ''
+                                : 'Note: No media attached yet. Add content before this post can go live.',
+                        ]
+                            .filter(Boolean)
+                            .join('\n\n');
+
+                        const res = await fetch('/api/schedule', {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                title: (post.idea || '').trim() || `Strategy · Day ${post.day}`,
+                                description: description || null,
+                                media_url: post.media_url || null,
+                                type: 'post',
+                                platform,
+                                platforms: [platform],
+                                scheduled_at: scheduledAt,
+                                status: 'scheduled',
+                            }),
+                        });
+                        if (!res.ok) {
+                            fail++;
+                            continue;
+                        }
+                        const patchRes = await fetch(`/api/strategy/${id}/posts/${post.id}`, {
+                            method: 'PATCH',
+                            headers,
+                            body: JSON.stringify({ status: 'scheduled' }),
+                        });
+                        if (!patchRes.ok) {
+                            fail++;
+                            continue;
+                        }
+                        ok++;
+                    } catch {
+                        fail++;
+                    }
+                }
+                if (ok > 0) toast.success(`Added ${ok} slot(s) to the posting calendar`);
+                if (fail > 0) toast.error(`${fail} could not be scheduled`);
+                await fetchStrategy();
+                if (ok > 0) router.push('/dashboard/calendar');
+            } finally {
+                setSchedulingBulk(false);
+            }
+        },
+        [authHeaders, fetchStrategy, id, strategy?.start_date, router]
+    );
+
+    const handleBulkSchedule = useCallback(() => {
+        const selected = allIntegratedPosts.filter(
+            (p) => !(p as StrategyPost & { isCRM?: boolean }).isCRM && p.include_in_calendar !== false
+        );
+        if (selected.length === 0) {
+            toast.message('Select at least one strategy row using the checkbox');
+            return;
+        }
+        void schedulePostsToCalendar(selected);
+    }, [allIntegratedPosts, schedulePostsToCalendar]);
+
+    const handleSingleSchedule = useCallback(
+        (post: StrategyPost) => {
+            void schedulePostsToCalendar([post]);
+        },
+        [schedulePostsToCalendar]
+    );
+
+    const openContentForPost = useCallback((post: StrategyPost) => {
+        setContentModalPost(post);
+        setContentModalOpen(true);
+    }, []);
 
     if (isLoading) return <StrategyBoardSkeleton />;
     if (!strategy) return <div className="p-10 text-center">Strategy not found.</div>;
@@ -218,6 +385,29 @@ export default function StrategyBoardPage() {
                 )}
 
                 <div className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-sm">
+                    {!fromPrebuilt && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3">
+                            <p className="text-xs text-zinc-600 max-w-xl">
+                                Check rows to include, then add them to the posting calendar at each row&apos;s date and
+                                optimal time. Slots without media still appear on the calendar; publishing won&apos;t run
+                                until content is attached.
+                            </p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="rounded-full gap-2 bg-zinc-900 text-white hover:bg-zinc-800 shrink-0"
+                                disabled={schedulingBulk}
+                                onClick={handleBulkSchedule}
+                            >
+                                {schedulingBulk ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <CalendarClock className="h-4 w-4" />
+                                )}
+                                Schedule to calendar
+                            </Button>
+                        </div>
+                    )}
                     <StrategyTableView
                         posts={allIntegratedPosts}
                         startDate={strategy.start_date}
@@ -226,10 +416,10 @@ export default function StrategyBoardPage() {
                         onEdit={(post) => { setEditingPost(post); setEditModalOpen(true); }}
                         onClone={() => {}}
                         onPostToPlatforms={() => {}}
-                        onScheduleToCalendar={() => {}}
-                        onContent={() => {}}
+                        onScheduleToCalendar={fromPrebuilt ? undefined : handleSingleSchedule}
+                        onContent={fromPrebuilt ? () => {} : openContentForPost}
                         onDelete={() => {}}
-                        onIncludeChange={() => {}}
+                        onIncludeChange={fromPrebuilt ? () => {} : handleIncludeChange}
                     />
                 </div>
             </div>
@@ -239,7 +429,26 @@ export default function StrategyBoardPage() {
                 open={!!sidebarPost}
                 onClose={() => setSidebarPost(null)}
                 startDate={strategy.start_date}
-                onEdit={(post) => { setSidebarPost(null); setEditingPost(post); setEditModalOpen(true); }}
+                onEdit={() => {
+                    if (!sidebarPost) return;
+                    setSidebarPost(null);
+                    setEditingPost(sidebarPost);
+                    setEditModalOpen(true);
+                }}
+                onContent={fromPrebuilt ? undefined : openContentForPost}
+                onScheduleToCalendar={fromPrebuilt ? undefined : handleSingleSchedule}
+                size="half"
+            />
+
+            <StrategyPostContentModal
+                post={contentModalPost}
+                open={contentModalOpen}
+                onClose={() => {
+                    setContentModalOpen(false);
+                    setContentModalPost(null);
+                }}
+                strategyId={id}
+                onSuccess={fetchStrategy}
             />
             
             <EditStrategyPostModal

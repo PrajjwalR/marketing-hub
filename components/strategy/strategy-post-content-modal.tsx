@@ -10,6 +10,13 @@ import { Loader2, Sparkles, Upload, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import type { StrategyPost } from './edit-strategy-post-modal';
 
+async function bearerHeaders(): Promise<Record<string, string>> {
+    const token = await getAuth(app).currentUser?.getIdToken(true);
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+}
+
 function PickFromGeneratedSection({
     strategyId,
     postId,
@@ -24,13 +31,8 @@ function PickFromGeneratedSection({
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        getAuth(app)
-            .currentUser?.getIdToken(true)
-            .then((token) => {
-                const headers: Record<string, string> = {};
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-                return fetch('/api/posters/generations?limit=20&type=image', { headers });
-            })
+        bearerHeaders()
+            .then((headers) => fetch('/api/posters/generations?limit=20&type=image', { headers }))
             .then((res) => res.json())
             .then((data) => setItems((data?.generations ?? []).filter((g: { output_url?: string }) => g.output_url)))
             .catch(() => setItems([]))
@@ -40,9 +42,13 @@ function PickFromGeneratedSection({
     const handleSelect = async (url: string) => {
         setSubmitting(true);
         try {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                ...(await bearerHeaders()),
+            };
             const res = await fetch(`/api/strategy/${strategyId}/posts/${postId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ media_url: url, status: 'content_ready' }),
             });
             if (!res.ok) throw new Error('Failed');
@@ -118,29 +124,40 @@ export function StrategyPostContentModal({
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files?.length) return;
-        e.target.value = '';
 
         const file = files[0];
-        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        if (!file) return;
+
+        // Clear the input only after reading the File — clearing first invalidates `files` in some browsers.
+        e.target.value = '';
+
+        const mime = file.type || '';
+        if (!mime.startsWith('image/') && !mime.startsWith('video/')) {
             toast.error('Please upload an image or video');
             return;
         }
 
         setIsUploading(true);
         try {
+            const auth = await bearerHeaders();
             const formData = new FormData();
             formData.append('file', file);
             const res = await fetch('/api/media', {
                 method: 'POST',
+                headers: auth,
                 body: formData,
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload failed');
 
             const mediaUrl = data.url;
+            const patchHeaders: Record<string, string> = {
+                'Content-Type': 'application/json',
+                ...auth,
+            };
             const patchRes = await fetch(`/api/strategy/${strategyId}/posts/${post.id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: patchHeaders,
                 body: JSON.stringify({
                     media_url: mediaUrl,
                     status: 'content_ready',

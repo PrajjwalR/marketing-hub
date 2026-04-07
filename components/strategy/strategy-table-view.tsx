@@ -16,10 +16,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, Copy, Share2, MoreVertical, ImagePlus, Calendar, Check } from 'lucide-react';
+import { Pencil, Trash2, Copy, Share2, MoreVertical, ImagePlus, Calendar, Check, Clock, AlertCircle } from 'lucide-react';
 import { Instagram, Linkedin, Youtube, Facebook, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StrategyPost } from './edit-strategy-post-modal';
+import { strategyPostHasMedia } from '@/lib/strategy-schedule';
 
 const PLATFORM_CONFIG: Record<string, {
     icon: React.ComponentType<{ className?: string }>;
@@ -72,6 +73,7 @@ interface StrategyTableViewProps {
     posts: StrategyPost[];
     startDate?: string | null;
     readonly?: boolean;
+    allowReadonlyRowClick?: boolean;
     onRowClick: (post: StrategyPost) => void;
     onEdit: (post: StrategyPost) => void;
     onClone: (post: StrategyPost) => void;
@@ -87,6 +89,7 @@ export function StrategyTableView({
     posts,
     startDate,
     readonly = false,
+    allowReadonlyRowClick = false,
     onRowClick,
     onEdit,
     onClone,
@@ -147,11 +150,13 @@ export function StrategyTableView({
                                     key={post.id}
                                     className={cn(
                                         'border-zinc-100 group transition-colors odd:bg-white even:bg-zinc-50/60',
-                                        readonly ? 'cursor-default' : 'cursor-pointer hover:bg-zinc-50',
+                                        readonly
+                                            ? (allowReadonlyRowClick ? 'cursor-pointer hover:bg-zinc-50' : 'cursor-default hover:bg-zinc-50')
+                                            : 'cursor-pointer hover:bg-zinc-50',
                                         (post as any).isCRM && 'bg-amber-50/30 hover:bg-amber-50/50 border-l-4 border-l-amber-400'
                                     )}
                                     onClick={() => {
-                                        if (!readonly && !(post as any).isCRM) onRowClick(post);
+                                        if ((allowReadonlyRowClick || !readonly) && !(post as any).isCRM) onRowClick(post);
                                     }}
                                 >
                                     {!readonly && (
@@ -161,13 +166,15 @@ export function StrategyTableView({
                                                     type="button"
                                                     className={cn(
                                                         'w-4 h-4 rounded flex items-center justify-center shrink-0 cursor-pointer transition-colors',
-                                                        post.include_in_calendar
+                                                        (post.include_in_calendar !== false)
                                                             ? 'bg-zinc-900 text-white'
                                                             : 'bg-white border border-zinc-300'
                                                     )}
-                                                    onClick={() => onIncludeChange(post, !post.include_in_calendar)}
+                                                    onClick={() =>
+                                                        onIncludeChange(post, !(post.include_in_calendar !== false))
+                                                    }
                                                 >
-                                                    {post.include_in_calendar && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
+                                                    {(post.include_in_calendar !== false) && <Check className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />}
                                                 </button>
                                             )}
                                             {(post as any).isCRM && <div className="w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center"><Calendar className="h-2.5 w-2.5 text-white" /></div>}
@@ -183,6 +190,15 @@ export function StrategyTableView({
                                         {post.caption && (
                                             <p className="text-[11px] text-zinc-400 line-clamp-1 truncate mt-0.5">{post.caption}</p>
                                         )}
+                                        {!(post as any).isCRM && !strategyPostHasMedia(post) && (
+                                            <span
+                                                className="inline-flex items-center gap-1 mt-1 rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700"
+                                                title="Add media before this can go live as a published post"
+                                            >
+                                                <AlertCircle className="h-3 w-3 shrink-0" />
+                                                No content
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
                                         <span className="text-[11px] font-medium text-zinc-600 bg-zinc-100 rounded-xl px-2 py-0.5">
@@ -190,7 +206,19 @@ export function StrategyTableView({
                                         </span>
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
-                                        <span className="text-xs font-medium text-[#C87D3A]">{getDateLabel(post.day)}</span>
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-center gap-1.5 min-w-[100px]">
+                                                <Calendar className="h-3 w-3 text-zinc-400" />
+                                                <span className="text-xs font-semibold text-zinc-900">{getDateLabel(post.day)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2 py-1 w-fit shadow-sm">
+                                                <Clock className="h-3 w-3 text-amber-500" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] font-bold text-zinc-400 uppercase leading-none tracking-tight">Optimal Time</span>
+                                                    <span className="text-[10px] font-bold text-zinc-600 leading-none mt-0.5">{post.post_time || '10:00 AM'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                     <TableCell className="px-3.5 py-3">
                                         {(post as any).isCRM ? (
