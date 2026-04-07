@@ -48,8 +48,10 @@ interface StrategyPostDetailSidebarProps {
     onClose: () => void;
     startDate?: string | null;
     onEdit: () => void;
-    onContent?: () => void;
-    onScheduleToCalendar?: () => void;
+    /** Open create/upload flow for this post (receives post so parent state stays correct after sidebar closes). */
+    onContent?: (post: StrategyPost) => void;
+    onScheduleToCalendar?: (post: StrategyPost) => void;
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'half' | 'full';
 }
 
 export function StrategyPostDetailSidebar({
@@ -60,6 +62,7 @@ export function StrategyPostDetailSidebar({
     onEdit,
     onContent,
     onScheduleToCalendar,
+    size = 'lg',
 }: StrategyPostDetailSidebarProps) {
     if (!post) return null;
 
@@ -79,14 +82,18 @@ export function StrategyPostDetailSidebar({
             open={open}
             onClose={onClose}
             title={post.idea || 'Untitled'}
-            size="md"
+            size={size}
             footer={
                 <div className="flex justify-end gap-2">
                     {onContent && (
                         <Button
                             variant="outline"
-                            onClick={() => { onClose(); onContent(); }}
-                            className="rounded-full font-medium text-[15px] gap-2 border-zinc-200"
+                            onClick={() => {
+                                const p = post;
+                                onClose();
+                                onContent(p);
+                            }}
+                            className="rounded-full font-medium text-[15px] gap-2 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-100 hover:text-zinc-900 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 dark:hover:text-zinc-900 [&_svg]:text-zinc-900"
                         >
                             <ImagePlus className="h-4 w-4" />
                             Content
@@ -95,8 +102,12 @@ export function StrategyPostDetailSidebar({
                     {onScheduleToCalendar && (
                         <Button
                             variant="outline"
-                            onClick={() => { onClose(); onScheduleToCalendar(); }}
-                            className="rounded-full font-medium text-[15px] gap-2 border-zinc-200"
+                            onClick={() => {
+                                const p = post;
+                                onClose();
+                                onScheduleToCalendar(p);
+                            }}
+                            className="rounded-full font-medium text-[15px] gap-2 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-100 hover:text-zinc-900 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 dark:hover:text-zinc-900 [&_svg]:text-zinc-900"
                         >
                             <Calendar className="h-4 w-4" />
                             Schedule
@@ -157,9 +168,15 @@ export function StrategyPostDetailSidebar({
                     </Badge>
                 </div>
 
-                <div>
-                    <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Published at</p>
-                    <p className="text-sm text-amber-700 font-medium">{getDateLabel()}</p>
+                <div className="flex gap-10">
+                    <div>
+                        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Published at</p>
+                        <p className="text-sm text-amber-700 font-medium">{getDateLabel()}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Optimal Post Time</p>
+                        <p className="text-sm text-zinc-700 font-semibold">{post.post_time || '10:00 AM'}</p>
+                    </div>
                 </div>
 
                 {post.goal && (

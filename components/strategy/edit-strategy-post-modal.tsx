@@ -37,6 +37,7 @@ export interface StrategyPost {
     include_in_calendar: boolean;
     media_url?: string | null;
     isCRM?: boolean;
+    post_time?: string;
 }
 
 interface EditStrategyPostModalProps {
@@ -74,6 +75,7 @@ export function EditStrategyPostModal({
     const [caption, setCaption] = useState('');
     const [goal, setGoal] = useState('engagement');
     const [theme, setTheme] = useState('');
+    const [postTime, setPostTime] = useState('10:00 AM');
 
     useEffect(() => {
         if (post) {
@@ -85,6 +87,7 @@ export function EditStrategyPostModal({
             setCaption(post.caption || '');
             setGoal(post.goal);
             setTheme(post.theme || '');
+            setPostTime(post.post_time || '10:00 AM');
         } else if (cloneFrom) {
             setDay(initialDay);
             setPlatform(cloneFrom.platform);
@@ -94,6 +97,7 @@ export function EditStrategyPostModal({
             setCaption(cloneFrom.caption || '');
             setGoal(cloneFrom.goal);
             setTheme(cloneFrom.theme || '');
+            setPostTime(cloneFrom.post_time || '10:00 AM');
         } else if (isCreate) {
             setDay(initialDay);
             setPlatform('instagram');
@@ -103,6 +107,7 @@ export function EditStrategyPostModal({
             setCaption('');
             setGoal('engagement');
             setTheme('');
+            setPostTime('10:00 AM');
         }
     }, [post, isCreate, open, initialDay, cloneFrom]);
 
@@ -126,7 +131,8 @@ export function EditStrategyPostModal({
                     (trimmedDescription || '') === (cloneFrom.description || '') &&
                     (trimmedCaption || '') === (cloneFrom.caption || '') &&
                     goal === cloneFrom.goal &&
-                    (trimmedTheme || '') === (cloneFrom.theme || '');
+                    (trimmedTheme || '') === (cloneFrom.theme || '') &&
+                    postTime === cloneFrom.post_time;
 
                 if (noChanges) {
                     toast.info('No changes detected. Duplicate post was not created.');
@@ -148,6 +154,7 @@ export function EditStrategyPostModal({
                         caption: caption.trim(),
                         goal,
                         theme: theme.trim() || undefined,
+                        post_time: postTime,
                     }),
                 });
                 if (!res.ok) throw new Error((await res.json()).error);
@@ -165,6 +172,7 @@ export function EditStrategyPostModal({
                         caption: caption.trim(),
                         goal,
                         theme: theme.trim() || undefined,
+                        post_time: postTime,
                     }),
                 });
                 if (!res.ok) throw new Error((await res.json()).error);
@@ -190,8 +198,12 @@ export function EditStrategyPostModal({
             title={title}
             size="half"
             footer={
-                <div className="flex justify-end gap-3">
-                    <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl">
+                <div className="flex justify-end gap-3 bg-white">
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => onOpenChange(false)} 
+                        className="rounded-full font-bold text-[15px] border border-zinc-300 text-zinc-900 bg-white hover:bg-zinc-50"
+                    >
                         Cancel
                     </Button>
                     <Button
@@ -326,6 +338,16 @@ export function EditStrategyPostModal({
                             value={theme}
                             onChange={(e) => setTheme(e.target.value)}
                             placeholder="e.g. Festival, Educational, Promotion"
+                            className="mt-1.5 h-11 rounded-xl border-zinc-200"
+                        />
+                    </div>
+
+                    <div>
+                        <Label className="text-sm font-bold text-zinc-600">Optimal Post Time</Label>
+                        <Input
+                            value={postTime}
+                            onChange={(e) => setPostTime(e.target.value)}
+                            placeholder="e.g. 10:00 AM"
                             className="mt-1.5 h-11 rounded-xl border-zinc-200"
                         />
                     </div>

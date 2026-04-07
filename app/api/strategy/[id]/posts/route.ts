@@ -40,6 +40,7 @@ export async function POST(
             goal,
             status,
             include_in_calendar,
+            post_time,
         } = body;
 
         if (!platform || !content_type) {
@@ -63,6 +64,7 @@ export async function POST(
                 goal: goal || null,
                 status: status || 'planned',
                 include_in_calendar: include_in_calendar !== false,
+                post_time: post_time || '10:00 AM',
             })
             .select()
             .single();

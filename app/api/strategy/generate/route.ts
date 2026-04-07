@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
             theme,
             durationDays,
             startDate,
+            is_prebuilt,
         } = body;
 
         if (!brandName || !platforms?.length || !durationDays || !startDate) {
@@ -68,12 +69,13 @@ export async function POST(req: NextRequest) {
                     theme: theme || null,
                 duration_days: Number(durationDays) || 30,
                 start_date: startDate,
+                is_prebuilt: !!is_prebuilt,
             })
             .select()
             .single();
 
         if (strategyError) {
-            console.error('[STRATEGY_GENERATE]', strategyError);
+            console.error('[STRATEGY_GENERATE] Strategy Insert Error:', strategyError);
             return NextResponse.json({ error: strategyError.message }, { status: 500 });
         }
 
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
             caption: p.caption,
             goal: p.goal,
             status: p.status,
+            post_time: p.post_time || '10:00 AM',
             include_in_calendar: true,
         }));
 
@@ -97,7 +100,7 @@ export async function POST(req: NextRequest) {
 
         if (postsError) {
             await supabaseAdmin.from('strategies').delete().eq('id', strategy.id);
-            console.error('[STRATEGY_GENERATE]', postsError);
+            console.error('[STRATEGY_GENERATE] Posts Insert Error:', postsError);
             return NextResponse.json({ error: postsError.message }, { status: 500 });
         }
 

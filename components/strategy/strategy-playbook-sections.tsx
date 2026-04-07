@@ -156,21 +156,24 @@ export function StrategyPhases({ phases }: StrategyPhasesProps) {
         <section className="px-6 space-y-3">
             <div>
                 <h2 className="text-xl font-semibold text-zinc-900">Strategy Breakdown</h2>
-                <p className="text-sm text-zinc-500">A week-by-week plan to execute this strategy with clarity.</p>
+                <p className="text-sm text-zinc-600">A week-by-week plan to execute this strategy with clarity.</p>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {phases.map((phase) => (
-                    <Card key={phase.title} className="rounded-2xl border-zinc-200 py-0 shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className={cn('rounded-t-2xl p-5 pb-3', phase.accent)}>
-                            <CardTitle className="text-base">{phase.title}</CardTitle>
-                            <p className="text-xs text-zinc-600">{phase.goal}</p>
+                    <Card
+                        key={phase.title}
+                        className="rounded-2xl border border-zinc-200 bg-white py-0 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all"
+                    >
+                        <CardHeader className={cn('rounded-t-2xl p-5 pb-3 border-b border-zinc-200/80', phase.accent)}>
+                            <CardTitle className="text-base font-bold text-zinc-900">{phase.title}</CardTitle>
+                            <p className="text-xs font-semibold text-zinc-700">{phase.goal}</p>
                         </CardHeader>
                         <CardContent className="px-5 pb-5 pt-4">
-                            <ul className="space-y-2 text-sm text-zinc-600">
+                            <ul className="space-y-2 text-sm text-zinc-700">
                                 {phase.points.map((point) => (
                                     <li key={point} className="flex items-start gap-2">
-                                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-zinc-400" />
-                                        <span>{point}</span>
+                                        <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-zinc-700" />
+                                        <span className="leading-relaxed">{point}</span>
                                     </li>
                                 ))}
                             </ul>

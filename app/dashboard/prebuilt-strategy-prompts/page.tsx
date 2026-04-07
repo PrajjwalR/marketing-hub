@@ -17,8 +17,17 @@ import {
     type StrategyDomain,
 } from '@/components/strategy/domain-strategy-templates';
 
-const DOMAIN_OPTIONS: StrategyDomain[] = ['gym', 'jewellery', 'ecommerce'];
 const MAX_CONCEPTS = 5;
+const DOMAIN_OPTIONS: StrategyDomain[] = ['gym', 'jewellery', 'ecommerce'];
+
+function mapBusinessVerticalToDomain(value: unknown): StrategyDomain | null {
+    const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
+    if (!v) return null;
+    if (v.includes('ecom')) return 'ecommerce';
+    if (v.includes('jewel')) return 'jewellery';
+    if (v.includes('gym') || v.includes('fitness') || v.includes('health')) return 'gym';
+    return null;
+}
 
 export default function PrebuiltStrategyPromptsPage() {
     const { user, loading: authLoading, getIdToken } = useAuth();
@@ -27,6 +36,7 @@ export default function PrebuiltStrategyPromptsPage() {
 
     const [activeDomain, setActiveDomain] = useState<StrategyDomain>('ecommerce');
     const [isDomainLoading, setIsDomainLoading] = useState(true);
+    const [hasCategoryConfigured, setHasCategoryConfigured] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [prefill, setPrefill] = useState<StrategyTemplatePrefill | null>(null);
     const [isStrategiesLoading, setIsStrategiesLoading] = useState(false);
@@ -43,8 +53,9 @@ export default function PrebuiltStrategyPromptsPage() {
     }>>([]);
 
     const templates = useMemo(() => {
+        if (!hasCategoryConfigured) return [];
         return (DOMAIN_STRATEGY_TEMPLATES[activeDomain] || []).slice(0, MAX_CONCEPTS);
-    }, [activeDomain]);
+    }, [activeDomain, hasCategoryConfigured]);
 
     useEffect(() => {
         setHasMounted(true);
@@ -59,20 +70,24 @@ export default function PrebuiltStrategyPromptsPage() {
             setIsDomainLoading(true);
             try {
                 const token = await getIdToken();
-                const res = await fetch('/api/strategy-domain', {
+                const userRes = await fetch('/api/user', {
                     headers: token ? { Authorization: `Bearer ${token}` } : {},
                 });
 
-                if (!res.ok) throw new Error('Failed to detect domain');
-                const data = (await res.json()) as { domain?: string };
+                if (!userRes.ok) throw new Error('Failed to detect domain');
+                const userData = (await userRes.json()) as { businessVertical?: string | null };
+                const profileDomain = mapBusinessVerticalToDomain(userData.businessVertical);
 
                 if (cancelled) return;
-                const maybeDomain = data.domain as StrategyDomain | 'unknown' | undefined;
-                if (maybeDomain && DOMAIN_OPTIONS.includes(maybeDomain as StrategyDomain)) {
-                    setActiveDomain(maybeDomain as StrategyDomain);
+                if (profileDomain && DOMAIN_OPTIONS.includes(profileDomain)) {
+                    setActiveDomain(profileDomain);
+                    setHasCategoryConfigured(true);
+                    return;
                 }
+
+                setHasCategoryConfigured(false);
             } catch {
-                // Keep the default domain; user can switch manually.
+                setHasCategoryConfigured(false);
             } finally {
                 if (!cancelled) setIsDomainLoading(false);
             }
@@ -96,6 +111,7 @@ export default function PrebuiltStrategyPromptsPage() {
                 id: string;
                 name: string;
                 theme?: string | null;
+                business_type?: string | null;
                 platforms: string[];
                 duration_days: number;
                 created_at: string;
@@ -104,11 +120,13 @@ export default function PrebuiltStrategyPromptsPage() {
                 posts_count?: number;
             }>;
 
-            const prefix = `prebuilt_${activeDomain}_`;
-            const filtered = (Array.isArray(data) ? data : []).filter((s) => {
-                const t = s?.theme;
-                return typeof t === 'string' && t.startsWith(prefix);
-            });
+            const filtered = (Array.isArray(data) ? data : [])
+                .filter((s: any) => s.is_prebuilt === true)
+                .filter((s: any) => {
+                    if (!hasCategoryConfigured) return false;
+                    const domainFromBusinessType = mapBusinessVerticalToDomain(s.business_type);
+                    return domainFromBusinessType === activeDomain;
+                });
             setStrategies(filtered);
         } catch {
             setStrategies([]);
@@ -137,30 +155,20 @@ export default function PrebuiltStrategyPromptsPage() {
                         Prebuilt Strategy Prompts
                     </h1>
                     <p className="text-base leading-relaxed text-zinc-500 max-w-2xl">
-                        Click a template to generate a domain-specific strategy (growth, marketing, knowledge, and engagement).
+                        Click a template to generate a category-specific strategy (growth, marketing, knowledge, and engagement).
                     </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 mb-5">
-                    {DOMAIN_OPTIONS.map((d) => (
-                        <Button
-                            key={d}
-                            type="button"
-                            onClick={() => setActiveDomain(d)}
-                            variant={d === activeDomain ? 'default' : 'outline'}
-                            className={d === activeDomain ? 'rounded-full' : 'rounded-full border-zinc-200'}
-                        >
-                            {DOMAIN_LABELS[d]}
-                        </Button>
-                    ))}
                 </div>
 
                 <div className="text-sm text-zinc-500 font-medium">
                     {isDomainLoading ? (
                         <span className="inline-flex items-center gap-2">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            Detecting your domain...
+                            Detecting your category...
                         </span>
+                    ) : !hasCategoryConfigured ? (
+                        <>
+                            Category not set in your profile. Set it in Settings to see your personalized templates.
+                        </>
                     ) : (
                         <>
                             Showing templates for <span className="font-semibold text-zinc-800">{DOMAIN_LABELS[activeDomain]}</span>.
@@ -194,7 +202,7 @@ export default function PrebuiltStrategyPromptsPage() {
                         Your {DOMAIN_LABELS[activeDomain]} prebuilt strategies
                     </h2>
                     <p className="text-sm text-zinc-500">
-                        Only strategies generated from the templates on this page appear here.
+                        Only your category-specific prebuilt strategies appear here.
                     </p>
                 </div>
 
@@ -236,9 +244,9 @@ export default function PrebuiltStrategyPromptsPage() {
                                     <Button
                                         variant="default"
                                         className="rounded-full text-xs h-8"
-                                        onClick={() => router.push(`/dashboard/strategy/${s.id}?source=prebuilt`)}
+                                        onClick={() => router.push(`/dashboard/prebuilt-strategy/${s.id}`)}
                                     >
-                                        View (read-only)
+                                        View Blueprint
                                     </Button>
                                     <Button
                                         variant="outline"

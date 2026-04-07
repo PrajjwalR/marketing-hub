@@ -39,11 +39,8 @@ export default function StrategyPage() {
             const res = await fetch('/api/strategy');
             if (res.ok) {
                 const data = await res.json();
-                const prebuiltPrefix = 'prebuilt_';
-                const filtered = (Array.isArray(data) ? data : []).filter((s: Strategy) => {
-                    const t = s?.theme;
-                    return !(typeof t === 'string' && t.startsWith(prebuiltPrefix));
-                });
+                const filtered = (Array.isArray(data) ? data : [])
+                    .filter((s: any) => s.is_prebuilt !== true);
                 setStrategies(filtered);
             }
         } catch {
