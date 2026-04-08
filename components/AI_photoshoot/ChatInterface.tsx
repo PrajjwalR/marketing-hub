@@ -18,6 +18,8 @@ import {
   generatePhotoshoot,
   type ModelInfo,
 } from "@/app/api/AI-photoshoot/photoshoot";
+import { useAuth } from "@/lib/auth-context";
+import { AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
 
 interface JewelryType {
   id: string;
@@ -50,6 +52,7 @@ interface ChatInterfaceProps {
 export type { Message };
 
 export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
+  const { getIdToken } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
@@ -145,11 +148,39 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
         role: "system",
         type: "results",
         images: result.images || [],
-        text: `Your AI ${selectedType.label.toLowerCase()} photoshoot is ready! Here are 9 stunning variations:`,
+        text: `Your AI ${selectedType.label.toLowerCase()} photoshoot is ready! Here are ${AI_PHOTOSHOOT_VARIATIONS_PER_RUN} stunning variations:`,
       };
 
       setMessages((prev) => [...prev, resultMsg]);
       setHasResults(true);
+
+      const token = await getIdToken();
+      if (token && result.session_id) {
+        const imagesPayload = (result.images || []).map((entry) =>
+          typeof entry === "string"
+            ? { url: entry, label: "Result" }
+            : { url: entry.url, label: entry.label || "Variation" }
+        );
+        try {
+          await fetch("/api/AI-photoshoot/sessions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              run_session_id: result.session_id,
+              model_id: selectedModel.id,
+              model_name: selectedModel.name,
+              model_style: selectedModel.style,
+              jewelry_type: typeToSend,
+              images: imagesPayload,
+            }),
+          });
+        } catch (persistErr) {
+          console.warn("[Photoshoot] Failed to save session to DB", persistErr);
+        }
+      }
     } catch (err: unknown) {
       console.error("[Photoshoot Error]", err);
       const axiosErr = err as {

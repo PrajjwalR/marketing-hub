@@ -1,15 +1,10 @@
+import { AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
+
 export default function SkeletonLoader() {
-  const labels = [
-    "Variation 1",
-    "Variation 2",
-    "Variation 3",
-    "Variation 4",
-    "Variation 5",
-    "Variation 6",
-    "Variation 7",
-    "Variation 8",
-    "Variation 9",
-  ];
+  const labels = Array.from(
+    { length: AI_PHOTOSHOOT_VARIATIONS_PER_RUN },
+    (_, i) => `Variation ${i + 1}`
+  );
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-2xl ml-12">

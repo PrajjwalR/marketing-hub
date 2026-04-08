@@ -10,6 +10,9 @@ export interface ModelInfo {
 }
 
 export interface GenerateResult {
+  status?: string;
+  session_id?: string;
+  jewelry_type?: string;
   images: (string | { url: string; label: string })[];
 }
 

@@ -104,8 +104,12 @@ const sidebarData: SidebarSection[] = [
   {
     name: 'AI Photoshoot',
     icon: Camera,
-    href: '/dashboard/ai-photoshoot',
+    defaultExpanded: true,
     id: 'sidebar-ai-photoshoot',
+    items: [
+      { name: 'Studio', href: '/dashboard/ai-photoshoot' },
+      { name: 'My generations', href: '/dashboard/ai-photoshoot/generations' },
+    ],
   },
   {
     name: 'Whathub',
@@ -292,11 +296,22 @@ export function Sidebar() {
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
         sidebarData.reduce((acc, section) => {
         if (section.items) {
-          acc[section.name] = false;
+          acc[section.name] = section.defaultExpanded === true;
         }
         return acc;
         }, {} as Record<string, boolean>)
   );
+
+  const isNavItemActive = (href: string) => {
+    // Exact match for root dashboard.
+    if (href === "/dashboard") return pathname === href;
+
+    // Studio should not be marked active for nested generations routes.
+    if (href === "/dashboard/ai-photoshoot") return pathname === href;
+
+    // For other routes, treat nested paths as active (e.g. /generations/[id]).
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   const toggleSection = (name: string, items?: SidebarSubItem[]) => {
     if (isCollapsed) {
@@ -309,7 +324,7 @@ export function Sidebar() {
         // Navigate to the first internal sub-item
                 const firstInternalItem = items.find(item => !item.external);
         if (firstInternalItem) {
-                    const isFirstActive = pathname === firstInternalItem.href || (firstInternalItem.href !== '/dashboard' && pathname.startsWith(firstInternalItem.href));
+                    const isFirstActive = isNavItemActive(firstInternalItem.href);
           if (!isFirstActive) {
             router.push(firstInternalItem.href);
           }
@@ -340,7 +355,7 @@ export function Sidebar() {
       // When collapsing, highlight the parent section that owns the active route
             const activeParent = sidebarData.find(section =>
                 section.items?.some(item =>
-                    pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                    isNavItemActive(item.href)
                 )
       );
       if (activeParent) {
@@ -432,7 +447,7 @@ export function Sidebar() {
                                     isCollapsed ? "mx-auto my-1.5 h-8 w-8 justify-center p-0" : "my-1 w-full justify-between px-2 py-2",
                                     (isCollapsed && (
                                         activeSectionName === section.name && showSecondary ||
-                                        section.items?.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
+                                        section.items?.some(item => isNavItemActive(item.href))
                         ))
                       ? "rounded-2xl bg-white/20 text-white shadow-md"
                                         : "rounded-xl text-white/90 hover:bg-white/10 hover:text-white"
@@ -443,7 +458,7 @@ export function Sidebar() {
                         "h-4 w-4 shrink-0 transition-colors",
                                         (isCollapsed && (
                                             (activeSectionName === section.name && showSecondary) ||
-                                            section.items?.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)))
+                                            section.items?.some(item => isNavItemActive(item.href))
                             ))
                           ? "text-white"
                                             : "text-white/85 group-hover:text-white"
@@ -472,7 +487,7 @@ export function Sidebar() {
                                 (!isCollapsed && isExpanded) ? "max-h-[500px] opacity-100 mt-0.5" : "max-h-0 opacity-0 mt-0"
                             )}>
                                 {section.items?.map(item => {
-                                        const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                                        const isActive = isNavItemActive(item.href);
 
                     if (item.external) {
                       return (
@@ -707,7 +722,7 @@ export function Sidebar() {
           {/* Secondary Links Scroll Area */}
           <div className="custom-scrollbar flex-1 space-y-0.5 overflow-y-auto px-3 pb-6">
             {filteredItems.map((item) => {
-                            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                            const isActive = isNavItemActive(item.href);
 
               return (
                 <Link

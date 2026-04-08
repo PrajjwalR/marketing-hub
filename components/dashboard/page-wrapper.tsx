@@ -10,7 +10,8 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
         pathname === '/dashboard/calendar' ||
         pathname === '/dashboard/inbox-activity' ||
         pathname === '/dashboard/ad-insights' ||
-        pathname.startsWith('/dashboard/academy');
+        pathname.startsWith('/dashboard/academy') ||
+        pathname.startsWith('/dashboard/ai-photoshoot');
         
     const isDashboardHome =
         pathname === '/dashboard' || 

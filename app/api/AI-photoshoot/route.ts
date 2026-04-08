@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { PROMPT_MAP, VALID_JEWELRY_TYPES } from "@/lib/prompts";
+import { PROMPT_MAP, VALID_JEWELRY_TYPES, AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
 import fs from "fs/promises";
 import path from "path";
 
@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: IMAGE_MODEL });
     const prompts = PROMPT_MAP[jewelryType];
+    const promptEntries = Object.entries(prompts).slice(0, AI_PHOTOSHOOT_VARIATIONS_PER_RUN);
 
     async function generateVariation(variationName: string, promptText: string) {
       const safeName = variationName.replace(/[\s\-\/]/g, "_").toLowerCase();
@@ -120,11 +121,11 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`\n==================================================`);
-    console.log(`🎬 Session ${sessionId} — type: ${jewelryType} — generating ${Object.keys(prompts).length} images concurrently`);
+    console.log(`🎬 Session ${sessionId} — type: ${jewelryType} — generating ${promptEntries.length} images`);
     console.log(`==================================================`);
 
     const images_data = [];
-    for (const [variationName, promptText] of Object.entries(prompts)) {
+    for (const [variationName, promptText] of promptEntries) {
       const url = await generateVariation(variationName, promptText);
       console.log(`  ✅ ${variationName} → ${url}`);
       images_data.push({ label: variationName, url });
