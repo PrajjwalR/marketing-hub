@@ -44,6 +44,97 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --animate-shimmer: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* ── AI Photoshoot Styles ── */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* AI Photoshoot Component Styles */
+@layer components {
+  /* Complex ambient background */
+  .ai-photoshoot-bg-ambient {
+    @apply fixed inset-0 z-0 pointer-events-none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99, 102, 241, 0.06), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(139, 92, 246, 0.04), transparent),
+      radial-gradient(ellipse 50% 50% at 50% 50%, rgba(242, 212, 18, 0.02), transparent);
+  }
+
+  /* Image card overlay with hover transition */
+  .ai-photoshoot-card-overlay {
+    @apply absolute inset-0 pointer-events-none transition-all duration-500;
+    background: linear-gradient(
+      180deg, transparent 40%,
+      rgba(0, 0, 0, 0.5) 75%,
+      rgba(0, 0, 0, 0.9) 100%
+    );
+  }
+
+  .group:hover .ai-photoshoot-card-overlay {
+    background: linear-gradient(
+      180deg, transparent 30%,
+      rgba(0, 0, 0, 0.3) 60%,
+      rgba(0, 0, 0, 0.85) 100%
+    );
+  }
+
+  /* Result overlay gradient */
+  .ai-photoshoot-result-gradient {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  }
+
+  /* Shimmer skeleton effect */
+  .ai-photoshoot-shimmer-effect {
+    @apply relative overflow-hidden;
+  }
+
+  .ai-photoshoot-shimmer-effect::after {
+    content: '';
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(
+      90deg, transparent 0%,
+      rgba(161, 161, 170, 0.08) 40%,
+      rgba(161, 161, 170, 0.15) 50%,
+      rgba(161, 161, 170, 0.08) 60%,
+      transparent 100%
+    );
+  }
+
+  /* Typing animation delays */
+  .ai-photoshoot-typing-dot-1 { animation-delay: 0s; }
+  .ai-photoshoot-typing-dot-2 { animation-delay: 0.2s; }
+  .ai-photoshoot-typing-dot-3 { animation-delay: 0.4s; }
+
+  /* Gradient border for user-uploaded images */
+  .ai-photoshoot-user-image-gradient {
+    background: linear-gradient(135deg, rgba(242, 212, 18, 0.1), rgba(35, 144, 71, 0.05));
+  }
 }
 
 :root {
