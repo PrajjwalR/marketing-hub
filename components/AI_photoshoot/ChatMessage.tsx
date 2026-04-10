@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Download, Play } from "lucide-react";
 import ResultGrid from "./ResultGrid.tsx";
 import type { Message } from "./ChatInterface.tsx";
 
@@ -56,6 +56,52 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           <p className="text-xs text-zinc-400 text-right mt-2 mr-1">
             {message.text}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Video result
+  if (message.type === "video-result") {
+    return (
+      <div className="animate-message-in">
+        <div className="flex gap-3 items-start mb-4">
+          <div className="shrink-0 w-9 h-9 rounded-full bg-brand-gold flex items-center justify-center shadow-lg shadow-brand-gold/20">
+            <Sparkles size={16} className="text-zinc-900" />
+          </div>
+          <div className="bg-zinc-100 border border-zinc-200 rounded-2xl rounded-tl-md px-5 py-4 max-w-lg text-sm leading-relaxed text-zinc-600">
+            <p>{renderText(message.text)}</p>
+          </div>
+        </div>
+        {/* Video player */}
+        <div className="ml-12 max-w-md">
+          <div className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-black shadow-xl group">
+            <video
+              id="video-result-player"
+              src={message.videoUrl}
+              controls
+              autoPlay
+              loop
+              playsInline
+              className="w-full aspect-[9/16] object-contain bg-black"
+            />
+            {/* Gradient overlay at bottom with label & download */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-white/90">
+                <Play size={12} className="text-brand-gold" />
+                <span>AI Video</span>
+              </div>
+              <a
+                href={message.videoUrl}
+                download={`jewelry-video-${Date.now()}.mp4`}
+                className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 opacity-0 group-hover:opacity-100 hover:bg-white/20 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300"
+                title="Download video"
+                aria-label="Download video"
+              >
+                <Download size={16} className="text-white" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );

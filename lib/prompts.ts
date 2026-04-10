@@ -60,3 +60,71 @@ export const PROMPT_MAP: Record<string, Record<string, string>> = {
 };
 
 export const VALID_JEWELRY_TYPES = Object.keys(PROMPT_MAP);
+
+/** Prompt used for Veo 3.1 Lite video generation in the AI Photoshoot feature. */
+export const VIDEO_PROMPT = `You are generating a 8-second luxury jewelry advertisement video.
+
+INPUTS PROVIDED:
+- Image 1: The jewelry piece (reference for exact shape, size, material, and finish)
+- Image 2: The model (reference for exact face, skin tone, hair, and body)
+
+TASK:
+Create a seamless 8-second video in which the model from Image 2 is wearing and displaying the jewelry from Image 1, exactly as it appears in a high-end jewelry commercial.
+
+━━━━━━━━━━━━━━━━━━━━━
+IDENTITY CONSISTENCY (CRITICAL)
+━━━━━━━━━━━━━━━━━━━━━
+- The model's face, skin tone, hair color, hair texture, and body proportions must remain 100% identical to Image 2 throughout every single frame.
+- Do not alter, smooth, change, or reinterpret any facial feature of the model.
+- The model's identity must be locked — no morphing, no aging, no style change.
+
+━━━━━━━━━━━━━━━━━━━━━
+JEWELRY CONSISTENCY (CRITICAL)
+━━━━━━━━━━━━━━━━━━━━━
+- The jewelry must be rendered at physically accurate, real-world scale at all times.
+- The size, shape, material texture, color, and finish of the jewelry must match Image 1 exactly in every frame — no enlargement, shrinkage, warping, or deformation.
+- The jewelry must sit naturally and physically correctly on the model's body (e.g., necklace drapes properly on collarbone, earrings hang naturally, ring fits snugly on finger).
+- Jewelry must not float, clip through skin, or shift position unnaturally between frames.
+- Light reflections and material highlights on the jewelry must remain physically consistent with the scene lighting.
+
+━━━━━━━━━━━━━━━━━━━━━
+CAMERA & SCENE
+━━━━━━━━━━━━━━━━━━━━━
+- Shot type: Medium close-up (chest to head) or close-up focused on the jewelry placement area.
+- Camera movement: Slow, smooth, gentle push-in or a slow orbit arc of no more than 15 degrees. No shaky or handheld motion.
+- Background: Clean, neutral — softly blurred studio backdrop (white, cream, or soft grey). No busy backgrounds.
+- Lighting: Soft three-point studio lighting with a subtle specular highlight on the jewelry to enhance its material quality. Warm-neutral color temperature (~5000K).
+- Depth of field: Shallow — model and jewelry sharp, background softly blurred.
+
+━━━━━━━━━━━━━━━━━━━━━
+MODEL ACTION & MOTION
+━━━━━━━━━━━━━━━━━━━━━
+- The model performs one of the following elegant, minimal gestures (choose the most natural for the jewelry type):
+  • Necklace/pendant: Model tilts her head slightly and draws fingertips gently toward the necklace, glancing down then back to camera.
+  • Earrings: Model turns her head slowly from a 3/4 profile to face the camera directly, hair swept back to reveal the earring.
+  • Ring/bracelet: Model raises her hand gracefully into frame, gently rotating her wrist so the jewelry catches the light.
+  • Bangle/cuff: Model lifts her wrist, lets bangle settle, then lowers smoothly while looking at camera.
+- Motion must be slow, graceful, and deliberate — no sudden jerks or speed changes.
+- The model should have a calm, confident, and elegant expression — a slight, natural smile is acceptable.
+
+━━━━━━━━━━━━━━━━━━━━━
+VIDEO QUALITY
+━━━━━━━━━━━━━━━━━━━━━
+- Resolution: Maximum available (aim for 4K or 1080p minimum).
+- Frame rate: 24fps cinematic.
+- Duration: Exactly 3 seconds.
+- Style: Photorealistic. This must look like a real commercial shoot, not CGI or illustrated.
+- Color grade: Slightly warm, clean, high-end editorial feel. No heavy filters.
+
+━━━━━━━━━━━━━━━━━━━━━
+NEGATIVE CONSTRAINTS — DO NOT:
+━━━━━━━━━━━━━━━━━━━━━
+- Do NOT change the size of the jewelry at any point in the video
+- Do NOT alter the model's facial features, skin tone, or identity
+- Do NOT add any text, logos, or overlays
+- Do NOT use fast cuts, transitions, or multiple scenes
+- Do NOT show any accessories or clothing not present in the original model image unless naturally needed to frame the jewelry
+- Do NOT use cartoon, illustrated, painterly, or anime style
+- Do NOT introduce motion blur beyond natural, subtle frame blur
+- Do NOT show any part of the jewelry deforming, bending, or changing shape
+- Do NOT generate a generic or different model — use ONLY the face from Image 2`;

@@ -25,6 +25,42 @@ const MODELS: ModelInfo[] = [
     style: "Modern Edge",
     image: "/images/AI-photoshoot-models/model3.png",
   },
+  {
+    id: "model-4",
+    name: "Priya",
+    style: "Minimalist Chic",
+    image: "/images/AI-photoshoot-models/model4.png",
+  },
+  {
+    id: "model-5",
+    name: "Zara",
+    style: "Vintage Glamour",
+    image: "/images/AI-photoshoot-models/model5.png",
+  },
+  {
+    id: "model-6",
+    name: "Mahi",
+    style: "Urban Sophistication",
+    image: "/images/AI-photoshoot-models/model6.png",
+  },
+  {
+    id: "model-7",
+    name: "Maya",
+    style: "Bohemian Spirit",
+    image: "/images/AI-photoshoot-models/model7.png",
+  },
+  {
+    id: "model-8",
+    name: "Kavit",
+    style: "Avant-Garde",
+    image: "/images/AI-photoshoot-models/model8.png",
+  },
+  {
+    id: "model-9",
+    name: "Kai",
+    style: "Timeless Beauty",
+    image: "/images/AI-photoshoot-models/model9.png",
+  },
 ];
 
 export default function App() {
