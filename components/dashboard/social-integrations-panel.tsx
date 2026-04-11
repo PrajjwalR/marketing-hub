@@ -321,9 +321,6 @@ function SettingsForm() {
                 <p className="text-zinc-500 font-medium">Manage your profile, social connections, and account security.</p>
             </div>
 
-            {/* Profile Section */}
-            <ProfileSection firebaseUser={firebaseUser} />
-
             {/* Social Integrations Section */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between mb-2">

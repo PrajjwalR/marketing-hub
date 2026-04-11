@@ -181,7 +181,9 @@ export async function PATCH(
                 return NextResponse.json({ error: exErr.message }, { status: 500 });
             }
 
-            const decided = (existingRows || []).some((row) => row.decision !== 'pending');
+            const decided = ((existingRows ?? []) as { decision: string }[]).some(
+                (row) => row.decision !== 'pending'
+            );
             if (decided) {
                 return NextResponse.json(
                     { error: "Cannot change reviewers after someone has already decided" },

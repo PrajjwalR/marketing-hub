@@ -40,6 +40,17 @@ const holidayCategories = [
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+function getHolidayDisplayDate(match: unknown, fallback: string | null): string | null {
+    if (!match || typeof match !== 'object') return fallback;
+    const m = match as Record<string, unknown>;
+    if (typeof m.date === 'string') return m.date;
+    if (typeof m.month === 'string') return m.month;
+    if (Array.isArray(m.months) && m.months.length > 0 && typeof m.months[0] === 'string') {
+        return m.months[0];
+    }
+    return fallback;
+}
+
 const getDaysRemaining = (dateStr: string) => {
     if (!dateStr || dateStr === 'Annual') return null;
     const cleanStr = dateStr.split('-')[0].trim();
@@ -92,7 +103,9 @@ export default function EventsPage() {
                 const allHolidays = [...INDIAN_HOLIDAYS_DATA.national_holidays, ...INDIAN_HOLIDAYS_DATA.pan_india_festivals, ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat(), ...INDIAN_HOLIDAYS_DATA.observances];
                 setCampaigns(data.map((d: any) => {
                     const match = allHolidays.find(h => h.name === d.event_name);
-                    const eventDate = match ? (match.date || match.month || (match.months && match.months[0])) : (d.custom_date || null);
+                    const eventDate = match
+                        ? getHolidayDisplayDate(match, d.custom_date ?? null)
+                        : (d.custom_date ?? null);
                     let niches: string[] = [];
                     try { if (d.category?.startsWith('[')) niches = JSON.parse(d.category); } catch (e) {}
                     return { ...d, trigger: d.lead_time_days > 0 ? `${d.trigger_type} (Starts ${d.lead_time_days} days before)` : `${d.trigger_type} (On Date)`, displayDate: eventDate, niches: niches };

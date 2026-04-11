@@ -28,6 +28,7 @@ const PLATFORM_BG: Record<SocialMixPlatform, string> = {
     youtube: 'bg-[#FEEAEA]',
     linkedin: 'bg-[#EAF3FF]',
     x: 'bg-zinc-100',
+    facebook: 'bg-[#E7F0FF]',
 };
 
 const TYPE_PILL: Record<string, { bg: string; text: string }> = {
@@ -68,7 +69,13 @@ function firstPlatformKey(platform: string | undefined): string {
 }
 
 function isSocialMixPlatform(platform: string): platform is SocialMixPlatform {
-    return platform === 'instagram' || platform === 'youtube' || platform === 'linkedin' || platform === 'x';
+    return (
+        platform === 'instagram' ||
+        platform === 'youtube' ||
+        platform === 'linkedin' ||
+        platform === 'x' ||
+        platform === 'facebook'
+    );
 }
 
 interface StrategyTableViewProps {

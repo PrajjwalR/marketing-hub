@@ -12,8 +12,8 @@ import {
   Image as ImageIcon,
   ChevronDown,
 } from "lucide-react";
-import ChatMessage from "./ChatMessage.tsx";
-import SkeletonLoader from "./SkeletonLoader.tsx";
+import ChatMessage from "./ChatMessage";
+import SkeletonLoader from "./SkeletonLoader";
 import {
   generatePhotoshoot,
   type ModelInfo,

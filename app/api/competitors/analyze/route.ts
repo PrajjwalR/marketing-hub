@@ -413,8 +413,8 @@ async function fetchApifyTwitter(handle: string) {
     platform: 'X',
     handle: `https://x.com/${username}`,
     stats: {
-      subscribers: parseInt(followers, 10) || 0,
-      totalVideosPosts: parseInt(tweets, 10) || 0,
+      subscribers: Number(followers) || 0,
+      totalVideosPosts: Number(tweets) || 0,
       avgLikes: Math.floor((followers || 0) * 0.01),
       avgComments: Math.floor((followers || 0) * 0.001),
       reach: Math.floor((followers || 0) * 0.10),
