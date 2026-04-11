@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Bell, Sparkles, AlertCircle, CalendarClock, Loader2 } from 'lucide-react';
+import { CalendarClock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { StrategyTableView } from '@/components/strategy/strategy-table-view';
 import { StrategyBoardSkeleton } from '@/components/strategy/strategy-board-skeleton';
@@ -10,11 +10,8 @@ import { StrategyPostDetailSidebar } from '@/components/strategy/strategy-post-d
 import { EditStrategyPostModal } from '@/components/strategy/edit-strategy-post-modal';
 import { StrategyPostContentModal } from '@/components/strategy/strategy-post-content-modal';
 import type { StrategyPost } from '@/components/strategy/edit-strategy-post-modal';
-import { differenceInDays, parse } from 'date-fns';
+import { addDays, endOfDay, parse, startOfDay } from 'date-fns';
 import { INDIAN_HOLIDAYS_DATA } from '@/lib/indian-holidays';
-import {
-    StrategyHeader,
-} from '@/components/strategy/strategy-playbook-sections';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -22,20 +19,110 @@ import {
     normalizeCalendarPlatform,
     strategyPostHasMedia,
 } from '@/lib/strategy-schedule';
+import { SocialPlatformMixIcon } from '@/components/social/social-platform-mix-icons';
 
-function StatRingCard({ label, valueLabel, subtitle, accentColor }: any) {
-    return (
-        <div className="flex items-center gap-4 rounded-2xl bg-white border border-zinc-200 px-5 py-4 shadow-sm hover:shadow-md transition-all">
-            <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-zinc-50" style={{ color: accentColor }}>
-                <Bell className="h-6 w-6" />
-            </div>
-            <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</div>
-                <div className="text-xl font-black text-zinc-900">{valueLabel}</div>
-                <div className="text-[11px] text-zinc-500 font-medium">{subtitle}</div>
-            </div>
-        </div>
-    );
+type SocialBucket = 'instagram' | 'youtube' | 'linkedin' | 'x';
+
+const SOCIAL_MIX_ORDER: { key: SocialBucket; label: string }[] = [
+    { key: 'instagram', label: 'Instagram' },
+    { key: 'youtube', label: 'YouTube' },
+    { key: 'linkedin', label: 'LinkedIn' },
+    { key: 'x', label: 'X' },
+];
+
+/** Map one platform token to Instagram / YouTube / LinkedIn / X, or skip CRM / system rows. */
+function mapPlatformSegmentToSocialBucket(segment: string): SocialBucket | null {
+    const s = segment.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!s) return null;
+    if (s.includes('crm') || s.includes('system global') || s.includes('sync channels')) return null;
+    if (s.includes('whatsapp')) return null;
+    if (s === 'email' || s.startsWith('email/') || s.endsWith('/email') || s.includes('e-mail')) return null;
+    if (s.includes('instagram') || s === 'ig') return 'instagram';
+    if (s.includes('youtube')) return 'youtube';
+    if (s.includes('linkedin')) return 'linkedin';
+    if (s.includes('twitter') || s === 'x' || s.startsWith('x ') || s.endsWith(' x')) return 'x';
+    return null;
+}
+
+const CONTENT_GOAL_LABELS: Record<string, string> = {
+    awareness: 'Brand awareness',
+    brand_awareness: 'Brand awareness',
+    increase_followers: 'Increase followers',
+    follower_growth: 'Increase followers',
+    engagement: 'Engagement',
+    reach: 'Reach',
+    traffic: 'Website traffic',
+    leads: 'Lead generation',
+    lead_generation: 'Lead generation',
+    conversions: 'Conversions / sales',
+    sales: 'Sales',
+    launch: 'Product launch',
+    education: 'Education / tips',
+    community: 'Community building',
+    retention: 'Retention',
+};
+
+function formatContentGoalLabel(raw: string): string {
+    const key = raw.trim().toLowerCase().replace(/\s+/g, '_');
+    if (CONTENT_GOAL_LABELS[key]) return CONTENT_GOAL_LABELS[key];
+    if (!key) return 'Unspecified goal';
+    return key
+        .split('_')
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+}
+
+type FixedHoliday = { name: string; date: string };
+
+function getFixedDateHolidays(): FixedHoliday[] {
+    const out: FixedHoliday[] = [];
+    for (const h of INDIAN_HOLIDAYS_DATA.national_holidays) {
+        out.push({ name: h.name, date: h.date });
+    }
+    for (const h of INDIAN_HOLIDAYS_DATA.observances) {
+        out.push({ name: h.name, date: h.date });
+    }
+    for (const h of INDIAN_HOLIDAYS_DATA.pan_india_festivals) {
+        if ('date' in h && typeof (h as { date?: string }).date === 'string') {
+            out.push({ name: (h as { name: string }).name, date: (h as { date: string }).date });
+        }
+    }
+    return out;
+}
+
+function holidaysInStrategyWindow(
+    startDate: Date | null,
+    durationDays: number
+): { name: string; dayMonth: string; at: number }[] {
+    if (!startDate || !Number.isFinite(durationDays) || durationDays < 1) return [];
+
+    const start = startOfDay(startDate);
+    const end = endOfDay(addDays(start, durationDays - 1));
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+
+    const years = new Set<number>();
+    for (let y = start.getFullYear(); y <= end.getFullYear(); y += 1) years.add(y);
+
+    const seen = new Set<string>();
+    const hits: { name: string; dayMonth: string; at: number }[] = [];
+
+    for (const { name, date } of getFixedDateHolidays()) {
+        for (const year of years) {
+            const parsed = parse(`${date} ${year}`, 'd MMMM yyyy', new Date());
+            if (Number.isNaN(parsed.getTime())) continue;
+            const t = startOfDay(parsed).getTime();
+            if (t < startMs || t > endMs) continue;
+            const dedupe = `${name}-${year}-${date}`;
+            if (seen.has(dedupe)) continue;
+            seen.add(dedupe);
+            hits.push({ name, dayMonth: date, at: t });
+        }
+    }
+
+    hits.sort((a, b) => a.at - b.at);
+    return hits;
 }
 
 export default function StrategyBoardPage() {
@@ -47,9 +134,6 @@ export default function StrategyBoardPage() {
 
     const [strategy, setStrategy] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [name, setName] = useState('');
-    const [isSavingName, setIsSavingName] = useState(false);
-    const [crmEvents, setCrmEvents] = useState<any[]>([]);
     const [sidebarPost, setSidebarPost] = useState<StrategyPost | null>(null);
     const [editingPost, setEditingPost] = useState<StrategyPost | null>(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -69,18 +153,6 @@ export default function StrategyBoardPage() {
             }
             const data = await res.json();
             setStrategy(data);
-            setName(data.name);
-
-            // Fetch ALL CRM Automations (Relaxed Filter)
-            const crmRes = await fetch('/api/crm/automations');
-            if (crmRes.ok) {
-                const crmData = await crmRes.json();
-                // Filter for anything that isn't explicitly 'Disabled'
-                setCrmEvents(crmData.filter((a: any) => 
-                    a.status?.toLowerCase() !== 'disabled' && 
-                    a.status?.toLowerCase() !== 'inactive'
-                ));
-            }
         } catch (error) {
             console.error("Fetch strategy fail", error);
             setStrategy(null);
@@ -93,25 +165,6 @@ export default function StrategyBoardPage() {
         if (id) fetchStrategy();
     }, [id, fetchStrategy]);
 
-    const handleNameBlur = async () => {
-        if (!strategy || name === strategy.name) return;
-        setIsSavingName(true);
-        try {
-            const res = await fetch(`/api/strategy/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim() || strategy.name }),
-            });
-            if (res.ok) {
-                setStrategy((s: any) => (s ? { ...s, name: name.trim() || s.name } : null));
-            }
-        } catch {
-            setName(strategy.name);
-        } finally {
-            setIsSavingName(false);
-        }
-    };
-
     const allIntegratedPosts = useMemo(() => {
         if (!strategy) return [];
         const regularPosts = (strategy.posts || []).map((p: any) => ({
@@ -119,81 +172,80 @@ export default function StrategyBoardPage() {
             isCRM: false,
             include_in_calendar: p.include_in_calendar !== false,
         }));
-        const crmPosts: any[] = [];
-        
-        const strategyStartDate = strategy.start_date ? new Date(strategy.start_date) : null;
-        
-        crmEvents.forEach(evt => {
-            const allHolidays = [
-                ...INDIAN_HOLIDAYS_DATA.national_holidays,
-                ...INDIAN_HOLIDAYS_DATA.pan_india_festivals,
-                ...Object.values(INDIAN_HOLIDAYS_DATA.regional_festivals).flat()
-            ];
-            
-            // Try to match by event_name or title
-            const match = allHolidays.find(h => 
-                h.name === evt.event_name || 
-                h.name === evt.title
-            );
+        return regularPosts.sort(
+            (a: { day: number }, b: { day: number }) => a.day - b.day
+        );
+    }, [strategy]);
 
-            const matchDate =
-                match && typeof match === 'object' && 'date' in match && typeof (match as { date?: string }).date === 'string'
-                    ? (match as { date: string }).date
-                    : '';
+    const dashboardMeta = useMemo(() => {
+        const posts = allIntegratedPosts;
+        const normalized = posts.map((p: any) =>
+            `${p?.content_type || ''} ${p?.post_type || ''} ${p?.format || ''} ${p?.idea || ''}`.toLowerCase(),
+        );
 
-            if (match && matchDate && strategyStartDate) {
-                try {
-                    const holidayDateStr = `${matchDate} ${new Date().getFullYear()}`;
-                    const holidayDate = parse(holidayDateStr, 'd MMMM yyyy', new Date());
-                    const dayDiff = differenceInDays(holidayDate, strategyStartDate) + 1;
+        const carouselCount = normalized.filter((text: string) => text.includes('carousel')).length;
+        const storyCount = normalized.filter((text: string) => text.includes('story')).length;
+        const singleCount = Math.max(posts.length - carouselCount - storyCount, 0);
+        const daysScheduled = new Set(posts.map((p: any) => p.day)).size;
+        const socialMix: Record<SocialBucket, number> = {
+            instagram: 0,
+            youtube: 0,
+            linkedin: 0,
+            x: 0,
+        };
 
-                    // If it matches exactly inside the strategy duration
-                    if (dayDiff > 0 && dayDiff <= (strategy.duration_days || 30)) {
-                        crmPosts.push({
-                            id: `crm-${evt.id}`,
-                            day: dayDiff,
-                            idea: `[CRM SYNC] ${evt.title || evt.event_name}`,
-                            goal: 'Campaign Sync',
-                            platform: 'WhatsApp/Email',
-                            status: 'ENABLED',
-                            isCRM: true,
-                            caption: evt.message || 'Automated CRM Event',
-                            include_in_calendar: true
-                        });
-                    } else {
-                        // FORCE SHOW: If it is outside the range, force it to Day 1 as a "Global Warning"
-                        crmPosts.push({
-                            id: `crm-${evt.id}-future`,
-                            day: 1,
-                            idea: `[FUTURE AUTOMATION] ${evt.title || evt.event_name}`,
-                            goal: `Date: ${matchDate}`,
-                            platform: 'System Global',
-                            status: 'UPCOMING',
-                            isCRM: true,
-                            caption: "This event falls outside your current strategy date range but is active.",
-                            include_in_calendar: true
-                        });
-                    }
-                } catch (e) {
-                    console.error("Date parse fail", e);
-                }
-            } else {
-                // FALLBACK: For birthdays or generic events, show on Day 1
-                crmPosts.push({
-                    id: `crm-${evt.id}-gen`,
-                    day: 1,
-                    idea: `[CRM ACTIVE] ${evt.title || evt.event_name}`,
-                    goal: evt.trigger_type || 'Sync',
-                    platform: 'CRM Channels',
-                    status: 'ENABLED',
-                    isCRM: true,
-                    include_in_calendar: true
-                });
+        posts.forEach((post: any) => {
+            if (post.isCRM) return;
+            const rawPlatform = String(post.platform || '').trim();
+            const segments = rawPlatform
+                ? rawPlatform.split(/,|\/|&|\+|\band\b/gi).map((p) => p.trim()).filter(Boolean)
+                : [];
+            const buckets = new Set<SocialBucket>();
+            segments.forEach((seg) => {
+                const b = mapPlatformSegmentToSocialBucket(seg);
+                if (b) buckets.add(b);
+            });
+            if (buckets.size === 0 && rawPlatform) {
+                const b = mapPlatformSegmentToSocialBucket(rawPlatform);
+                if (b) buckets.add(b);
             }
+            buckets.forEach((b) => {
+                socialMix[b] += 1;
+            });
         });
-        
-        return [...regularPosts, ...crmPosts].sort((a, b) => a.day - b.day);
-    }, [strategy, crmEvents]);
+
+        const contentPosts = posts.filter((p: any) => !p.isCRM);
+        const goalCounts = contentPosts.reduce((acc: Record<string, number>, post: any) => {
+            const raw = String(post.goal ?? '').trim();
+            const key = raw ? raw.toLowerCase() : 'unspecified';
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+
+        const contentTopGoals = (Object.entries(goalCounts) as [string, number][])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([slug, count]) => ({
+                slug,
+                count,
+                label: formatContentGoalLabel(slug === 'unspecified' ? '' : slug),
+            }));
+
+        const strategyStart = strategy?.start_date ? new Date(strategy.start_date as string) : null;
+        const duration = Number(strategy?.duration_days) > 0 ? Number(strategy.duration_days) : 30;
+        const holidaysInPeriod = holidaysInStrategyWindow(strategyStart, duration);
+
+        return {
+            carouselCount,
+            singleCount,
+            storyCount,
+            imageCount: posts.length,
+            daysScheduled,
+            socialMix,
+            contentTopGoals,
+            holidaysInPeriod,
+        };
+    }, [allIntegratedPosts, strategy]);
 
     const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
         const token = await getIdToken();
@@ -320,7 +372,8 @@ export default function StrategyBoardPage() {
 
     const handleBulkSchedule = useCallback(() => {
         const selected = allIntegratedPosts.filter(
-            (p) => !(p as StrategyPost & { isCRM?: boolean }).isCRM && p.include_in_calendar !== false
+            (p: StrategyPost & { isCRM?: boolean }) =>
+                !p.isCRM && p.include_in_calendar !== false
         );
         if (selected.length === 0) {
             toast.message('Select at least one strategy row using the checkbox');
@@ -328,6 +381,15 @@ export default function StrategyBoardPage() {
         }
         void schedulePostsToCalendar(selected);
     }, [allIntegratedPosts, schedulePostsToCalendar]);
+
+    const calendarCheckboxSelectedCount = useMemo(
+        () =>
+            allIntegratedPosts.filter(
+                (p: StrategyPost & { isCRM?: boolean }) =>
+                    !p.isCRM && p.include_in_calendar !== false
+            ).length,
+        [allIntegratedPosts]
+    );
 
     const handleSingleSchedule = useCallback(
         (post: StrategyPost) => {
@@ -345,67 +407,186 @@ export default function StrategyBoardPage() {
     if (!strategy) return <div className="p-10 text-center">Strategy not found.</div>;
 
     return (
-        <div className="min-h-screen bg-white text-zinc-900 pb-20">
-            <StrategyHeader
-                backHref={fallbackRoute}
-                title={name}
-                subtitle="Campaign Strategy Board"
-                description="Your social content and automated CRM campaigns synchronized in one view."
-                durationDays={strategy.duration_days}
-                showPrebuiltBadge={fromPrebuilt}
-                editable={!fromPrebuilt}
-                isSavingName={isSavingName}
-                onTitleChange={setName}
-                onTitleBlur={handleNameBlur}
-            />
-
+        <div className="min-h-screen bg-white text-zinc-900 pb-10 pt-2">
             <div className="mt-8 px-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                    <StatRingCard
-                        label="CRM Campaigns"
-                        valueLabel={crmEvents.length > 0 ? `${crmEvents.length} Active` : "Syncing..."}
-                        subtitle="Automatic Holiday & Birthday Automations"
-                        accentColor="#f2d412"
-                    />
-                    <div className="rounded-2xl bg-zinc-50 border border-zinc-200 p-5 flex items-center gap-4">
-                         <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <Sparkles className="h-5 w-5 text-amber-600" />
-                         </div>
-                         <p className="text-xs text-zinc-500 font-medium">Any event you enable in the CRM tab will automatically appear here as a locked campaign block.</p>
+                <section className="overflow-hidden rounded-3xl border border-black/10 bg-[#F5F0E8] shadow-sm">
+                    <div className="flex flex-col justify-between gap-6 border-b border-black/10 px-6 py-7 lg:flex-row lg:items-start lg:px-10">
+                        <div>
+                            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                                <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 lg:text-5xl">
+                                    {strategy.name}
+                                </h1>
+                                <div
+                                    className="flex w-fit items-center gap-2 rounded-xl border border-[#E0B428] bg-white px-3 py-2 shadow-sm sm:shrink-0"
+                                    title="Strategy length"
+                                >
+                                    <div className="leading-tight">
+                                        <p className="text-sm font-extrabold tabular-nums text-zinc-900">
+                                            {Number(strategy.duration_days) > 0
+                                                ? `${strategy.duration_days} day${Number(strategy.duration_days) === 1 ? '' : 's'}`
+                                                : '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="mt-3 max-w-2xl text-base italic text-zinc-600 lg:text-lg">
+                                Plan and execute faster. Your social content strategy in one dashboard.
+                            </p>
+                        </div>
+                        <div className="text-left lg:text-right">
+                            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#FB923C]">
+                                {Number(strategy?.duration_days) <= 7 ? 'Weekly' : 'Monthly'} content dashboard
+                            </p>
+                            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                                {dashboardMeta.carouselCount} carousels · {dashboardMeta.singleCount} singles ·{' '}
+                                {dashboardMeta.storyCount} stories 
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                {crmEvents.length === 0 && (
-                    <div className="mb-6 p-4 rounded-xl bg-orange-50 border border-orange-100 flex items-center gap-3">
-                        <AlertCircle className="h-5 w-5 text-orange-500" />
-                        <p className="text-sm text-orange-700 font-medium">
-                            No enabled events found. Have you enabled any holidays in the &ldquo;Events&rdquo; tab?
+                    <div className="grid grid-cols-2 gap-px bg-black/10 md:grid-cols-5">
+                        {[
+                            { value: dashboardMeta.daysScheduled, label: 'Days scheduled' },
+                            { value: dashboardMeta.singleCount, label: 'Single posts' },
+                            { value: dashboardMeta.carouselCount, label: 'Carousel slides' },
+                            { value: dashboardMeta.storyCount, label: 'Story frames' },
+                            { value: dashboardMeta.imageCount, label: 'Total items' },
+                            
+                        ].map((item) => (
+                            <div key={item.label} className="bg-white px-5 py-6">
+                                <p className="text-4xl font-black leading-none text-[#F97316]">{item.value}</p>
+                                <p className="mt-2 text-[11px] uppercase tracking-[0.16em] text-zinc-500">{item.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                <section className="mt-6 grid gap-4 lg:grid-cols-3">
+                    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">Platform mix</p>
+                        <div className="mt-3 space-y-2">
+                            {SOCIAL_MIX_ORDER.map(({ key, label }) => (
+                                <div
+                                    key={key}
+                                    className="flex items-center justify-between gap-3 text-sm"
+                                    title={label}
+                                >
+                                    <span className="flex min-w-0 items-center gap-2.5">
+                                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-50 ring-1 ring-zinc-100">
+                                            <SocialPlatformMixIcon platform={key} className="h-5 w-5" />
+                                        </span>
+                                        <span className="sr-only">{label}</span>
+                                    </span>
+                                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700 tabular-nums">
+                                        {dashboardMeta.socialMix[key]}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </article>
+
+                    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+                            Goals &amp; holidays
                         </p>
-                    </div>
-                )}
+                       
+                        <div className="mt-3 space-y-3">
+                            {dashboardMeta.contentTopGoals.length ? (
+                                dashboardMeta.contentTopGoals.map((row) => (
+                                    <div
+                                        key={row.slug}
+                                        className="flex items-start justify-between gap-3 text-sm"
+                                        title={`${row.count} post${row.count === 1 ? '' : 's'} with this goal`}
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-zinc-800">{row.label}</p>
+                                            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                                                Posts in this plan
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-emerald-700">
+                                            {row.count}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-zinc-500">No goals on content posts yet.</p>
+                            )}
 
-                <div className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-sm">
+                            <div className="border-t border-zinc-100 pt-3">
+                                <div className="flex items-start justify-between gap-3 text-sm">
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-zinc-800">Holidays in this period</p>
+                                        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                                            Fixed-date holidays overlapping your plan dates
+                                        </p>
+                                        {dashboardMeta.holidaysInPeriod.length > 0 ? (
+                                            <p className="mt-1.5 text-xs leading-relaxed text-zinc-600">
+                                                {dashboardMeta.holidaysInPeriod
+                                                    .map((h) => `${h.name} (${h.dayMonth})`)
+                                                    .join(' · ')}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                    <span
+                                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${
+                                            dashboardMeta.holidaysInPeriod.length
+                                                ? 'bg-sky-50 text-sky-800'
+                                                : 'bg-zinc-100 text-zinc-600'
+                                        }`}
+                                        title={
+                                            dashboardMeta.holidaysInPeriod.length
+                                                ? dashboardMeta.holidaysInPeriod.map((h) => h.name).join(', ')
+                                                : undefined
+                                        }
+                                    >
+                                        {dashboardMeta.holidaysInPeriod.length || '0'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">Quick tips</p>
+                        <ul className="mt-2 space-y-2 text-xs leading-relaxed text-zinc-600">
+                            <li>• <span className="font-medium text-zinc-700">One ask:</span> one clear action per post.</li>
+                            <li>• <span className="font-medium text-zinc-700">Start fast:</span> tell the main point in the first seconds.</li>
+                            <li>• <span className="font-medium text-zinc-700">Repeat winners:</span> reuse topics that already performed well.</li>
+                        </ul>
+                    </article>
+                </section>
+
+                <div className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-sm mt-6">
                     {!fromPrebuilt && (
                         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3">
                             <p className="text-xs text-zinc-600 max-w-xl">
-                                Check rows to include, then add them to the posting calendar at each row&apos;s date and
-                                optimal time. Slots without media still appear on the calendar; publishing won&apos;t run
+                                Check rows to include, then add them to the posting calendar at each row&apos;s date.
+                                Slots without media still appear on the calendar; publishing won&apos;t run
                                 until content is attached.
                             </p>
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="rounded-full gap-2 bg-zinc-900 text-white hover:bg-zinc-800 shrink-0"
-                                disabled={schedulingBulk}
-                                onClick={handleBulkSchedule}
-                            >
-                                {schedulingBulk ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <CalendarClock className="h-4 w-4" />
-                                )}
-                                Schedule to calendar
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+                                <span
+                                    className="inline-flex items-center justify-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold tabular-nums text-zinc-700"
+                                    title="Posts checked in the table (include in calendar)"
+                                >
+                                    {calendarCheckboxSelectedCount} selected
+                                </span>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="rounded-full gap-2 bg-[#f69651] text-white hover:bg-zinc-800 shrink-0"
+                                    disabled={schedulingBulk}
+                                    onClick={handleBulkSchedule}
+                                >
+                                    {schedulingBulk ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <CalendarClock className="h-4 w-4" />
+                                    )}
+                                    Schedule to calendar
+                                </Button>
+                            </div>
                         </div>
                     )}
                     <StrategyTableView

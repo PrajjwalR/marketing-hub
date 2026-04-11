@@ -6,12 +6,13 @@ import { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { app } from "@/lib/firebase";
 import Link from "next/link";
+import { landingHeroTitle, landingSectionLead } from "@/components/landing/typography";
 
 const metrics = [
-    { value: "10k+", label: "Strategies Created" },
-    { value: "4.9", label: "Avg. rating" },
-    { value: "50k+", label: "Postings done" },
-    { value: "99.9%", label: "Uptime" },
+    { value: "AI-Powered  ", label: "Strategies" },
+    { value: "Built for", label: "Speed" },
+    { value: "Multi-Platform", label: "supported" },
+    { value: "Enterprise-grade", label: "Infrastructure" },
 ];
 
 export function Hero() {
@@ -28,32 +29,29 @@ export function Hero() {
     }, []);
 
     return (
-        <section className="relative overflow-hidden bg-zinc-50 landing-grain">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-6xl pointer-events-none">
-                <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-indigo-100 rounded-full blur-[140px] opacity-60" />
-                <div className="absolute top-60 -right-40 w-[500px] h-[500px] bg-violet-100 rounded-full blur-[140px] opacity-50" />
-                <div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] bg-rose-100 rounded-full blur-[140px] opacity-30" />
-            </div>
-
+        <section className="relative overflow-hidden bg-[#F5F0E8] landing-grain">
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8 pt-24 pb-16 sm:pt-28 sm:pb-20">
                 <div className="max-w-3xl mx-auto text-center">
-                    <p className="animate-fade-up text-sm font-bold tracking-widest uppercase text-[#239047] mb-4">
-                        Built for creators who mean business
-                    </p>
+                    <div className="animate-fade-up  flex items-center justify-center gap-2 text-sm text-zinc-600 ">
+                        <span className="text-2xl leading-none text-[#F5B800] tracking-[-0.02em]">★★★★★</span>
+                        <span className="font-bold text-zinc-900">4.9</span>
+                        <span>among most of our users</span>
+                    </div>
 
-                    <h1 className="animate-fade-up stagger-1 text-[49px] font-medium leading-[1.2] tracking-tight text-zinc-900">
-                        The AI e-com marketing platform for
-                        <br />
-                         smarter, faster revenue growth
+                    <h1 className={`animate-fade-up stagger-1 p-2 ${landingHeroTitle}`}>
+                        AI Marketing Suite Built for Small Teams Who Move Fast.
                     </h1>
 
-                    <p className="animate-fade-up stagger-2 mt-6 max-w-2xl mx-auto text-base leading-relaxed text-zinc-900">
+                    <p
+                        className={`animate-fade-up stagger-2 mx-auto mt-6 max-w-2xl p-2 text-center ${landingSectionLead}`}
+                    >
+                       
                         Build smarter strategy, auto AI postings, auto scheduling,
                         <br />
                         with a unified platform built for modern sales and marketing teams.
                     </p>
 
-                    <div className="animate-fade-up stagger-3 mt-10 flex flex-wrap items-center justify-center gap-4">
+                    <div className="animate-fade-up stagger-3 mt-10 flex flex-wrap items-center justify-center gap-4 p-2">
                         {isLoaded && !user && (
                             <Link href="/sign-up">
                                 <Button
@@ -76,19 +74,25 @@ export function Hero() {
                                 </Button>
                             </Link>
                         )}
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="h-12 px-7 text-[15px] font-medium text-zinc-900 hover:text-zinc-900 hover:bg-[#f2c112]/25 border-zinc-300 rounded-full"
+                        <a
+                            href="https://youtu.be/rToR3j5F2YI"
+                            target="_blank"
+                            rel="noreferrer noopener"
                         >
-                            <Play className="mr-2 h-4 w-4 fill-current" />
-                            Watch demo
-                        </Button>
+                            <Button
+                                size="lg"
+                                variant="outline"
+                                className="h-12 px-7 text-[15px] font-medium text-zinc-900 hover:text-zinc-900 hover:bg-[#f2c112]/25 border-zinc-300 rounded-full"
+                            >
+                                <Play className="mr-2 h-4 w-4 fill-current" />
+                                Watch demo
+                            </Button>
+                        </a>
                     </div>
                 </div>
 
                 {/* Metrics cards */}
-                <div className="animate-fade-up stagger-5 mt-10 flex flex-wrap justify-center gap-3 sm:gap-4">
+                <div className="animate-fade-up stagger-5 mt-10 flex flex-wrap justify-center gap-3 p-2 sm:gap-4">
                     {metrics.map((m) => (
                         <div key={m.label} className="bg-white rounded-xl border border-zinc-200/80 px-6 py-5 shadow-sm min-w-[140px] sm:min-w-[160px] text-center">
                             <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900">{m.value}</p>

@@ -31,7 +31,7 @@ const features = [
 
 export function Features() {
     return (
-        <section id="features" className="relative bg-white pt-12 pb-8 sm:pt-16 sm:pb-10">
+        <section id="features" className="relative bg-[#F5F0E8] pt-12 pb-8 sm:pt-16 sm:pb-10">
             <div className="mx-auto max-w-352 px-6 lg:px-10">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8 sm:mb-10">
                     <div className="max-w-2xl">
