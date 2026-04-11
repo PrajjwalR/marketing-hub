@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       .order("id", { ascending: false });
     if (reviewerErr) return NextResponse.json({ error: reviewerErr.message }, { status: 500 });
 
-    const approvalIds = (reviewerRows || []).map((row) => row.approval_id);
+    const approvalIds = ((reviewerRows ?? []) as { approval_id: string }[]).map((row) => row.approval_id);
 
     const { data: approvals, error: approvalsErr } = await supabaseAdmin
       .from("post_approvals")
@@ -70,7 +70,11 @@ async function enrichApprovals(
   ]);
 
   const requesterIds = [...new Set(approvals.map((a) => a.requested_by as string))];
-  const reviewerUserIds = [...new Set((allReviewerRows || []).map((r) => r.reviewer_user_id))];
+  const reviewerUserIds = [
+    ...new Set(
+      ((allReviewerRows ?? []) as { reviewer_user_id: string }[]).map((r) => r.reviewer_user_id)
+    ),
+  ];
   const allUserIds = [...new Set([...requesterIds, ...reviewerUserIds, currentUserId])];
 
   const { data: users } = await supabaseAdmin
@@ -78,7 +82,9 @@ async function enrichApprovals(
     .select("user_id,name,email")
     .in("user_id", allUserIds);
 
-  const postMap = new Map((posts || []).map((p) => [p.id, p]));
+  const postMap = new Map(
+    ((posts ?? []) as { id: string }[]).map((p) => [p.id, p])
+  );
   const usersMap = new Map((users || []).map((u: UserRow) => [u.user_id, u]));
   const reviewersByApproval = new Map<string, NonNullable<typeof allReviewerRows>>();
   for (const row of allReviewerRows || []) {
@@ -94,7 +100,7 @@ async function enrichApprovals(
   return approvals.map((approval) => {
     const approvalId = approval.id as string;
     const rawReviewers = reviewersByApproval.get(approvalId) || [];
-    const reviewers = rawReviewers.map((r) => ({
+    const reviewers = rawReviewers.map((r: { reviewer_user_id: string }) => ({
       ...r,
       user: usersMap.get(r.reviewer_user_id) || null,
     }));

@@ -19,8 +19,20 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        type SocialConnectionRow = {
+            id: string;
+            platform: string;
+            profile_name?: string | null;
+            profile_image?: string | null;
+            platform_user_id?: string | null;
+            status?: string | null;
+            connected_at?: string | null;
+            last_sync_at?: string | null;
+            created_at?: string | null;
+        };
+
         return NextResponse.json(
-            (data ?? []).map((row) => ({
+            ((data ?? []) as SocialConnectionRow[]).map((row) => ({
                 ...row,
                 status: row.status ?? 'connected',
                 connected_at: row.connected_at ?? row.created_at ?? null,

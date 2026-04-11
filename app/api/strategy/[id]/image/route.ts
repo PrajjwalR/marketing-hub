@@ -6,7 +6,7 @@ const BUCKET = 'media';
 
 async function ensureBucketExists() {
     const { data: buckets } = await supabaseAdmin.storage.listBuckets();
-    if (buckets?.some((b) => b.name === BUCKET)) return;
+    if (buckets?.some((b: { name: string }) => b.name === BUCKET)) return;
     await supabaseAdmin.storage.createBucket(BUCKET, { public: true });
 }
 

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
         for (const automation of automations) {
             // --- LOGIC A: BIRTHDAYS ---
             if (automation.trigger_type === 'Birthday') {
-                const birthdayContacts = contacts.filter(c => {
+                const birthdayContacts = (contacts ?? []).filter((c: { birthday?: string | null }) => {
                     if (!c.birthday) return false;
                     const bDay = new Date(c.birthday);
                     return bDay.getMonth() === today.getMonth() && bDay.getDate() === today.getDate();
@@ -59,10 +59,20 @@ export async function GET(req: NextRequest) {
                     ...INDIAN_HOLIDAYS_DATA.observances
                 ];
 
-                const matchingHoliday = allHolidays.find(h => 
-                    h.name === automation.event_name && 
-                    (h.date === targetDayStr || (h.month === todayMonthStr && automation.lead_time_days === 0))
-                );
+                const matchingHoliday = allHolidays.find((h) => {
+                    if (h.name !== automation.event_name) return false;
+                    if ("date" in h && typeof (h as { date?: string }).date === "string") {
+                        return (h as { date: string }).date === targetDayStr;
+                    }
+                    if (
+                        "month" in h &&
+                        typeof (h as { month?: string }).month === "string" &&
+                        automation.lead_time_days === 0
+                    ) {
+                        return (h as { month: string }).month === todayMonthStr;
+                    }
+                    return false;
+                });
 
                 if (matchingHoliday) {
                     console.log(`[TRIGGER] Holiday Campaign for ${matchingHoliday.name} starting ${automation.lead_time_days} days early.`);

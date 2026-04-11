@@ -21,7 +21,7 @@ async function ensureBucketExists(bucketName: string) {
         return; // Don't block flow, try upload anyway (it might fail if bucket doesn't exist)
     }
 
-    const bucketExists = buckets?.some(b => b.name === bucketName);
+    const bucketExists = buckets?.some((b: { name: string }) => b.name === bucketName);
     if (!bucketExists) {
         console.log(`Bucket '${bucketName}' not found. Creating...`);
         const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {

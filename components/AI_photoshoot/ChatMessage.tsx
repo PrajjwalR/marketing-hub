@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
-import ResultGrid from "./ResultGrid.tsx";
-import type { Message } from "./ChatInterface.tsx";
+import ResultGrid from "./ResultGrid";
+import type { Message } from "./ChatInterface";
 
 interface ChatMessageProps {
   message: Message;
