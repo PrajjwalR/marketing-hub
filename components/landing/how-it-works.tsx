@@ -1,49 +1,52 @@
+import { landingCardTitle, landingEyebrow, landingSectionLead, landingSectionTitle } from "@/components/landing/typography";
+
 const steps = [
     {
         number: "01",
-        title: "Describe your video",
+        title: "Describe your content",
         description:
-            "Type a prompt or paste a script. Pick a style, duration, and platform — the AI handles the rest.",
+            "Type a prompt or paste a script. Pick a style, duration, and target platform. The AI handles the creative lifting — visuals, voiceover, music, captions — all of it.",
+        pill: "⚡ Avg. creation time: 52 sec",
     },
     {
         number: "02",
         title: "Review & customize",
         description:
-            "Preview the generated video, tweak captions, swap music, or adjust the voiceover until it feels right.",
+            "Preview the generated content, tweak captions, swap music, or adjust the voiceover. Full creative control — none of the manual grind.",
+        pill: "🎨 100% editable output",
     },
     {
         number: "03",
-        title: "Schedule & publish",
+        title: "Schedule & publish everywhere",
         description:
-            "Drop it onto your calendar or publish instantly. Agent Elephant posts to every platform simultaneously.",
+            "Drop it on your calendar or publish instantly. Agent Elephant posts to every platform simultaneously, natively formatted for each one.",
+        pill: "🌍 All platforms, one click",
     },
 ];
 
 export function HowItWorks() {
     return (
-        <section className="relative bg-zinc-50 landing-grain py-8 sm:py-10">
-            <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                <div className="max-w-2xl mb-8 sm:mb-10">
-                    <p className="text-sm font-bold tracking-widest uppercase text-[#239047] mb-3">
-                        How it works
+        <section id="how-it-works" className="relative bg-white pt-16 pb-24 sm:pt-24">
+            <div className="mx-auto max-w-[1160px] px-6 lg:px-8">
+                <div className="mb-14 max-w-2xl">
+                    <p className={landingEyebrow}>How it works</p>
+                    <h2 className={landingSectionTitle}>Three steps. Zero complexity.</h2>
+                    <p className={`mt-4 ${landingSectionLead}`}>
+                        From idea to live post in minutes, not hours.
                     </p>
-                    <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 leading-tight">
-                        Three steps. Zero complexity.
-                    </h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
                     {steps.map((step, i) => (
                         <div key={step.number} className={`relative animate-fade-up stagger-${i + 1}`}>
-                            <p className="text-6xl sm:text-7xl font-bold text-zinc-300 leading-none select-none">
+                            <p className="select-none text-6xl font-bold leading-none text-zinc-200 sm:text-7xl">
                                 {step.number}
                             </p>
-                            <h3 className="mt-4 text-xl font-semibold text-zinc-900">
-                                {step.title}
-                            </h3>
-                            <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">
-                                {step.description}
-                            </p>
+                            <h3 className={`mt-4 ${landingCardTitle}`}>{step.title}</h3>
+                            <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">{step.description}</p>
+                            <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[#F5F0E8] px-3.5 py-1.5 text-xs font-semibold text-zinc-900">
+                                {step.pill}
+                            </span>
                         </div>
                     ))}
                 </div>

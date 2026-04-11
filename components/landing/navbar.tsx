@@ -46,8 +46,8 @@ export function Navbar() {
         <nav
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
                 scrolled
-                    ? "bg-white/80 backdrop-blur-xl border-b border-zinc-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-                    : "bg-transparent"
+                    ? "bg-[#ffffff]/90 backdrop-blur-xl border-b border-zinc-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : "bg-[#ffffff]"
             }`}
         >
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
@@ -55,7 +55,7 @@ export function Navbar() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 overflow-hidden">
                         <Image src="/logo.png" alt="Agent Elephant Logo" width={32} height={32} className="object-cover scale-125" />
                     </div>
-                    <span className="text-lg font-semibold tracking-tight text-zinc-900">
+                    <span className="text-lg font-bold tracking-tight text-zinc-900">
                         Agent Elephant
                     </span>
                 </Link>
@@ -65,7 +65,7 @@ export function Navbar() {
                         <Link
                             key={link.label}
                             href={link.href}
-                            className="px-3.5 py-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 rounded-lg"
+                            className="px-3.5 py-2 text-1xl font-bold text-zinc-500 transition-colors hover:text-zinc-900 rounded-lg"
                         >
                             {link.label}
                         </Link>
@@ -76,12 +76,12 @@ export function Navbar() {
                     {!isSignedIn ? (
                         <>
                             <Link href="/sign-in">
-                                <Button variant="ghost" className="hidden text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-transparent sm:flex">
+                                <Button variant="ghost" className="hidden text-1xl font-bold text-zinc-600 hover:text-zinc-900 hover:bg-transparent sm:flex">
                                     Log in
                                 </Button>
                             </Link>
                             <Link href="/sign-up">
-                                <Button className="h-9 px-5 text-sm font-medium bg-[#f2d412] text-zinc-900 hover:bg-[#f2c112] rounded-full transition-all hover:-translate-y-px shadow-sm">
+                                <Button className="h-9 px-5 text-sm font-medium bg-[#f2d412] text-zinc-900 hover:bg-[#f2c912] rounded-full transition-all hover:-translate-y-px shadow-sm">
                                     Get Started
                                 </Button>
                             </Link>

@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         model_style: row.model_style,
         jewelry_type: row.jewelry_type,
         image_count: imgs.length,
+        images: imgs,
         preview_url,
         created_at: row.created_at,
       };

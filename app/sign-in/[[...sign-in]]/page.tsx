@@ -116,7 +116,7 @@ export default function SignInPage() {
 
     if (crossAppEmail && crossAppPass) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-zinc-50 landing-grain">
+            <div className="flex min-h-screen items-center justify-center bg-[#F5F0E8] landing-grain">
                 <div className="flex flex-col items-center gap-5 animate-fade-in">
                     <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
                     <p className="text-zinc-500 text-sm font-medium">Completing sign in...</p>
@@ -126,12 +126,7 @@ export default function SignInPage() {
     }
 
     return (
-        <div className="relative flex min-h-screen items-start justify-center bg-zinc-50 landing-grain pt-8 pb-12">
-            {/* Background */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute -top-40 -left-20 w-[600px] h-[600px] bg-indigo-100 rounded-full blur-[140px] opacity-60" />
-                <div className="absolute top-1/2 -right-40 w-[500px] h-[500px] bg-violet-100 rounded-full blur-[140px] opacity-50" />
-            </div>
+        <div className="relative flex min-h-screen items-start justify-center bg-[#F5F0E8] landing-grain pt-8 pb-12">
 
             <div className="relative z-10 w-full max-w-[420px] mx-4">
                 <Link

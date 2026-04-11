@@ -33,14 +33,17 @@ export default function ModelSelection({
             key={model.id}
             id={`model-card-${model.id}`}
             onClick={() => onSelect(model)}
-            className="group relative rounded-2xl overflow-hidden cursor-pointer aspect-[3/4] shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:scale-[1.02]"
+            className="group relative cursor-pointer aspect-3/4 overflow-hidden rounded-2xl bg-zinc-100 shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
           >
-            <img
-              src={model.image}
-              alt={`Model ${model.name} — ${model.style}`}
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
-              loading="lazy"
-            />
+            <div className="absolute inset-3 overflow-hidden rounded-[22px] bg-zinc-100 ring-2 ring-white/80">
+              <img
+                src={model.image}
+                alt={`Model ${model.name} — ${model.style}`}
+                className="block h-full w-full rounded-[22px] object-contain object-center transition-transform duration-500 group-hover:scale-[1.01]"
+                style={{ borderRadius: "22px" }}
+                loading="lazy"
+              />
+            </div>
             <div className="ai-photoshoot-card-overlay" />
             <div className="absolute bottom-0 left-0 right-0 p-6 z-10 translate-y-2 opacity-70 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-400">
               <div className="flex items-center gap-2 mb-2">
