@@ -447,10 +447,11 @@ export default function StrategyBoardPage() {
                     <div className="grid grid-cols-2 gap-px bg-black/10 md:grid-cols-5">
                         {[
                             { value: dashboardMeta.daysScheduled, label: 'Days scheduled' },
+                            { value: dashboardMeta.imageCount, label: 'Total Postings' },
                             { value: dashboardMeta.singleCount, label: 'Single posts' },
                             { value: dashboardMeta.carouselCount, label: 'Carousel slides' },
                             { value: dashboardMeta.storyCount, label: 'Story frames' },
-                            { value: dashboardMeta.imageCount, label: 'Total items' },
+                            
                             
                         ].map((item) => (
                             <div key={item.label} className="bg-white px-5 py-6">
