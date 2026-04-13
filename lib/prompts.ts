@@ -62,14 +62,14 @@ export const PROMPT_MAP: Record<string, Record<string, string>> = {
 export const VALID_JEWELRY_TYPES = Object.keys(PROMPT_MAP);
 
 /** Prompt used for Veo 3.1 Lite video generation in the AI Photoshoot feature. */
-export const VIDEO_PROMPT = `You are generating a 8-second luxury jewelry advertisement video.
+export const VIDEO_PROMPT = `You are generating a luxury jewelry advertisement video of 4 seconds or less.
 
 INPUTS PROVIDED:
 - Image 1: The jewelry piece (reference for exact shape, size, material, and finish)
 - Image 2: The model (reference for exact face, skin tone, hair, and body)
 
 TASK:
-Create a seamless 8-second video in which the model from Image 2 is wearing and displaying the jewelry from Image 1, exactly as it appears in a high-end jewelry commercial.
+Create a seamless video of 4 seconds or less in which the model from Image 2 is wearing and displaying the jewelry from Image 1, exactly as it appears in a high-end jewelry commercial.
 
 ━━━━━━━━━━━━━━━━━━━━━
 IDENTITY CONSISTENCY (CRITICAL)
@@ -112,7 +112,7 @@ VIDEO QUALITY
 ━━━━━━━━━━━━━━━━━━━━━
 - Resolution: Maximum available (aim for 4K or 1080p minimum).
 - Frame rate: 24fps cinematic.
-- Duration: Exactly 3 seconds.
+- Duration: 4 seconds or less.
 - Style: Photorealistic. This must look like a real commercial shoot, not CGI or illustrated.
 - Color grade: Slightly warm, clean, high-end editorial feel. No heavy filters.
 

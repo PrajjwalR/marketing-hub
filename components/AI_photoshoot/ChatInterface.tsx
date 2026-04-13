@@ -181,7 +181,7 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
         const imagesPayload = (result.images || []).map((entry) =>
           typeof entry === "string"
             ? { url: entry, label: "Result" }
-            : { url: entry.url, label: entry.label || "Variation" }
+            : { url: entry.url, label: entry.label || "Shot" }
         );
         try {
           await fetch("/api/AI-photoshoot/sessions", {

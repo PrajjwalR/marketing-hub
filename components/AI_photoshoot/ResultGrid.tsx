@@ -27,7 +27,7 @@ export default function ResultGrid({ images }: ResultGridProps) {
       {images.map((img, index) => {
         const url = typeof img === "string" ? img : img.url;
         const label =
-          typeof img === "string" ? `Variation ${index + 1}` : img.label;
+          typeof img === "string" ? `Shot ${index + 1}` : img.label;
         return (
           <div
             key={index}

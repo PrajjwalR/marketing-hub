@@ -7,7 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 
 const IMAGE_MODEL = "gemini-3.1-flash-image-preview";
-const VIDEO_MODEL = "veo-3.1-lite-generate-preview";
+const VIDEO_MODEL = "veo-3.1-generate-preview";
 
 export async function POST(req: NextRequest) {
   try {
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       // const models = await ai.models.list();
       // console.log("Available models:", models);
       let operation = await ai.models.generateVideos({
-        model: "veo-3.1-generate-preview", // must be 3.1, not lite
+        model: VIDEO_MODEL,
         prompt: VIDEO_PROMPT,
         config: {
           aspectRatio: "9:16",

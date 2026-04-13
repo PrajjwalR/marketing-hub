@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Play, Download } from "lucide-react";
 import ResultGrid from "./ResultGrid";
 import type { Message } from "./ChatInterface";
 
