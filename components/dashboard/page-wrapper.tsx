@@ -18,13 +18,19 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
         pathname === '/dashboard/' || 
         pathname.startsWith('/dashboard/academy');
 
+    const shouldStartAtTop =
+        isDashboardHome ||
+        pathname.startsWith('/dashboard/competitors') ||
+        pathname.startsWith('/dashboard/analytics-dashboard') ||
+        pathname.startsWith('/dashboard/analytics');
+
     return (
         <div
             className={cn(
                 'animate-in fade-in slide-in-from-bottom-4 duration-500',
                 isFullWidth ? 'w-full max-w-none' : 'mx-auto max-w-7xl',
-                // Main has no top padding so the dashboard sticky header can sit flush; other routes get spacing here.
-                !isDashboardHome && 'pt-8'
+                // Keep selected dashboard routes flush to the top.
+                !shouldStartAtTop && 'pt-8'
             )}
         >
             {children}

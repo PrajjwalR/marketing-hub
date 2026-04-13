@@ -107,8 +107,8 @@ const sidebarData: SidebarSection[] = [
     defaultExpanded: true,
     id: 'sidebar-ai-photoshoot',
     items: [
-      { name: 'Studio', href: '/dashboard/ai-photoshoot' },
       { name: 'My generations', href: '/dashboard/ai-photoshoot/generations' },
+      { name: 'Studio', href: '/dashboard/ai-photoshoot/studio' },
     ],
   },
   {
@@ -307,7 +307,7 @@ export function Sidebar() {
     if (href === "/dashboard") return pathname === href;
 
     // Studio should not be marked active for nested generations routes.
-    if (href === "/dashboard/ai-photoshoot") return pathname === href;
+    if (href === "/dashboard/ai-photoshoot/studio") return pathname === href;
 
     // For other routes, treat nested paths as active (e.g. /generations/[id]).
     return pathname === href || pathname.startsWith(`${href}/`);

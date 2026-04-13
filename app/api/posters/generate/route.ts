@@ -19,7 +19,7 @@ const imageModel = imageGenAI.getGenerativeModel({
 async function ensureBucketExists(bucketName: string) {
     const { data: buckets, error } = await supabaseAdmin.storage.listBuckets();
     if (error) return;
-    const exists = buckets?.some((b) => b.name === bucketName);
+    const exists = buckets?.some((b: { name: string }) => b.name === bucketName);
     if (exists) return;
     await supabaseAdmin.storage.createBucket(bucketName, {
         public: true,

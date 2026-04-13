@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { Button } from '@/components/ui/button';
 import {
     StrategyTemplateCard,
     type StrategyTemplatePrefill,
@@ -112,6 +111,7 @@ export default function PrebuiltStrategyPromptsPage() {
                 name: string;
                 theme?: string | null;
                 business_type?: string | null;
+                is_prebuilt?: boolean;
                 platforms: string[];
                 duration_days: number;
                 created_at: string;
@@ -121,8 +121,8 @@ export default function PrebuiltStrategyPromptsPage() {
             }>;
 
             const filtered = (Array.isArray(data) ? data : [])
-                .filter((s: any) => s.is_prebuilt === true)
-                .filter((s: any) => {
+                .filter((s) => s.is_prebuilt === true)
+                .filter((s) => {
                     if (!hasCategoryConfigured) return false;
                     const domainFromBusinessType = mapBusinessVerticalToDomain(s.business_type);
                     return domainFromBusinessType === activeDomain;
@@ -181,7 +181,7 @@ export default function PrebuiltStrategyPromptsPage() {
                 {templates.length === 0 ? (
                     <div className="text-sm text-zinc-500">No templates available.</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {templates.map((t) => (
                             <StrategyTemplateCard
                                 key={t.id}
@@ -201,13 +201,11 @@ export default function PrebuiltStrategyPromptsPage() {
                     <h2 className="text-lg font-bold text-zinc-900">
                         Your {DOMAIN_LABELS[activeDomain]} prebuilt strategies
                     </h2>
-                    <p className="text-sm text-zinc-500">
-                        Only your category-specific prebuilt strategies appear here.
-                    </p>
+                    
                 </div>
 
                 {isStrategiesLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {[1, 2, 3, 4].map((i) => (
                             <StrategyCardSkeleton key={i} />
                         ))}
@@ -225,39 +223,47 @@ export default function PrebuiltStrategyPromptsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {strategies.map((s) => (
-                            <div
-                                key={s.id}
-                                className="rounded-xl border border-zinc-200 bg-white shadow-sm p-4 flex flex-col gap-3"
-                            >
-                                <div>
-                                    <h3 className="text-sm font-semibold text-zinc-900 line-clamp-2">{s.name}</h3>
-                                    <p className="text-xs text-zinc-500 mt-1">
-                                        {s.duration_days} days · {(s.posts_count ?? 0)} ideas
-                                    </p>
-                                </div>
-                                <div className="text-[11px] text-zinc-500">
-                                    This strategy is for ideas/planning only (no posting or content-generation actions here).
-                                </div>
-                                <div className="pt-1 flex items-center gap-2">
-                                    <Button
-                                        variant="default"
-                                        className="rounded-full text-xs h-8"
+                    <div className="grid grid-cols-1 gap-3 rounded-1xl border border-zinc-200 bg-[#F5F0E8] p-3 sm:grid-cols-2">
+                        {strategies.map((s, index) => {
+                            const isNew = Date.now() - new Date(s.created_at).getTime() < 1000 * 60 * 60 * 24 * 7;
+                            const statusLabel = isNew ? 'NEW SERIES' : 'READY';
+                            return (
+                                <div
+                                    key={s.id}
+                                    className="group grid min-h-[92px] grid-cols-[44px_1fr_auto] border border-zinc-200 bg-white transition hover:border-[#E0B428] hover:shadow-[0_0_0_1px_rgba(224,180,40,0.25)]"
+                                >
+                                    <div className="flex items-center justify-center border-r border-zinc-200 bg-[#F5C842] px-1 text-xs font-black tabular-nums tracking-[0.08em] text-zinc-900">
+                                        {String(index + 1).padStart(2, '0')}
+                                    </div>
+
+                                    <button
+                                        type="button"
                                         onClick={() => router.push(`/dashboard/prebuilt-strategy/${s.id}`)}
+                                        className="flex w-full flex-col items-start justify-center gap-1 px-5 py-4 text-left"
                                     >
-                                        View Blueprint
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        className="rounded-full text-xs h-8 border-zinc-200"
-                                        onClick={() => handleDelete(s.id)}
-                                    >
-                                        Delete
-                                    </Button>
+                                        <h3 className="text-xl font-semibold tracking-tight text-zinc-900 transition group-hover:text-zinc-950">
+                                            {s.name}
+                                        </h3>
+                                        <p className="line-clamp-2 text-sm text-zinc-600">
+                                            {s.duration_days} days · {(s.posts_count ?? 0)} ideas · Built for {DOMAIN_LABELS[activeDomain].toLowerCase()} growth
+                                        </p>
+                                    </button>
+
+                                    <div className="flex min-w-[130px] flex-col items-end justify-center gap-2 px-4 py-4">
+                                        <span className="inline-flex rounded-sm border border-zinc-300 bg-zinc-50 px-2.5 py-1 text-[10px] font-bold tracking-[0.2em] text-zinc-600">
+                                            {statusLabel}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDelete(s.id)}
+                                            className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 transition hover:text-red-600"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

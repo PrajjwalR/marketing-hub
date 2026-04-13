@@ -44,7 +44,7 @@ export async function GET(
 
     return NextResponse.json({
       approval,
-      reviewerIds: (rows || []).map((r) => r.reviewer_user_id),
+      reviewerIds: ((rows ?? []) as { reviewer_user_id: string }[]).map((r) => r.reviewer_user_id),
     });
   } catch (error) {
     console.error("[APPROVAL_POST_GET]", error);

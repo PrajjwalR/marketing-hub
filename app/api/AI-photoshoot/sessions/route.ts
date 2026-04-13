@@ -4,6 +4,16 @@ import { getAuthUser } from "@/lib/auth-helpers";
 
 type ImageEntry = { url: string; label: string };
 
+type SessionRow = {
+  id: string;
+  run_session_id: string | null;
+  model_name: string | null;
+  model_style: string | null;
+  jewelry_type: string | null;
+  images: unknown;
+  created_at: string;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await getAuthUser(req);
@@ -25,7 +35,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const sessions = (data || []).map((row) => {
+    const sessions = ((data ?? []) as SessionRow[]).map((row) => {
       const imgs = Array.isArray(row.images) ? (row.images as ImageEntry[]) : [];
       const preview_url = imgs[0]?.url ?? null;
       return {
@@ -35,6 +45,7 @@ export async function GET(req: NextRequest) {
         model_style: row.model_style,
         jewelry_type: row.jewelry_type,
         image_count: imgs.length,
+        images: imgs,
         preview_url,
         created_at: row.created_at,
       };

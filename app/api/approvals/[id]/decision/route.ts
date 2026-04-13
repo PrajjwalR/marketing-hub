@@ -58,7 +58,9 @@ export async function POST(
       .eq("approval_id", id);
     if (allError) return NextResponse.json({ error: allError.message }, { status: 500 });
 
-    const decisions = (allReviewerRows || []).map((row) => row.decision);
+    const decisions = ((allReviewerRows ?? []) as { decision: string | null }[]).map(
+      (row) => row.decision
+    );
     let finalStatus: "pending" | "approved" | "rejected" | "changes_requested" = "pending";
 
     if (decisions.includes("rejected")) finalStatus = "rejected";

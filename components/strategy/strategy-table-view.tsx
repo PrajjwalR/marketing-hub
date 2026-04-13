@@ -17,36 +17,18 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Pencil, Trash2, Copy, Share2, MoreVertical, ImagePlus, Calendar, Check, Clock, AlertCircle } from 'lucide-react';
-import { Instagram, Linkedin, Youtube, Facebook, Video } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StrategyPost } from './edit-strategy-post-modal';
 import { strategyPostHasMedia } from '@/lib/strategy-schedule';
+import { SocialPlatformMixIcon, type SocialMixPlatform } from '@/components/social/social-platform-mix-icons';
 
-const PLATFORM_CONFIG: Record<string, {
-    icon: React.ComponentType<{ className?: string }>;
-    label: string;
-    gradient: string;
-}> = {
-    instagram: {
-        icon: Instagram,
-        label: 'Instagram',
-        gradient: 'linear-gradient(135deg, #fd5949 0%, #d6249f 50%, #285AEB 100%)',
-    },
-    linkedin: {
-        icon: Linkedin,
-        label: 'LinkedIn',
-        gradient: 'linear-gradient(135deg, #0077B5 0%, #00A0DC 100%)',
-    },
-    youtube: {
-        icon: Youtube,
-        label: 'YouTube',
-        gradient: 'linear-gradient(135deg, #FF0000 0%, #cc0000 100%)',
-    },
-    facebook: {
-        icon: Facebook,
-        label: 'Facebook',
-        gradient: 'linear-gradient(135deg, #1877F2 0%, #0C5FC7 100%)',
-    },
+const PLATFORM_BG: Record<SocialMixPlatform, string> = {
+    instagram: 'bg-[#FCE7F1]',
+    youtube: 'bg-[#FEEAEA]',
+    linkedin: 'bg-[#EAF3FF]',
+    x: 'bg-zinc-100',
+    facebook: 'bg-[#E7F0FF]',
 };
 
 const TYPE_PILL: Record<string, { bg: string; text: string }> = {
@@ -67,6 +49,33 @@ const STATUS_PILL: Record<string, { bg: string; text: string; border?: string }>
 
 function formatLabel(s: string) {
     return s.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+/** First listed platform for icon lookup (e.g. "Instagram, YouTube" → instagram). */
+function firstPlatformKey(platform: string | undefined): string {
+    if (!platform) return '';
+    const segment =
+        platform
+            .split(/,|\/|&|\+|\band\b/gi)
+            .map((s) => s.trim())
+            .filter(Boolean)[0] || platform;
+    const p = segment.toLowerCase();
+    if (p.includes('instagram') || p === 'ig') return 'instagram';
+    if (p.includes('linkedin')) return 'linkedin';
+    if (p.includes('youtube')) return 'youtube';
+    if (p.includes('twitter') || p === 'x' || p.startsWith('x ')) return 'x';
+    if (p.includes('facebook')) return 'facebook';
+    return p.split(/\s+/)[0] || '';
+}
+
+function isSocialMixPlatform(platform: string): platform is SocialMixPlatform {
+    return (
+        platform === 'instagram' ||
+        platform === 'youtube' ||
+        platform === 'linkedin' ||
+        platform === 'x' ||
+        platform === 'facebook'
+    );
 }
 
 interface StrategyTableViewProps {
@@ -117,10 +126,12 @@ export function StrategyTableView({
                         {!readonly && (
                             <TableHead className="w-8 px-3 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]"></TableHead>
                         )}
-                        <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Idea</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Day</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Date</TableHead>
-                        <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Platform</TableHead>
+                        <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Idea</TableHead>
+                        <TableHead className="w-14 px-2 py-2.5 text-center text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">
+                            Platform
+                        </TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Content type</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Goal</TableHead>
                         <TableHead className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-500 uppercase tracking-[0.18em]">Status</TableHead>
@@ -138,10 +149,9 @@ export function StrategyTableView({
                         </TableRow>
                     ) : (
                         sortedPosts.map((post) => {
-                            const platformKey = post.platform?.toLowerCase() ?? '';
-                            const platformCfg = PLATFORM_CONFIG[platformKey];
-                            const PlatformIcon = platformCfg?.icon ?? Video;
-                            const platformLabel = platformCfg?.label ?? formatLabel(post.platform || '');
+                            const platformKey = firstPlatformKey(post.platform);
+                            const isMixPlatform = isSocialMixPlatform(platformKey);
+                            const platformTitle = post.platform?.trim() || 'Platform';
                             const typeStyle = TYPE_PILL[post.content_type?.toLowerCase()] || TYPE_PILL.text_post;
                             const statusStyle = STATUS_PILL[post.status] || STATUS_PILL.planned;
 
@@ -180,6 +190,23 @@ export function StrategyTableView({
                                             {(post as any).isCRM && <div className="w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center"><Calendar className="h-2.5 w-2.5 text-white" /></div>}
                                         </TableCell>
                                     )}
+                                    <TableCell className="px-3.5 py-3">
+                                        <span className="text-[11px] font-medium text-zinc-600 bg-zinc-100 rounded-xl px-2 py-0.5">
+                                            Day {post.day}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="px-3.5 py-3">
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-center gap-1.5 min-w-[100px]">
+                                                <Calendar className="h-3 w-3 text-zinc-400" />
+                                                <span className="text-xs font-semibold text-zinc-900">{getDateLabel(post.day)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+                                                <Clock className="h-3 w-3 text-zinc-400" />
+                                                <span className="font-medium leading-none">{post.post_time || '10:00 AM'}</span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="px-3.5 py-3 max-w-[220px]">
                                         <div className="font-medium text-[13px] text-zinc-900 line-clamp-2 truncate">
                                             {post.idea || 'Untitled'}
@@ -200,43 +227,29 @@ export function StrategyTableView({
                                             </span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="px-3.5 py-3">
-                                        <span className="text-[11px] font-medium text-zinc-600 bg-zinc-100 rounded-xl px-2 py-0.5">
-                                            Day {post.day}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="px-3.5 py-3">
-                                        <div className="flex flex-col gap-1.5">
-                                            <div className="flex items-center gap-1.5 min-w-[100px]">
-                                                <Calendar className="h-3 w-3 text-zinc-400" />
-                                                <span className="text-xs font-semibold text-zinc-900">{getDateLabel(post.day)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-100 rounded-lg px-2 py-1 w-fit shadow-sm">
-                                                <Clock className="h-3 w-3 text-amber-500" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] font-bold text-zinc-400 uppercase leading-none tracking-tight">Optimal Time</span>
-                                                    <span className="text-[10px] font-bold text-zinc-600 leading-none mt-0.5">{post.post_time || '10:00 AM'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="px-3.5 py-3">
+                                    <TableCell className="px-2 py-3 text-center align-middle">
                                         {(post as any).isCRM ? (
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0">
-                                                    <Share2 className="h-3.5 w-3.5 text-white" />
-                                                </div>
-                                                <span className="text-xs text-zinc-600">Sync Channels</span>
+                                            <div
+                                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900"
+                                                title="Sync channels"
+                                                aria-label="Sync channels"
+                                            >
+                                                <Share2 className="h-6 w-6 text-white" aria-hidden />
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-1.5">
-                                                <div
-                                                    className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                                                    style={{ background: platformCfg?.gradient ?? 'linear-gradient(135deg, #71717a, #3f3f46)' }}
-                                                >
-                                                    <PlatformIcon className="h-3.5 w-3.5 text-white" />
-                                                </div>
-                                                <span className="text-xs text-zinc-600">{platformLabel}</span>
+                                            <div
+                                                className={cn(
+                                                    'inline-flex h-10 w-10 items-center justify-center rounded-lg',
+                                                    isMixPlatform ? PLATFORM_BG[platformKey] : 'bg-zinc-600'
+                                                )}
+                                                title={platformTitle}
+                                                aria-label={platformTitle}
+                                            >
+                                                {isMixPlatform ? (
+                                                    <SocialPlatformMixIcon platform={platformKey} className="h-6 w-6" />
+                                                ) : (
+                                                    <Video className="h-6 w-6 text-white" aria-hidden />
+                                                )}
                                             </div>
                                         )}
                                     </TableCell>

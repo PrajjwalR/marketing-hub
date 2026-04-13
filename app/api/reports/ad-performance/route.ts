@@ -169,7 +169,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: `${accErr.message}${hint}` }, { status: 500 });
     }
 
-    const accountList = accounts ?? [];
+    const accountList = (accounts ?? []) as { id: string }[];
     if (accountList.length === 0) {
       return NextResponse.json({
         hasAccounts: false,
