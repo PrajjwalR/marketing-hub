@@ -1079,20 +1079,22 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                                     </DialogHeader>
                                     <div className="space-y-4 pt-2 max-h-[300px] overflow-y-auto">
                                         {/* System/Default App option */}
-                                        <div className="flex flex-col gap-2 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 mb-2">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-sm font-bold text-indigo-900">Agent Elephant App</span>
-                                                <Badge className="bg-indigo-100 text-indigo-700 border-none text-[9px] uppercase font-black">Shared</Badge>
+                                        {platform === 'linkedin' && (
+                                            <div className="flex flex-col gap-2 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 mb-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-bold text-indigo-900">Agent Elephant App</span>
+                                                    <Badge className="bg-indigo-100 text-indigo-700 border-none text-[9px] uppercase font-black">Shared</Badge>
+                                                </div>
+                                                <Button 
+                                                    onClick={() => {
+                                                        window.location.href = `/api/settings/social/connect/${platform}`;
+                                                    }}
+                                                    className="w-full text-white font-bold shadow-sm transition-colors bg-indigo-600 hover:bg-indigo-700"
+                                                >
+                                                    Connect using Agent Elephant App
+                                                </Button>
                                             </div>
-                                            <Button 
-                                                onClick={() => {
-                                                    window.location.href = `/api/settings/social/connect/${platform}`;
-                                                }}
-                                                className="w-full text-white font-bold shadow-sm transition-colors bg-indigo-600 hover:bg-indigo-700"
-                                            >
-                                                Connect using Agent Elephant App
-                                            </Button>
-                                        </div>
+                                        )}
 
                                         {customIntegrations && customIntegrations.length > 0 && (
                                             <div className="relative py-2">
@@ -1100,7 +1102,9 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                                                     <span className="w-full border-t border-zinc-100" />
                                                 </div>
                                                 <div className="relative flex justify-center text-xs uppercase">
-                                                    <span className="bg-white px-2 text-zinc-400 font-bold">Or use custom app</span>
+                                                    <span className="bg-white px-2 text-zinc-400 font-bold">
+                                                        {platform === 'linkedin' ? 'Or use custom app' : 'Use custom app'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         )}
