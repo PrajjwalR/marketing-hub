@@ -9,7 +9,7 @@ import {
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
     BarChart2, Target, Home, Brain, LogOut, GraduationCap,Bell, Sparkles,
-  Camera
+  Camera, MessageSquareReply
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -88,6 +88,12 @@ const sidebarData: SidebarSection[] = [
     icon: CalendarDays,
         href: '/dashboard/calendar',
         id: 'sidebar-calendar',
+  },
+  {
+        name: 'Auto Reply',
+    icon: MessageSquareReply,
+        href: '/dashboard/auto-reply',
+        id: 'sidebar-auto-reply',
   },
   {
         name: 'Content Creation',
