@@ -370,10 +370,18 @@ function BusinessProfileSection({
             setLoading(true);
             try {
                 const token = await firebaseUser.getIdToken();
-                const res = await fetch("/api/user", {
+                const workspaceId = activeWorkspace?.id;
+                const res = await fetch(
+                    `/api/user?t=${Date.now()}${workspaceId ? `&workspaceId=${workspaceId}` : ''}`,
+                    {
                     credentials: "same-origin",
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                    cache: "no-store",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        ...(workspaceId ? { "x-workspace-id": workspaceId } : {}),
+                    },
+                }
+                );
                 if (!res.ok) return;
                 const data = await res.json();
                 if (cancelled) return;
@@ -445,9 +453,14 @@ function BusinessProfileSection({
         setSaving(true);
         try {
             const token = await firebaseUser.getIdToken();
+            const workspaceId = activeWorkspace?.id;
             const res = await fetch("/api/user", {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    ...(workspaceId ? { "x-workspace-id": workspaceId } : {}),
+                },
                 credentials: "same-origin",
                 body: JSON.stringify({
                     businessVertical,
@@ -457,6 +470,7 @@ function BusinessProfileSection({
                     contentTone,
                     regionsOrMarkets: regionsOrMarkets.trim(),
                     productFocus: productFocus.trim(),
+                    ...(workspaceId ? { workspaceId } : {}),
                 }),
             });
             const payload = await res.json().catch(() => ({}));
