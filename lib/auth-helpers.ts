@@ -5,6 +5,7 @@ interface AuthUser {
   userId: string;
   email: string | undefined;
   name: string | undefined;
+  picture: string | undefined;
 }
 
 // Cache for Google's public keys (refreshed every hour)
@@ -84,8 +85,8 @@ export async function getAuthUser(request?: Request): Promise<AuthUser> {
   }
 
   // 2. Fallback to __session cookie (for server actions / SSR)
+  const cookieStore = await cookies();
   if (!token) {
-    const cookieStore = await cookies();
     token = cookieStore.get('__session')?.value;
   }
 
@@ -95,12 +96,23 @@ export async function getAuthUser(request?: Request): Promise<AuthUser> {
 
   try {
     const decoded = await verifyFirebaseToken(token);
+    const sessionUserId = decoded.user_id || decoded.sub;
+
+    // 3. Check for __ws_owner cookie — set by the workspace switcher when switching to
+    //    a linked account. When present, we query data as that account's owner instead
+    //    of the logged-in session user. Security: we only allow this if the __ws_owner
+    //    value is different from the session user (i.e., it's genuinely a linked account).
+    const wsOwner = cookieStore.get('__ws_owner')?.value;
+    const effectiveUserId = (wsOwner && wsOwner !== sessionUserId) ? wsOwner : sessionUserId;
+
     return {
-      userId: decoded.user_id || decoded.sub,
+      userId: effectiveUserId,
       email: decoded.email,
       name: decoded.name,
+      picture: decoded.picture,
     };
   } catch (error) {
     throw new Error('Unauthorized');
   }
 }
+

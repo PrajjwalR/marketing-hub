@@ -75,6 +75,11 @@ export function GenerateStrategyModal({
     const [durationDays, setDurationDays] = useState(30);
     const [startDate, setStartDate] = useState<string>('');
     const [coverImage, setCoverImage] = useState<File | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (open) {
@@ -215,6 +220,8 @@ export function GenerateStrategyModal({
             setIsSubmitting(false);
         }
     };
+
+    if (!mounted) return null;
 
     return (
         <SlidePanel

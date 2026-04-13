@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { getAuth, onAuthStateChanged, User, signOut as firebaseSignOut, updateProfile } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { usePlanLimits } from '@/hooks/use-plan-limits';
 import { UpgradeModal } from '@/components/dashboard/upgrade-modal';
+import { useWorkspace, type Workspace } from '@/context/workspace-context';
 import {
     Youtube,
     Instagram,
@@ -29,6 +30,8 @@ import {
     Sparkles,
     Globe2,
     LogOut,
+    Building2,
+    Plus,
     type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -126,9 +129,24 @@ const COMING_SOON_PLATFORMS = [
     },
 ];
 
-function ProfileSection({ firebaseUser, onSignOut }: { firebaseUser: User | null, onSignOut: () => void }) {
+function ProfileSection({ firebaseUser, onSignOut, fetchedEmail, fetchedName, fetchedImage }: { 
+    firebaseUser: User | null, 
+    onSignOut: () => void, 
+    fetchedEmail?: string,
+    fetchedName?: string,
+    fetchedImage?: string
+}) {
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState("");
+
+    // Initialize/Sync name from fetchedName or firebaseUser
+    useEffect(() => {
+        if (fetchedName) {
+            setName(fetchedName);
+        } else if (firebaseUser?.displayName) {
+            setName(firebaseUser.displayName);
+        }
+    }, [fetchedName, firebaseUser]);
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -228,9 +246,9 @@ function ProfileSection({ firebaseUser, onSignOut }: { firebaseUser: User | null
                     <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
                         <div className="relative group">
                             <div className="h-24 w-24 rounded-2xl overflow-hidden ring-4 ring-indigo-50 transition-all group-hover:ring-indigo-100 relative bg-zinc-100 flex items-center justify-center">
-                                {firebaseUser?.photoURL ? (
+                                {fetchedImage || firebaseUser?.photoURL ? (
                                     <Image
-                                        src={firebaseUser.photoURL}
+                                        src={fetchedImage || firebaseUser?.photoURL || ""}
                                         alt="Profile"
                                         layout="fill"
                                         className="object-cover"
@@ -258,7 +276,7 @@ function ProfileSection({ firebaseUser, onSignOut }: { firebaseUser: User | null
                             <div className="space-y-1.5">
                                 <Label className="text-zinc-500 text-xs font-bold uppercase tracking-wider">Email Address</Label>
                                 <Input 
-                                    value={firebaseUser?.email || ""} 
+                                    value={fetchedEmail || firebaseUser?.email || ""} 
                                     disabled 
                                     className="bg-zinc-50 border-zinc-200 font-medium text-zinc-500" 
                                 />
@@ -323,7 +341,15 @@ const CONTENT_TONES: { value: string; label: string }[] = [
     { value: "playful", label: "Playful & fun" },
 ];
 
-function BusinessProfileSection({ firebaseUser }: { firebaseUser: User | null }) {
+function BusinessProfileSection({ 
+    firebaseUser, 
+    activeWorkspace, 
+    onFetchedProfile 
+}: { 
+    firebaseUser: User | null, 
+    activeWorkspace: Workspace | null, 
+    onFetchedProfile?: (data: { name: string, email: string, image: string }) => void 
+}) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [businessVertical, setBusinessVertical] = useState<"" | "jewellery" | "gym" | "ecommerce">("");
@@ -351,6 +377,15 @@ function BusinessProfileSection({ firebaseUser }: { firebaseUser: User | null })
                 if (!res.ok) return;
                 const data = await res.json();
                 if (cancelled) return;
+                
+                if (onFetchedProfile) {
+                    onFetchedProfile({
+                        name: data.name || "",
+                        email: data.email || "",
+                        image: data.logo_url || "" // ensure this matches API field
+                    });
+                }
+
                 const v = data.businessVertical;
                 if (v === "jewellery" || v === "gym" || v === "ecommerce") {
                     setBusinessVertical(v);
@@ -370,7 +405,7 @@ function BusinessProfileSection({ firebaseUser }: { firebaseUser: User | null })
         return () => {
             cancelled = true;
         };
-    }, [firebaseUser]);
+    }, [firebaseUser, activeWorkspace]);
 
     const handleSaveBusinessProfile = async () => {
         if (!businessVertical) {
@@ -621,7 +656,218 @@ function BusinessProfileSection({ firebaseUser }: { firebaseUser: User | null })
     );
 }
 
+// ─── Workspaces Management Section ─────────────────────────────────────────
+const WS_PALETTE = [
+  '#6366f1','#8b5cf6','#ec4899','#f43f5e',
+  '#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#06b6d4',
+];
+const WS_EMOJIS = ['🏢','🚀','💼','🌿','🎯','🔥','👑','💎','🌟','🎨'];
+
+function WorkspacesSection() {
+  const { workspaces, activeWorkspace, isLoading, switchWorkspace, linkWorkspace, updateWorkspace, deleteWorkspace } = useWorkspace();
+  const [showCreate, setShowCreate] = useState(false);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkPassword, setLinkPassword] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmoji, setEditEmoji] = useState('🏢');
+  const [editColor, setEditColor] = useState('#6366f1');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleLink = async () => {
+    if (!linkEmail.trim() || !linkPassword.trim()) { toast.error('Enter email and password'); return; }
+    setCreating(true);
+    try {
+      await linkWorkspace(linkEmail.trim(), linkPassword);
+      toast.success(`Account linked successfully!`);
+      setLinkEmail(''); setLinkPassword(''); setShowCreate(false);
+    } catch (e: any) { toast.error(e.message ?? 'Failed to link account'); }
+    finally { setCreating(false); }
+  };
+
+  const startEdit = (ws: Workspace) => {
+    setEditingId(ws.id); setEditName(ws.name); setEditEmoji(ws.emoji); setEditColor(ws.color);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    setSaving(true);
+    try {
+      await updateWorkspace(editingId, { name: editName.trim(), emoji: editEmoji, color: editColor });
+      toast.success('Account updated');
+      setEditingId(null);
+    } catch (e: any) { toast.error(e.message ?? 'Failed'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (ws: Workspace) => {
+    if (ws.is_default) { toast.error('Cannot delete the default account'); return; }
+    setDeleting(ws.id);
+    try {
+      await deleteWorkspace(ws.id);
+      toast.success(`"${ws.name}" deleted`);
+    } catch (e: any) { toast.error(e.message ?? 'Failed'); }
+    finally { setDeleting(null); }
+  };
+
+  return (
+    <section id="settings-workspaces" className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-indigo-600" />
+          <h2 className="text-xl font-bold text-zinc-900">Accounts</h2>
+        </div>
+        {!showCreate && !editingId && (
+          <Button size="sm" className="h-10 bg-indigo-600 hover:bg-indigo-700 font-medium" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Link Account
+          </Button>
+        )}
+      </div>
+
+      <Card className="border-zinc-200/60 shadow-sm bg-white">
+        <CardContent className="py-4 space-y-3">
+
+          {/* Single dropdown switcher row */}
+          <div className="flex items-center gap-2">
+            {isLoading ? (
+              <div className="h-10 flex-1 rounded-lg bg-zinc-100 animate-pulse" />
+            ) : (
+              <Select
+                value={activeWorkspace?.id ?? ''}
+                onValueChange={(id) => {
+                  const ws = workspaces.find((w) => w.id === id);
+                  if (ws) {
+                    switchWorkspace(ws);
+                    toast.success(`Switched to "${ws.name}"`, { duration: 1500 });
+                    window.dispatchEvent(new CustomEvent('workspace-switched', { detail: ws }));
+                  }
+                }}
+              >
+                <SelectTrigger className="flex-1 h-10 bg-white border-zinc-200 font-medium text-zinc-800">
+                  <SelectValue>
+                    {activeWorkspace ? (
+                      <span className="flex items-center gap-2">
+                        <span className="relative overflow-hidden flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
+                          style={{ backgroundColor: activeWorkspace.color + '22', border: `1px solid ${activeWorkspace.color}44` }}>
+                          {activeWorkspace.logo_url ? (
+                            <img src={activeWorkspace.logo_url} alt={activeWorkspace.name} className="h-full w-full object-cover" />
+                          ) : (
+                            activeWorkspace.emoji
+                          )}
+                        </span>
+                        <span>{activeWorkspace.name}</span>
+                        {activeWorkspace.is_default && (
+                          <span className="text-[10px] text-zinc-400 font-normal">(default)</span>
+                        )}
+                      </span>
+                    ) : 'Select account'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {workspaces.map((ws) => (
+                    <SelectItem key={ws.id} value={ws.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="relative overflow-hidden flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] text-[10px] shadow-sm"
+                          style={{ backgroundColor: ws.color + '22', border: `1px solid ${ws.color}44` }}>
+                          {ws.logo_url ? (
+                            <img src={ws.logo_url} alt={ws.name} className="h-full w-full object-cover" />
+                          ) : (
+                            ws.emoji
+                          )}
+                        </span>
+                        <span className="font-medium">{ws.name}</span>
+                        {ws.is_default && <span className="text-[10px] text-zinc-400">(default)</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {activeWorkspace && editingId !== activeWorkspace.id && (
+              <Button variant="outline" size="sm" className="h-10 w-10 p-0 border-zinc-200 text-zinc-500 hover:text-zinc-900"
+                onClick={() => startEdit(activeWorkspace)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
+            {activeWorkspace && !activeWorkspace.is_default && editingId !== activeWorkspace.id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-10 w-10 p-0 border-zinc-200 text-zinc-400 hover:text-rose-600 hover:border-rose-200">
+                    {deleting === activeWorkspace.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete "{activeWorkspace.name}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all data linked to this account. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={() => handleDelete(activeWorkspace)}>Delete</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+
+          {/* Edit form — expands in-place only when pencil is clicked */}
+          {editingId && (
+            <div className="space-y-3 pt-3 border-t border-zinc-100">
+              <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-9 text-sm" placeholder="Account name..." />
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => setEditingId(null)}>Cancel</Button>
+                <Button size="sm" className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={handleSaveEdit} disabled={saving || editName.trim().length < 2}>
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Create form — expands in-place only when Link Account is clicked */}
+          {showCreate && (
+            <div className="space-y-3 pt-3 border-t border-zinc-100">
+              <Input
+                autoFocus
+                type="email"
+                placeholder="Email address..."
+                value={linkEmail}
+                onChange={e => setLinkEmail(e.target.value)}
+                className="h-9 text-sm"
+              />
+              <Input
+                type="password"
+                placeholder="Password..."
+                value={linkPassword}
+                onChange={e => setLinkPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLink()}
+                className="h-9 text-sm"
+              />
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => { setShowCreate(false); setLinkEmail(''); setLinkPassword(''); }}>Cancel</Button>
+                <Button size="sm" className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={handleLink} disabled={creating || !linkEmail.trim() || !linkPassword.trim()}>
+                  {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Plus className="h-3.5 w-3.5 mr-1" />}
+                  Link Account
+                </Button>
+              </div>
+            </div>
+          )}
+
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 function SettingsForm() {
+    const { activeWorkspace } = useWorkspace();
     const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -634,8 +880,8 @@ function SettingsForm() {
     }, []);
 
     const user = firebaseUser ? {
-        imageUrl: firebaseUser.photoURL || '/placeholder-user.png',
-        fullName: firebaseUser.displayName || '',
+        imageUrl: activeWorkspace?.logo_url || firebaseUser.photoURL || '/placeholder-user.png',
+        fullName: activeWorkspace?.name || firebaseUser.displayName || '',
         primaryEmailAddress: { emailAddress: firebaseUser.email || '' }
     } : null;
 
@@ -691,15 +937,16 @@ function SettingsForm() {
 
     const [connections, setConnections] = useState<SocialConnection[]>([]);
     const [customIntegrations, setCustomIntegrations] = useState<SocialIntegration[]>([]);
+    const [fetchedProfile, setFetchedProfile] = useState<{ name: string, email: string, image: string }>({ name: "", email: "", image: "" });
     const [isLoading, setIsLoading] = useState(true);
     const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
     const [selectedPlatformToManage, setSelectedPlatformToManage] = useState<string | null>(null);
 
     const fetchConnections = async () => {
         try {
-            const [connResponse, integResponse] = await Promise.all([
-                fetch('/api/settings/social'),
-                fetch('/api/settings/social/integration')
+        const [connResponse, integResponse] = await Promise.all([
+                fetch(`/api/settings/social?t=${Date.now()}`),
+                fetch(`/api/settings/social/integration?t=${Date.now()}`)
             ]);
             
             if (connResponse.ok) {
@@ -719,7 +966,7 @@ function SettingsForm() {
 
     useEffect(() => {
         fetchConnections();
-    }, []);
+    }, [activeWorkspace]);
 
     const handleConnect = async (platform: string) => {
         if (!isPlatformAllowed(platform)) {
@@ -728,34 +975,34 @@ function SettingsForm() {
         }
 
         if (platform === 'youtube') {
-            window.location.href = '/api/settings/social/connect/youtube';
+            window.location.href = `/api/settings/social/connect/youtube`;
             return;
         }
 
         if (platform === 'linkedin') {
-            window.location.href = '/api/settings/social/connect/linkedin';
+            window.location.href = `/api/settings/social/connect/linkedin`;
             return;
         }
 
         if (platform === 'facebook') {
-            window.location.href = '/api/settings/social/connect/facebook';
+            window.location.href = `/api/settings/social/connect/facebook`;
             return;
         }
 
         if (platform === 'instagram') {
-            window.location.href = '/api/settings/social/connect/instagram';
+            window.location.href = `/api/settings/social/connect/instagram`;
             return;
         }
 
         if (platform === 'tiktok') {
-            window.location.href = '/api/settings/social/connect/tiktok';
+            window.location.href = `/api/settings/social/connect/tiktok`;
             return;
         }
 
         const name = `Connected ${platform.charAt(0).toUpperCase() + platform.slice(1)} Account`;
 
         try {
-            const response = await fetch('/api/settings/social', {
+            const response = await fetch(`/api/settings/social`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ platform, name })
@@ -774,7 +1021,7 @@ function SettingsForm() {
 
     const handleDisconnect = async (id: string, platform: string) => {
         try {
-            const response = await fetch('/api/settings/social', {
+            const response = await fetch(`/api/settings/social`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id })
@@ -824,9 +1071,21 @@ function SettingsForm() {
             </div>
 
             {/* Profile Section */}
-            <ProfileSection firebaseUser={firebaseUser} onSignOut={signOut} />
+            <ProfileSection 
+                firebaseUser={firebaseUser} 
+                onSignOut={signOut} 
+                fetchedEmail={fetchedProfile.email}
+                fetchedName={fetchedProfile.name}
+                fetchedImage={fetchedProfile.image}
+            />
+            <BusinessProfileSection 
+                firebaseUser={firebaseUser} 
+                activeWorkspace={activeWorkspace}
+                onFetchedProfile={setFetchedProfile}
+            />
 
-            <BusinessProfileSection firebaseUser={firebaseUser} />
+            {/* Workspaces / Account Switcher Section */}
+            <WorkspacesSection />
 
             {/* Social Integrations Section */}
             <section id="settings-social" className="space-y-4">

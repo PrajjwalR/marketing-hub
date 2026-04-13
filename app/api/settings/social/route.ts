@@ -3,9 +3,12 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth-helpers";
 import { encryptSocialToken } from "@/lib/token-crypto";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
     try {
         const { userId } = await getAuthUser(req);
+
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }

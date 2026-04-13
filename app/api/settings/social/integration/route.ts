@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth-helpers";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
     try {
         const { userId } = await getAuthUser(req);
@@ -43,6 +45,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
     try {
         const { userId } = await getAuthUser(req);
+
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
