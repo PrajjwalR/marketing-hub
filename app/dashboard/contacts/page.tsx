@@ -1,8 +1,9 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, Phone, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2, MoreVertical, Loader2 } from "lucide-react";
+import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, Phone, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2, MoreVertical, Loader2, CalendarClock, Info } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import {
@@ -19,6 +20,11 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Contact {
     id: string;
@@ -67,9 +73,19 @@ export default function ContactsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
     const [editingContactId, setEditingContactId] = useState<string | null>(null);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const [newContact, setNewContact] = useState({
+    const [newContact, setNewContact] = useState<{
+        name: string;
+        contact: string;
+        email: string;
+        location: string;
+        birthday: string;
+        purchase_count: number;
+        total_purchase_amount: number;
+        status: Contact['status'];
+    }>({
         name: '',
         contact: '',
         email: '',
@@ -77,7 +93,7 @@ export default function ContactsPage() {
         birthday: '',
         purchase_count: 0,
         total_purchase_amount: 0,
-        status: 'Active' as const
+        status: 'Active',
     });
     
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,6 +163,70 @@ export default function ContactsPage() {
             status: contact.status || 'Active',
         });
         setIsAddModalOpen(true);
+    };
+
+    const handleSyncToCalendar = async () => {
+        setIsSyncingCalendar(true);
+        try {
+            const now = new Date();
+            const body = {
+                syncYear: now.getFullYear(),
+                syncMonth: now.getMonth() + 1,
+                syncDay: now.getDate(),
+            };
+            const res = await fetch('/api/crm/sync-calendar', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const json = (await res.json().catch(() => ({}))) as {
+                birthdayCreated?: number;
+                loyaltyCreated?: number;
+                meta?: {
+                    civilDate?: string;
+                    activeContactCount?: number;
+                    birthdaysMatching?: number;
+                    loyaltyRunsToday?: boolean;
+                    loyaltyTemplateDays?: number[];
+                };
+                error?: string;
+            };
+            if (!res.ok) {
+                toast.error(json.error || 'Could not sync to calendar');
+                return;
+            }
+            const m = json.meta;
+            const bc = json.birthdayCreated ?? 0;
+            const lc = json.loyaltyCreated ?? 0;
+            const days = m?.loyaltyTemplateDays?.length ? m.loyaltyTemplateDays.join(', ') : '1, 14, 28';
+            if (bc === 0 && lc === 0) {
+                const parts: string[] = [];
+                parts.push(`Synced for ${m?.civilDate ?? 'today'} (your local date).`);
+                if ((m?.activeContactCount ?? 0) === 0) {
+                    parts.push('No contacts are assigned to your account yet — add or import contacts first.');
+                } else {
+                    parts.push(`${m?.activeContactCount} active contact(s).`);
+                    parts.push(
+                        m?.birthdaysMatching
+                            ? `${m.birthdaysMatching} birthday(s) match this date — postings may already exist.`
+                            : 'No active contact has a birthday on this date.'
+                    );
+                    parts.push(
+                        m?.loyaltyRunsToday
+                            ? 'Loyalty template runs today — if count is 0, that posting may already exist.'
+                            : `Loyalty postings are only auto-added on day-of-month: ${days} (not today).`
+                    );
+                }
+                toast('Calendar sync', { description: parts.join(' ') });
+            } else {
+                toast.success(
+                    `Posting calendar: +${bc} birthday, +${lc} loyalty (${m?.civilDate ?? ''}). Open Postings Calendar to review.`
+                );
+            }
+        } finally {
+            setIsSyncingCalendar(false);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -229,9 +309,24 @@ export default function ContactsPage() {
                     total_purchase_amount: Number.isFinite(totalAmount) ? totalAmount : 0,
                     status
                 };
-            }).filter((entry) => entry.email && /.+@.+\..+/.test(entry.email));
+            })
+                .map((entry) => ({
+                    ...entry,
+                    email: String(entry.email || '')
+                        .trim()
+                        .toLowerCase(),
+                }))
+                .filter((entry) => entry.email && /.+@.+\..+/.test(entry.email));
 
-            if (entries.length === 0) {
+            const dedupedByEmail: typeof entries = [];
+            const seenEmails = new Set<string>();
+            for (const entry of entries) {
+                if (seenEmails.has(entry.email)) continue;
+                seenEmails.add(entry.email);
+                dedupedByEmail.push(entry);
+            }
+
+            if (dedupedByEmail.length === 0) {
                 alert('No valid contacts found. Please ensure your file includes at least Name and Email columns.');
                 return;
             }
@@ -240,10 +335,11 @@ export default function ContactsPage() {
             let failedCount = 0;
             const failedReasons: string[] = [];
 
-            for (const entry of entries) {
+            for (const entry of dedupedByEmail) {
                 const res = await fetch('/api/crm/contacts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(entry)
                 });
                 if (res.ok) {
@@ -438,6 +534,48 @@ export default function ContactsPage() {
                             <Trash2 className="h-3.5 w-3.5" /> Delete Selected ({selectedIds.length})
                         </Button>
                     )}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all"
+                                    disabled={isSyncingCalendar}
+                                    onClick={() => void handleSyncToCalendar()}
+                                >
+                                    {isSyncingCalendar ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <CalendarClock className="h-3.5 w-3.5" />
+                                    )}
+                                    Sync to calendar
+                                </Button>
+                                <button
+                                    type="button"
+                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 cursor-help"
+                                    aria-label="About syncing to calendar"
+                                >
+                                    <Info className="h-4 w-4" aria-hidden />
+                                </button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent
+                            side="bottom"
+                            align="end"
+                            sideOffset={6}
+                            className="max-w-[min(100vw-2rem,20rem)] px-3 py-2.5 text-left text-xs leading-relaxed font-normal"
+                        >
+                            <span className="font-semibold block mb-1.5">Sync to calendar</span>
+                            <p className="opacity-95">
+                                Adds CRM reminders to your <strong>Postings Calendar</strong> for{" "}
+                                <strong>today</strong> (your local date): birthday lines for contacts whose birthday
+                                is today, and on the <strong>1st, 14th, and 28th</strong> of each month a loyalty-style
+                                reminder (reward points, thank-you). These are planning rows—they don&apos;t
+                                auto-post to social unless you act on them. A daily job also runs in the background.
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
                     <Button 
                         variant="outline" 
                         className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all" 

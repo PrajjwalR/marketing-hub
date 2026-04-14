@@ -86,7 +86,7 @@ export function ListView() {
             </div>
 
             {/* Selected date in blue */}
-            <div className="text-lg font-semibold text-blue-600 mb-5">
+            <div className="text-lg font-semibold text-blue-600 mb-3">
                 {format(currentDate, 'EEE, MMM d, yyyy')}
             </div>
 
@@ -162,7 +162,8 @@ export function ListView() {
                                 const addedAt = event.created_at ? parseISO(event.created_at) : null;
                                 const account = resolveAccount(event.account_id);
                                 const platformKey = (account?.platform || event.platform || '').toLowerCase();
-                                const cfg = PLATFORM_CONFIG[platformKey] || { icon: List, label: 'Post' };
+                                const isCrm = event.type === 'crm_birthday' || event.type === 'crm_loyalty';
+                                const cfg = PLATFORM_CONFIG[platformKey] || { icon: List, label: isCrm ? 'CRM posting' : 'Post' };
                                 const PlatformIcon = cfg.icon;
                                 const media = event.media_url?.split(',')[0]?.trim();
                                 const statusLabel = event.status === 'scheduled' ? 'Scheduled' : event.status === 'completed' ? 'Published' : event.status === 'cancelled' ? 'Cancelled' : 'Draft';
@@ -183,6 +184,11 @@ export function ListView() {
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <PlatformIcon className="h-5 w-5 text-zinc-600 shrink-0" />
+                                                        {isCrm && (
+                                                            <span className="text-[10px] font-black uppercase tracking-wide text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md shrink-0">
+                                                                CRM
+                                                            </span>
+                                                        )}
                                                         <span className="font-bold text-zinc-900 truncate text-base">
                                                             {account?.profile_name || event.title}
                                                         </span>

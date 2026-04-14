@@ -107,7 +107,6 @@ export function WeekView() {
 
                     const festivals = dayEvents.filter(e => e.type === 'festival');
                     const isFestival = festivals.length > 0;
-
                     return (
                         <div
                             key={key}
@@ -155,7 +154,7 @@ export function WeekView() {
                                     </button>
                                 </div>
                             </div>
-                            
+
                             {/* Festivals Banner for the day */}
                             {festivals.map(fest => (
                                 <div key={fest.id} className="mx-3 mt-3 px-3 py-2 rounded-xl bg-amber-100 text-amber-800 text-xs font-semibold flex items-center justify-center gap-1.5 border border-amber-200 text-center leading-tight">
@@ -188,6 +187,7 @@ export function WeekView() {
                                         const media = event.media_url?.split(',')[0]?.trim();
                                         const platformKey = (account?.platform || event.platform || '').toLowerCase();
                                         const whenLabel = format(when, 'h:mm a');
+                                        const isCrm = event.type === 'crm_birthday' || event.type === 'crm_loyalty';
 
                                         return (
                                             <button
@@ -195,7 +195,13 @@ export function WeekView() {
                                                 onClick={() => openEditDialog(event)}
                                                 className={cn(
                                                     'relative w-full text-left rounded-2xl border-2 bg-white shadow-sm transition-all hover:shadow-md overflow-hidden',
-                                                    isFestival ? 'border-orange-200 hover:border-orange-400' : event.status === 'cancelled' ? 'opacity-50 border-zinc-200' : 'border-zinc-200 hover:border-amber-300'
+                                                    isCrm
+                                                        ? 'border-rose-200 ring-1 ring-rose-100 hover:border-rose-300'
+                                                        : isFestival
+                                                          ? 'border-orange-200 hover:border-orange-400'
+                                                          : event.status === 'cancelled'
+                                                            ? 'opacity-50 border-zinc-200'
+                                                            : 'border-zinc-200 hover:border-amber-300'
                                                 )}
                                             >
                                                 <EventApprovalBadge

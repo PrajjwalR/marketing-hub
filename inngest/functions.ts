@@ -11,6 +11,7 @@ import { publishToLinkedIn } from "@/lib/linkedin-publish";
 import { publishToFacebook } from "@/lib/facebook-publish";
 import { publishToInstagram } from "@/lib/instagram-publish";
 import { publishToTikTok } from "@/lib/tiktok-publish";
+import { syncCrmCalendarForAllOwners, civilDayFromUtcDate } from "@/lib/sync-crm-calendar-posts";
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
@@ -469,6 +470,17 @@ export const processScheduledPosts = inngest.createFunction(
         }
 
         return { processed: duePosts.length, results };
+    }
+);
+
+export const syncCrmCalendarDaily = inngest.createFunction(
+    { id: "sync-crm-calendar-daily" },
+    { cron: "20 0 * * *" },
+    async ({ step }) => {
+        const result = await step.run("sync-crm-birthdays-and-loyalty", async () => {
+            return syncCrmCalendarForAllOwners(civilDayFromUtcDate(new Date()));
+        });
+        return result;
     }
 );
 
