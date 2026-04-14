@@ -33,21 +33,34 @@ export async function GET(req: Request) {
 
         const { userId, integrationId } = stateObj;
 
-        if (!userId || !integrationId) {
-            return new NextResponse("Missing userId or integrationId in state", { status: 400 });
+        if (!userId) {
+            return new NextResponse("Missing userId in state", { status: 400 });
         }
 
-        // Fetch custom app credentials
-        const { data: integration, error: integrationError } = await supabaseAdmin
-            .from('social_integrations')
-            .select('client_id, client_secret')
-            .eq('id', integrationId)
-            .eq('user_id', userId)
-            .single();
+        let clientId = process.env.LINKEDIN_CLIENT_ID;
+        let clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
 
-        if (integrationError || !integration) {
-            console.error("Failed to fetch custom integration credentials:", integrationError);
-            return new NextResponse("Invalid integration", { status: 400 });
+        // Fetch custom app credentials if integrationId is provided
+        if (integrationId) {
+            const { data: integration, error: integrationError } = await supabaseAdmin
+                .from('social_integrations')
+                .select('client_id, client_secret')
+                .eq('id', integrationId)
+                .eq('user_id', userId)
+                .single();
+
+            if (integrationError || !integration) {
+                console.error("Failed to fetch custom integration credentials:", integrationError);
+                return new NextResponse("Invalid integration", { status: 400 });
+            }
+
+            clientId = integration.client_id;
+            clientSecret = integration.client_secret;
+        }
+
+        if (!clientId || !clientSecret) {
+            console.error("[LinkedIn] Missing client credentials (env or DB)");
+            return NextResponse.redirect(`${origin}/dashboard/settings?error=linkedin_config`);
         }
 
         const redirectUri = `${origin}/api/settings/social/callback/linkedin`;
@@ -60,8 +73,8 @@ export async function GET(req: Request) {
                 grant_type: 'authorization_code',
                 code,
                 redirect_uri: redirectUri,
-                client_id: integration.client_id,
-                client_secret: integration.client_secret,
+                client_id: clientId,
+                client_secret: clientSecret,
             }),
         });
 

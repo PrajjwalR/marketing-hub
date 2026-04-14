@@ -1,6 +1,7 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { helloWorld, generateVideo, scheduleDailyVideos, processScheduledPosts, syncCrmCalendarDaily } from "@/inngest/functions";
+import { helloWorld, generateVideo, scheduleDailyVideos, processScheduledPosts } from "@/inngest/functions";
+import { instagramCommentMonitor, instagramProcessAccount } from "@/inngest/instagram-auto-reply";
 
 // Create an API route that serves the Inngest functions
 export const { GET, POST, PUT } = serve({
@@ -10,6 +11,7 @@ export const { GET, POST, PUT } = serve({
         generateVideo,
         scheduleDailyVideos,
         processScheduledPosts,
-        syncCrmCalendarDaily,
+        instagramCommentMonitor,
+        instagramProcessAccount,
     ],
 });
