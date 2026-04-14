@@ -1078,6 +1078,37 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                                         </DialogTitle>
                                     </DialogHeader>
                                     <div className="space-y-4 pt-2 max-h-[300px] overflow-y-auto">
+                                        {/* System/Default App option */}
+                                        {platform === 'linkedin' && (
+                                            <div className="flex flex-col gap-2 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 mb-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-bold text-indigo-900">Agent Elephant App</span>
+                                                    <Badge className="bg-indigo-100 text-indigo-700 border-none text-[9px] uppercase font-black">Shared</Badge>
+                                                </div>
+                                                <Button 
+                                                    onClick={() => {
+                                                        window.location.href = `/api/settings/social/connect/${platform}`;
+                                                    }}
+                                                    className="w-full text-white font-bold shadow-sm transition-colors bg-indigo-600 hover:bg-indigo-700"
+                                                >
+                                                    Connect using Agent Elephant App
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {customIntegrations && customIntegrations.length > 0 && (
+                                            <div className="relative py-2">
+                                                <div className="absolute inset-0 flex items-center">
+                                                    <span className="w-full border-t border-zinc-100" />
+                                                </div>
+                                                <div className="relative flex justify-center text-xs uppercase">
+                                                    <span className="bg-white px-2 text-zinc-400 font-bold">
+                                                        {platform === 'linkedin' ? 'Or use custom app' : 'Use custom app'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {customIntegrations && customIntegrations.length > 0 ? (
                                             customIntegrations.map((app: any) => (
                                                 <div key={app.id} className="flex flex-col gap-2 p-3 rounded-xl bg-zinc-50 border border-zinc-200">
@@ -1096,16 +1127,19 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="text-center py-6">
-                                                <p className="text-sm text-zinc-500 mb-4">No saved credentials for {platform}.</p>
+                                            <div className="text-center py-4 border-t border-dashed border-zinc-200 mt-2">
+                                                <p className="text-[11px] text-zinc-400 mb-3 italic">No custom {platform} apps configured yet.</p>
                                                 <Button 
-                                                    variant="outline"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-xs text-indigo-600 font-bold hover:bg-indigo-50"
                                                     onClick={() => {
                                                         setShowCredentialsModal(false);
                                                         onManageCredentials?.();
                                                     }}
                                                 >
-                                                    Manage OAuth Credentials
+                                                    <Pencil className="h-3 w-3 mr-1.5" />
+                                                    Add Custom App
                                                 </Button>
                                             </div>
                                         )}

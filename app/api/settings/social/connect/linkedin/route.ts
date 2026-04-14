@@ -12,23 +12,26 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const integrationId = searchParams.get('integrationId');
 
-        if (!integrationId) {
-            return new NextResponse("Missing integration ID. Please use a custom app.", { status: 400 });
+        let clientId = process.env.LINKEDIN_CLIENT_ID;
+
+        if (integrationId) {
+            const { data: integration, error } = await supabaseAdmin
+                .from('social_integrations')
+                .select('client_id')
+                .eq('id', integrationId)
+                .eq('user_id', userId)
+                .single();
+
+            if (error || !integration) {
+                console.error("Failed to fetch integration credentials:", error);
+                return new NextResponse("Invalid integration", { status: 400 });
+            }
+            clientId = integration.client_id;
         }
 
-        const { data: integration, error } = await supabaseAdmin
-            .from('social_integrations')
-            .select('client_id')
-            .eq('id', integrationId)
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !integration) {
-            console.error("Failed to fetch integration credentials:", error);
-            return new NextResponse("Invalid integration", { status: 400 });
+        if (!clientId) {
+            return new NextResponse("Missing LinkedIn Client ID. Please configure it in .env or use a custom app.", { status: 400 });
         }
-
-        const clientId = integration.client_id;
 
         // Build redirect from request host (works with ngrok, localhost, production)
         const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
@@ -38,7 +41,7 @@ export async function GET(req: Request) {
 
         // w_member_social = personal posts; w_organization_social = page/company posts (Hello Stores)
         // App must be verified in LinkedIn Developer Portal for w_organization_social to work
-        const scopes = ['openid', 'profile', 'email', 'w_member_social', 'w_organization_social'];
+        const scopes = ['openid', 'profile', 'email', 'w_member_social'];
 
         const stateData = JSON.stringify({ userId, integrationId });
 
