@@ -3,7 +3,7 @@ import { AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
 export default function SkeletonLoader() {
   const labels = Array.from(
     { length: AI_PHOTOSHOOT_VARIATIONS_PER_RUN },
-    (_, i) => `Variation ${i + 1}`
+    (_, i) => `Shot ${i + 1}`
   );
 
   return (

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 
 export function formatFileTitleFromLabel(label: string, index = 0): string {
-  const base = label.trim() || `variation_${index + 1}`;
+  const base = label.trim() || `Shot ${index + 1}`;
   const slug = base
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_]/g, "")
@@ -16,7 +16,6 @@ const CARD_CLASS =
 type PhotoshootGenerationCardProps = {
   href?: string;
   imageUrl: string | null;
-  fileTitle: string;
   headline: string;
   description: string;
   tags: string;
@@ -46,7 +45,7 @@ async function downloadImage(url: string, label: string) {
 
 function CardBody({
   imageUrl,
-  fileTitle,
+ 
   headline,
   description,
   tags,
@@ -91,9 +90,6 @@ function CardBody({
         )}
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1 p-2.5">
-        <p className="truncate text-[9px] font-bold uppercase tracking-[0.12em] text-[#EA580C]">
-          {fileTitle}
-        </p>
         <p className="line-clamp-2 text-xs font-bold leading-snug text-zinc-900">
           {headline}
         </p>
@@ -111,7 +107,7 @@ function CardBody({
 export function PhotoshootGenerationCard({
   href,
   imageUrl,
-  fileTitle,
+
   headline,
   description,
   tags,
@@ -122,7 +118,7 @@ export function PhotoshootGenerationCard({
   const body = (
     <CardBody
       imageUrl={imageUrl}
-      fileTitle={fileTitle}
+
       headline={headline}
       description={description}
       tags={tags}

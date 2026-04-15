@@ -17,22 +17,45 @@ export async function GET(
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
+    // Try photo sessions first
+    const { data: photoData, error: photoError } = await supabaseAdmin
       .from("ai_photoshoot_sessions")
       .select("*")
       .eq("id", id)
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error) {
-      console.error("[ai_photoshoot session GET]", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    if (!data) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (photoError) {
+      console.error("[ai_photoshoot session GET]", photoError);
+      return NextResponse.json({ error: photoError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ session: data });
+    if (photoData) {
+      return NextResponse.json({
+        session: { ...photoData, generation_mode: "photo" },
+      });
+    }
+
+    // If not found in photos, try video sessions
+    const { data: videoData, error: videoError } = await supabaseAdmin
+      .from("ai_video_sessions")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (videoError) {
+      console.error("[ai_video_session GET]", videoError);
+      return NextResponse.json({ error: videoError.message }, { status: 500 });
+    }
+
+    if (videoData) {
+      return NextResponse.json({
+        session: { ...videoData, generation_mode: "video" },
+      });
+    }
+
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Internal error";
     if (msg === "Unauthorized") {

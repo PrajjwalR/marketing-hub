@@ -11,12 +11,15 @@ import {
   Sparkles,
   Image as ImageIcon,
   ChevronDown,
+  Camera,
+  Film,
 } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import SkeletonLoader from "./SkeletonLoader";
 import {
   generatePhotoshoot,
   type ModelInfo,
+  type GenerationMode,
 } from "@/app/api/AI-photoshoot/photoshoot";
 import { useAuth } from "@/lib/auth-context";
 import { AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
@@ -30,11 +33,12 @@ interface JewelryType {
 interface Message {
   id: string;
   role: "system" | "user";
-  type: "welcome" | "image" | "results" | "text";
+  type: "welcome" | "image" | "results" | "text" | "video-result";
   model?: ModelInfo;
   text: string;
   imageUrl?: string;
   images?: (string | { url: string; label: string })[];
+  videoUrl?: string;
 }
 
 const JEWELRY_TYPES: JewelryType[] = [
@@ -57,6 +61,7 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
   const [jewelryType, setJewelryType] = useState("necklace");
+  const [generationMode, setGenerationMode] = useState<GenerationMode>("photo");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasResults, setHasResults] = useState(false);
@@ -121,17 +126,20 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
   const handleGenerate = async () => {
     if (!uploadedFile) return;
 
+    const modeLabel = generationMode === "video" ? "video" : "photoshoot";
+
     const userMsg: Message = {
       id: `user-${Date.now()}`,
       role: "user",
       type: "image",
       imageUrl: uploadedPreview ?? undefined,
-      text: `Here is my ${selectedType.label.toLowerCase()} image. Generate the photoshoot!`,
+      text: `Here is my ${selectedType.label.toLowerCase()} image. Generate the ${modeLabel}!`,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     const fileToSend = uploadedFile;
     const typeToSend = jewelryType;
+    const modeToSend = generationMode;
     setUploadedFile(null);
     setUploadedPreview(null);
     setIsLoading(true);
@@ -141,17 +149,31 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
         selectedModel,
         fileToSend,
         typeToSend,
+        modeToSend,
       );
 
-      const resultMsg: Message = {
-        id: `system-result-${Date.now()}`,
-        role: "system",
-        type: "results",
-        images: result.images || [],
-        text: `Your AI ${selectedType.label.toLowerCase()} photoshoot is ready! Here are ${AI_PHOTOSHOOT_VARIATIONS_PER_RUN} stunning variations:`,
-      };
+      if (result.type === "video" && result.video_url) {
+        // Video result
+        const resultMsg: Message = {
+          id: `system-result-${Date.now()}`,
+          role: "system",
+          type: "video-result",
+          videoUrl: result.video_url,
+          text: `Your AI ${selectedType.label.toLowerCase()} video is ready! Here's your luxury jewelry advertisement:`,
+        };
+        setMessages((prev) => [...prev, resultMsg]);
+      } else {
+        // Photo result (existing logic)
+        const resultMsg: Message = {
+          id: `system-result-${Date.now()}`,
+          role: "system",
+          type: "results",
+          images: result.images || [],
+          text: `Your AI ${selectedType.label.toLowerCase()} photoshoot is ready! Here are ${AI_PHOTOSHOOT_VARIATIONS_PER_RUN} stunning variations:`,
+        };
+        setMessages((prev) => [...prev, resultMsg]);
+      }
 
-      setMessages((prev) => [...prev, resultMsg]);
       setHasResults(true);
 
       const token = await getIdToken();
@@ -159,7 +181,7 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
         const imagesPayload = (result.images || []).map((entry) =>
           typeof entry === "string"
             ? { url: entry, label: "Result" }
-            : { url: entry.url, label: entry.label || "Variation" }
+            : { url: entry.url, label: entry.label || "Shot" }
         );
         try {
           await fetch("/api/AI-photoshoot/sessions", {
@@ -174,6 +196,8 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
               model_name: selectedModel.name,
               model_style: selectedModel.style,
               jewelry_type: typeToSend,
+              generation_mode: modeToSend,
+              video_url: result.video_url || null,
               images: imagesPayload,
             }),
           });
@@ -226,12 +250,26 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
                     <span className="inline-block w-2 h-2 rounded-full bg-brand-gold animate-typing-bounce typing-dot-3" />
                   </div>
                   <span className="text-sm text-zinc-500">
-                    AI Stylist is orchestrating the{" "}
-                    {selectedType.label.toLowerCase()} photoshoot…
+                    {generationMode === "video"
+                      ? `AI Director is crafting your ${selectedType.label.toLowerCase()} video… This may take 2-5 minutes.`
+                      : `AI Stylist is orchestrating the ${selectedType.label.toLowerCase()} photoshoot…`}
                   </span>
                 </div>
               </div>
-              <SkeletonLoader />
+              {generationMode === "photo" && <SkeletonLoader />}
+              {generationMode === "video" && (
+                <div className="ml-12 max-w-md">
+                  <div className="ai-photoshoot-shimmer-effect bg-zinc-100 border border-zinc-200 rounded-2xl aspect-[9/16] max-h-80 flex flex-col items-center justify-center gap-3">
+                    <Film size={32} className="text-zinc-300" />
+                    <p className="text-xs text-zinc-400 font-medium tracking-wider uppercase">
+                      Generating Video
+                    </p>
+                    <p className="text-[11px] text-zinc-400">
+                      Please wait, this takes longer than photos
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -256,7 +294,8 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
                     {uploadedFile?.name}
                   </p>
                   <p className="text-xs text-zinc-400">
-                    {selectedType.icon} {selectedType.label} — Ready to generate
+                    {selectedType.icon} {selectedType.label} •{" "}
+                    {generationMode === "photo" ? "📸 Photo" : "🎬 Video"} — Ready to generate
                   </p>
                 </div>
                 <button
@@ -341,6 +380,38 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
                 )}
               </div>
 
+              {/* ── Photo / Video Mode Toggle (Pill) ── */}
+              <div className="relative shrink-0" id="mode-toggle">
+                <div className="flex items-center bg-zinc-100 border border-zinc-200 rounded-full p-0.5 gap-0">
+                  <button
+                    id="btn-mode-photo"
+                    onClick={() => setGenerationMode("photo")}
+                    className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-300 ${
+                      generationMode === "photo"
+                        ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
+                        : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                    title="Generate photo variations"
+                  >
+                    <Camera size={13} />
+                    <span className="hidden sm:inline">Photo</span>
+                  </button>
+                  <button
+                    id="btn-mode-video"
+                    onClick={() => setGenerationMode("video")}
+                    className={`relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all duration-300 ${
+                      generationMode === "video"
+                        ? "bg-white text-zinc-900 shadow-sm border border-zinc-200"
+                        : "text-zinc-500 hover:text-zinc-700"
+                    }`}
+                    title="Generate video ad"
+                  >
+                    <Film size={13} />
+                    <span className="hidden sm:inline">Video</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Upload Button */}
               <input
                 ref={fileInputRef}
@@ -387,7 +458,9 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
                 }`}
               >
                 <Send size={16} />
-                <span className="hidden sm:inline">Generate Photoshoot</span>
+                <span className="hidden sm:inline">
+                  {generationMode === "video" ? "Generate Video" : "Generate Photoshoot"}
+                </span>
                 <span className="sm:hidden">Generate</span>
               </button>
             </div>
