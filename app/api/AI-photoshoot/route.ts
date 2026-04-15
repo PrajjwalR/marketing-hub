@@ -3,11 +3,68 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleGenAI } from "@google/genai";
 import { VideoGenerationReferenceType } from "@google/genai";
 import { PROMPT_MAP, VALID_JEWELRY_TYPES, AI_PHOTOSHOOT_VARIATIONS_PER_RUN, VIDEO_PROMPT } from "@/lib/prompts";
+import { supabaseAdmin } from "@/lib/supabase";
 import fs from "fs/promises";
+import os from "os";
 import path from "path";
 
 const IMAGE_MODEL = "gemini-3.1-flash-image-preview";
 const VIDEO_MODEL = "veo-3.1-generate-preview";
+const AI_PHOTOSHOOT_BUCKET = "ai-photoshoot";
+
+type GeminiImagePart = { inlineData?: { data?: string } };
+type GeminiGenerateContentResponse = {
+  candidates?: { content?: { parts?: GeminiImagePart[] } }[];
+};
+
+async function ensureBucketExists(bucketName: string) {
+  const { data: buckets, error } = await supabaseAdmin.storage.listBuckets();
+  if (error) {
+    console.error("[AI Photoshoot] listBuckets failed:", error);
+    return;
+  }
+
+  const exists = (buckets ?? []).some((b: { name: string }) => b.name === bucketName);
+  if (exists) return;
+
+  const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
+    public: true,
+    fileSizeLimit: 60 * 1024 * 1024, // 60 MB
+    allowedMimeTypes: [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "video/mp4",
+      "video/quicktime",
+    ],
+  });
+  if (createError) {
+    console.error(`[AI Photoshoot] create bucket '${bucketName}' failed:`, createError);
+  }
+}
+
+async function uploadPublicAsset(params: {
+  filePath: string;
+  content: Buffer;
+  contentType: string;
+}): Promise<string> {
+  const { error } = await supabaseAdmin.storage
+    .from(AI_PHOTOSHOOT_BUCKET)
+    .upload(params.filePath, params.content, {
+      contentType: params.contentType,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Supabase upload failed: ${error.message}`);
+  }
+
+  const { data } = supabaseAdmin.storage
+    .from(AI_PHOTOSHOOT_BUCKET)
+    .getPublicUrl(params.filePath);
+
+  return data.publicUrl;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,11 +89,10 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionId = crypto.randomUUID().slice(0, 8);
-    const generatedDir = path.join(process.cwd(), "public", "generated");
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const tmpDir = path.join(os.tmpdir(), "ai-photoshoot");
 
-    await fs.mkdir(generatedDir, { recursive: true });
-    await fs.mkdir(uploadsDir, { recursive: true });
+    await ensureBucketExists(AI_PHOTOSHOOT_BUCKET);
+    await fs.mkdir(tmpDir, { recursive: true });
 
     // ─── VIDEO MODE ──────────────────────────────────────────────────────
     if (generationMode === "video") {
@@ -47,12 +103,6 @@ export async function POST(req: NextRequest) {
       // Read images as base64
       const jewelryBuffer = Buffer.from(await jewelryImage.arrayBuffer());
       const modelBuffer = Buffer.from(await modelImage.arrayBuffer());
-
-      // Save uploads
-      const jewelryExt = jewelryImage.name.split(".").pop() || "png";
-      const modelExt = modelImage.name.split(".").pop() || "png";
-      await fs.writeFile(path.join(uploadsDir, `jewelry_${sessionId}.${jewelryExt}`), jewelryBuffer);
-      await fs.writeFile(path.join(uploadsDir, `model_${sessionId}.${modelExt}`), modelBuffer);
 
       const jewelryBase64 = jewelryBuffer.toString("base64");
       const modelBase64 = modelBuffer.toString("base64");
@@ -164,14 +214,15 @@ export async function POST(req: NextRequest) {
         } else {
           videoBytes = Buffer.from(await downloadResponse.arrayBuffer());
         }
-      } else if ((videoFile as any)?.videoBytes) {
+      } else if ("videoBytes" in (videoFile as Record<string, unknown>)) {
         // Direct bytes available
-        const raw = (videoFile as any).videoBytes;
+        const raw = (videoFile as { videoBytes?: string | ArrayBuffer }).videoBytes;
+        if (!raw) throw new Error("Video response did not contain bytes");
         videoBytes = typeof raw === "string" ? Buffer.from(raw, "base64") : Buffer.from(raw);
       } else {
         // Try using the SDK download method by saving to a temp path
         try {
-          const tempPath = path.join(generatedDir, `temp_${sessionId}.mp4`);
+          const tempPath = path.join(tmpDir, `temp_${sessionId}.mp4`);
           await ai.files.download({
             file: videoFile!,
             downloadPath: tempPath,
@@ -187,25 +238,26 @@ export async function POST(req: NextRequest) {
       }
 
       const videoFilename = `video_${sessionId}.mp4`;
-      const videoPath = path.join(generatedDir, videoFilename);
-      await fs.writeFile(videoPath, videoBytes);
-      console.log(`  💾 Video saved: ${videoFilename} (${Math.round(videoBytes.length / 1024)}KB)`);
+      console.log(`  💾 Video ready: ${videoFilename} (${Math.round(videoBytes.length / 1024)}KB)`);
+
+      const videoUrl = await uploadPublicAsset({
+        filePath: `videos/${sessionId}/${videoFilename}`,
+        content: videoBytes,
+        contentType: "video/mp4",
+      });
 
       return NextResponse.json({
         status: "success",
         session_id: sessionId,
         jewelry_type: jewelryType,
         type: "video",
-        video_url: `/generated/${videoFilename}`,
+        video_url: videoUrl,
       });
     }
 
     // ─── PHOTO MODE (existing logic) ──────────────────────────────────────
-    async function fileToGenerativePart(file: File, tag: string) {
-      const ext = file.name.split(".").pop() || "png";
+    async function fileToGenerativePart(file: File) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const savePath = path.join(uploadsDir, `${tag}_${sessionId}.${ext}`);
-      await fs.writeFile(savePath, buffer);
 
       return {
         inlineData: {
@@ -215,11 +267,11 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const modelPart = await fileToGenerativePart(modelImage, "model");
-    const jewelryPart = await fileToGenerativePart(jewelryImage, "jewelry");
+    const modelPart = await fileToGenerativePart(modelImage);
+    const jewelryPart = await fileToGenerativePart(jewelryImage);
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: IMAGE_MODEL });
+    genAI.getGenerativeModel({ model: IMAGE_MODEL });
     const prompts = PROMPT_MAP[jewelryType];
     const promptEntries = Object.entries(prompts).slice(0, AI_PHOTOSHOOT_VARIATIONS_PER_RUN);
 
@@ -260,21 +312,24 @@ export async function POST(req: NextRequest) {
             throw new Error(`API Error: ${response.status} ${response.statusText}`);
           }
 
-          const data = await response.json();
+          const data = (await response.json()) as GeminiGenerateContentResponse;
           const parts = data.candidates?.[0]?.content?.parts || [];
-          const imagePart = parts.find((p: any) => p.inlineData);
+          const imagePart = parts.find((p) => p.inlineData);
 
           if (imagePart?.inlineData?.data) {
             const buffer = Buffer.from(imagePart.inlineData.data, "base64");
             const filename = `${safeName}_${sessionId}.png`;
-            const filepath = path.join(generatedDir, filename);
-            await fs.writeFile(filepath, buffer);
-            return `/generated/${filename}`;
+            const publicUrl = await uploadPublicAsset({
+              filePath: `photos/${sessionId}/${filename}`,
+              content: buffer,
+              contentType: "image/png",
+            });
+            return publicUrl;
           }
 
           throw new Error("No image data in response");
 
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (attempt >= maxRetries) {
             console.error(`[ERROR] ${variationName} generation failed:`, e);
             const color = safeName === "jewelry" ? "2d2d2d" : "4a3728";
@@ -303,8 +358,9 @@ export async function POST(req: NextRequest) {
       images: images_data,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Backend Error]", error);
-    return NextResponse.json({ detail: error.message || "Internal Server Error" }, { status: 500 });
+    const detail = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ detail }, { status: 500 });
   }
 }
