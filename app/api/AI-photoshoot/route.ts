@@ -5,6 +5,7 @@ import { VideoGenerationReferenceType } from "@google/genai";
 import { PROMPT_MAP, VALID_JEWELRY_TYPES, AI_PHOTOSHOOT_VARIATIONS_PER_RUN, VIDEO_PROMPT } from "@/lib/prompts";
 import { supabaseAdmin } from "@/lib/supabase";
 import fs from "fs/promises";
+import os from "os";
 import path from "path";
 
 const IMAGE_MODEL = "gemini-3.1-flash-image-preview";
@@ -88,12 +89,10 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionId = crypto.randomUUID().slice(0, 8);
-    const generatedDir = path.join(process.cwd(), "public", "generated");
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const tmpDir = path.join(os.tmpdir(), "ai-photoshoot");
 
     await ensureBucketExists(AI_PHOTOSHOOT_BUCKET);
-    await fs.mkdir(generatedDir, { recursive: true });
-    await fs.mkdir(uploadsDir, { recursive: true });
+    await fs.mkdir(tmpDir, { recursive: true });
 
     // ─── VIDEO MODE ──────────────────────────────────────────────────────
     if (generationMode === "video") {
@@ -104,12 +103,6 @@ export async function POST(req: NextRequest) {
       // Read images as base64
       const jewelryBuffer = Buffer.from(await jewelryImage.arrayBuffer());
       const modelBuffer = Buffer.from(await modelImage.arrayBuffer());
-
-      // Save uploads
-      const jewelryExt = jewelryImage.name.split(".").pop() || "png";
-      const modelExt = modelImage.name.split(".").pop() || "png";
-      await fs.writeFile(path.join(uploadsDir, `jewelry_${sessionId}.${jewelryExt}`), jewelryBuffer);
-      await fs.writeFile(path.join(uploadsDir, `model_${sessionId}.${modelExt}`), modelBuffer);
 
       const jewelryBase64 = jewelryBuffer.toString("base64");
       const modelBase64 = modelBuffer.toString("base64");
@@ -229,7 +222,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Try using the SDK download method by saving to a temp path
         try {
-          const tempPath = path.join(generatedDir, `temp_${sessionId}.mp4`);
+          const tempPath = path.join(tmpDir, `temp_${sessionId}.mp4`);
           await ai.files.download({
             file: videoFile!,
             downloadPath: tempPath,
@@ -245,9 +238,7 @@ export async function POST(req: NextRequest) {
       }
 
       const videoFilename = `video_${sessionId}.mp4`;
-      const videoPath = path.join(generatedDir, videoFilename);
-      await fs.writeFile(videoPath, videoBytes);
-      console.log(`  💾 Video saved: ${videoFilename} (${Math.round(videoBytes.length / 1024)}KB)`);
+      console.log(`  💾 Video ready: ${videoFilename} (${Math.round(videoBytes.length / 1024)}KB)`);
 
       const videoUrl = await uploadPublicAsset({
         filePath: `videos/${sessionId}/${videoFilename}`,
@@ -265,11 +256,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── PHOTO MODE (existing logic) ──────────────────────────────────────
-    async function fileToGenerativePart(file: File, tag: string) {
-      const ext = file.name.split(".").pop() || "png";
+    async function fileToGenerativePart(file: File) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const savePath = path.join(uploadsDir, `${tag}_${sessionId}.${ext}`);
-      await fs.writeFile(savePath, buffer);
 
       return {
         inlineData: {
@@ -279,8 +267,8 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    const modelPart = await fileToGenerativePart(modelImage, "model");
-    const jewelryPart = await fileToGenerativePart(jewelryImage, "jewelry");
+    const modelPart = await fileToGenerativePart(modelImage);
+    const jewelryPart = await fileToGenerativePart(jewelryImage);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     genAI.getGenerativeModel({ model: IMAGE_MODEL });
@@ -331,8 +319,6 @@ export async function POST(req: NextRequest) {
           if (imagePart?.inlineData?.data) {
             const buffer = Buffer.from(imagePart.inlineData.data, "base64");
             const filename = `${safeName}_${sessionId}.png`;
-            const filepath = path.join(generatedDir, filename);
-            await fs.writeFile(filepath, buffer);
             const publicUrl = await uploadPublicAsset({
               filePath: `photos/${sessionId}/${filename}`,
               content: buffer,
