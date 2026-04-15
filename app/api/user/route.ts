@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth-helpers";
-
+import { cookies } from "next/headers";
 const BUSINESS_VERTICALS = ["jewellery", "gym", "ecommerce"] as const;
 
 /** GET current user profile: name, email, business context (strategy prompts). */
@@ -47,7 +47,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId, email, name } = await getAuthUser(req);
+    const cookieStore = await cookies();
+    const token = req.headers.get('Authorization')?.split('Bearer ')[1] || cookieStore.get('__session')?.value;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    const { verifyFirebaseToken } = await import('@/lib/auth-helpers');
+    const decoded = await verifyFirebaseToken(token);
+    const userId = decoded.user_id || decoded.sub;
+    const email = decoded.email;
+    const name = decoded.name;
+
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }

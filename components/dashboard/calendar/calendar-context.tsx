@@ -35,6 +35,8 @@ export interface CalendarEvent {
     repeat_frequency?: number | null;
     repeat_end_at?: string | null;
     repeat_count?: number | null;
+    crm_contact_id?: string | null;
+    crm_campaign_key?: string | null;
 }
 
 export interface LabelItem {
@@ -93,7 +95,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
             setIsLoading(true);
             const [eventsRes, socialRes] = await Promise.all([
                 fetch('/api/schedule'),
-                fetch('/api/settings/social')
+                fetch('/api/settings/social'),
             ]);
             
             if (eventsRes.ok) {
@@ -193,7 +195,13 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
 
     const visibleEvents = activeLabelId === 'all'
         ? events
-        : events.filter((event) => (event.labels || []).some((label) => label.id === activeLabelId));
+        : events.filter((event) => {
+            // Keep system-generated calendar rows visible even when a manual label filter is active.
+            if (event.type === 'festival' || event.type === 'crm_birthday' || event.type === 'crm_loyalty') {
+                return true;
+            }
+            return (event.labels || []).some((label) => label.id === activeLabelId);
+        });
 
     return (
         <CalendarContext.Provider

@@ -1,9 +1,11 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2 } from "lucide-react";
+import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, Phone, ShoppingBag, Trash2, Edit2, FileText, CheckCircle2, MoreVertical, Loader2, CalendarClock, Info } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 import {
     Sheet,
     SheetContent,
@@ -12,15 +14,56 @@ import {
     SheetDescription,
     SheetFooter,
 } from "@/components/ui/sheet";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Contact {
     id: string;
     name: string;
+    contact?: string | null;
     email: string;
     location: string;
+    location_status?: string | null;
     birthday: string | null;
+    birthday_details?: string | null;
+    purchase_count?: number | null;
+    total_purchase_amount?: number | null;
     last_purchase?: string | null;
     status: 'Active' | 'Inactive';
+}
+
+function normalizeBirthdayInput(raw: unknown): string | null {
+    if (raw === null || raw === undefined) return null;
+    const v = String(raw).trim();
+    if (!v) return null;
+
+    const asNumber = Number(v);
+    if (Number.isFinite(asNumber)) {
+        const parsed = XLSX.SSF.parse_date_code(asNumber);
+        if (parsed && parsed.y && parsed.m && parsed.d) {
+            const mm = String(parsed.m).padStart(2, '0');
+            const dd = String(parsed.d).padStart(2, '0');
+            return `${parsed.y}-${mm}-${dd}`;
+        }
+    }
+
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
 }
 
 export default function ContactsPage() {
@@ -29,11 +72,36 @@ export default function ContactsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [newContact, setNewContact] = useState({
-        name: '', email: '', location: 'Hyderabad', birthday: '', status: 'Active' as const
+    const [isImporting, setIsImporting] = useState(false);
+    const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
+    const [editingContactId, setEditingContactId] = useState<string | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [newContact, setNewContact] = useState<{
+        name: string;
+        contact: string;
+        email: string;
+        location: string;
+        birthday: string;
+        purchase_count: number;
+        total_purchase_amount: number;
+        status: Contact['status'];
+    }>({
+        name: '',
+        contact: '',
+        email: '',
+        location: 'Hyderabad',
+        birthday: '',
+        purchase_count: 0,
+        total_purchase_amount: 0,
+        status: 'Active',
     });
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const filteredContacts = contacts.filter(
+        (c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())
+    );
+    const allVisibleSelected =
+        filteredContacts.length > 0 && filteredContacts.every((c) => selectedIds.includes(c.id));
 
     const fetchContacts = async () => {
         try {
@@ -51,55 +119,258 @@ export default function ContactsPage() {
         fetchContacts();
     }, []);
 
+    const resetForm = () => {
+        setNewContact({
+            name: '',
+            contact: '',
+            email: '',
+            location: 'Hyderabad',
+            birthday: '',
+            purchase_count: 0,
+            total_purchase_amount: 0,
+            status: 'Active'
+        });
+        setEditingContactId(null);
+    };
+
     const handleAddManual = async () => {
         if (!newContact.name || !newContact.email) return;
-        
+
+        const isEditing = !!editingContactId;
         const res = await fetch('/api/crm/contacts', {
-            method: 'POST',
+            method: isEditing ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newContact)
+            body: JSON.stringify(isEditing ? { id: editingContactId, ...newContact } : newContact)
         });
 
         if (res.ok) {
             fetchContacts();
-            setNewContact({ name: '', email: '', location: 'Hyderabad', birthday: '', status: 'Active' });
+            resetForm();
             setIsAddModalOpen(false);
         }
     };
 
-    const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleEdit = (contact: Contact) => {
+        setEditingContactId(contact.id);
+        setNewContact({
+            name: contact.name || '',
+            contact: contact.contact || '',
+            email: contact.email || '',
+            location: contact.location || 'Hyderabad',
+            birthday: contact.birthday || '',
+            purchase_count: contact.purchase_count ?? 0,
+            total_purchase_amount: contact.total_purchase_amount ?? 0,
+            status: contact.status || 'Active',
+        });
+        setIsAddModalOpen(true);
+    };
+
+    const handleSyncToCalendar = async () => {
+        setIsSyncingCalendar(true);
+        try {
+            const now = new Date();
+            const body = {
+                syncYear: now.getFullYear(),
+                syncMonth: now.getMonth() + 1,
+                syncDay: now.getDate(),
+            };
+            const res = await fetch('/api/crm/sync-calendar', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            const json = (await res.json().catch(() => ({}))) as {
+                birthdayCreated?: number;
+                loyaltyCreated?: number;
+                meta?: {
+                    civilDate?: string;
+                    activeContactCount?: number;
+                    birthdaysMatching?: number;
+                    loyaltyRunsToday?: boolean;
+                    loyaltyTemplateDays?: number[];
+                };
+                error?: string;
+            };
+            if (!res.ok) {
+                toast.error(json.error || 'Could not sync to calendar');
+                return;
+            }
+            const m = json.meta;
+            const bc = json.birthdayCreated ?? 0;
+            const lc = json.loyaltyCreated ?? 0;
+            const days = m?.loyaltyTemplateDays?.length ? m.loyaltyTemplateDays.join(', ') : '1, 14, 28';
+            if (bc === 0 && lc === 0) {
+                const parts: string[] = [];
+                parts.push(`Synced for ${m?.civilDate ?? 'today'} (your local date).`);
+                if ((m?.activeContactCount ?? 0) === 0) {
+                    parts.push('No contacts are assigned to your account yet — add or import contacts first.');
+                } else {
+                    parts.push(`${m?.activeContactCount} active contact(s).`);
+                    parts.push(
+                        m?.birthdaysMatching
+                            ? `${m.birthdaysMatching} birthday(s) match this date — postings may already exist.`
+                            : 'No active contact has a birthday on this date.'
+                    );
+                    parts.push(
+                        m?.loyaltyRunsToday
+                            ? 'Loyalty template runs today — if count is 0, that posting may already exist.'
+                            : `Loyalty postings are only auto-added on day-of-month: ${days} (not today).`
+                    );
+                }
+                toast('Calendar sync', { description: parts.join(' ') });
+            } else {
+                toast.success(
+                    `Posting calendar: +${bc} birthday, +${lc} loyalty (${m?.civilDate ?? ''}). Open Postings Calendar to review.`
+                );
+            }
+        } finally {
+            setIsSyncingCalendar(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        const res = await fetch('/api/crm/contacts', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        if (res.ok) {
+            setSelectedIds((prev) => prev.filter((x) => x !== id));
+            fetchContacts();
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return;
+        const res = await fetch('/api/crm/contacts', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selectedIds })
+        });
+        if (res.ok) {
+            setSelectedIds([]);
+            fetchContacts();
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const text = event.target?.result as string;
-            const lines = text.split('\n');
-            const entries = lines.slice(1).filter(line => line.trim()).map(line => {
-                const [name, email, location, birthday] = line.split(',');
-                return {
-                    name: name?.trim() || 'Unknown',
-                    email: email?.trim() || '',
-                    location: location?.trim() || 'Hyderabad',
-                    birthday: birthday?.trim() || null,
-                    status: 'Active'
-                };
-            });
+        setIsImporting(true);
+        try {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            if (!sheetName) return;
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) return;
 
-            // For demo/simplicity we do them one by one or we could add a bulk endpoint
+            const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+            const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const getFromRow = (
+                row: Record<string, unknown>,
+                aliases: string[],
+                fallbackIndex?: number
+            ) => {
+                const entries = Object.entries(row);
+                for (const [key, value] of entries) {
+                    const nk = normalize(key);
+                    if (aliases.some((a) => nk.includes(normalize(a)))) {
+                        const out = String(value ?? '').trim();
+                        if (out) return out;
+                    }
+                }
+                if (fallbackIndex !== undefined) {
+                    const values = Object.values(row);
+                    const out = String(values[fallbackIndex] ?? '').trim();
+                    if (out) return out;
+                }
+                return '';
+            };
+
+            const entries = rows.map((row) => {
+            const birthdayRaw = getFromRow(row, ['birthday_details', 'birthday details', 'birthday', 'dob'], 5);
+            const birthdayIso = normalizeBirthdayInput(birthdayRaw);
+                const purchaseCount = Number(getFromRow(row, ['purchase_count', 'purchase count', 'times purchased'], 6));
+                const totalAmount = Number(getFromRow(row, ['total_purchase_amount', 'total purchase amount', 'total purchased'], 7));
+                const rawStatus = getFromRow(row, ['status'], 8);
+                const status = rawStatus.toLowerCase() === 'inactive' ? 'Inactive' : 'Active';
+                return {
+                    name: getFromRow(row, ['name', 'full name', 'customer name'], 0) || 'Unknown',
+                    contact: getFromRow(row, ['contact', 'phone', 'phone number', 'mobile', 'mobile number'], 1),
+                    email: getFromRow(row, ['email', 'email address', 'mail'], 2),
+                    location: getFromRow(row, ['location', 'city', 'address'], 3) || 'Hyderabad',
+                    location_status: getFromRow(row, ['location_status', 'location status', 'region'], 3) || 'Local',
+                birthday: birthdayIso,
+                birthday_details: birthdayIso,
+                    purchase_count: Number.isFinite(purchaseCount) ? purchaseCount : 0,
+                    total_purchase_amount: Number.isFinite(totalAmount) ? totalAmount : 0,
+                    status
+                };
+            })
+                .map((entry) => ({
+                    ...entry,
+                    email: String(entry.email || '')
+                        .trim()
+                        .toLowerCase(),
+                }))
+                .filter((entry) => entry.email && /.+@.+\..+/.test(entry.email));
+
+            const dedupedByEmail: typeof entries = [];
+            const seenEmails = new Set<string>();
             for (const entry of entries) {
-                await fetch('/api/crm/contacts', {
+                if (seenEmails.has(entry.email)) continue;
+                seenEmails.add(entry.email);
+                dedupedByEmail.push(entry);
+            }
+
+            if (dedupedByEmail.length === 0) {
+                alert('No valid contacts found. Please ensure your file includes at least Name and Email columns.');
+                return;
+            }
+
+            let successCount = 0;
+            let failedCount = 0;
+            const failedReasons: string[] = [];
+
+            for (const entry of dedupedByEmail) {
+                const res = await fetch('/api/crm/contacts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(entry)
                 });
+                if (res.ok) {
+                    successCount += 1;
+                } else {
+                    failedCount += 1;
+                    try {
+                        const err = await res.json();
+                        failedReasons.push(String(err?.error || 'Unknown error'));
+                    } catch {
+                        failedReasons.push('Unknown error');
+                    }
+                }
             }
-            
-            fetchContacts();
+
+            await fetchContacts();
             setIsImportModalOpen(false);
-            alert(`Successfully imported ${entries.length} contacts!`);
-        };
-        reader.readAsText(file);
+
+            if (successCount > 0 && failedCount === 0) {
+                alert(`Successfully imported ${successCount} contacts!`);
+            } else if (successCount > 0 && failedCount > 0) {
+                const hint = failedReasons[0] ? `\nFirst error: ${failedReasons[0]}` : '';
+                alert(`Imported ${successCount} contacts, ${failedCount} failed.${hint}`);
+            } else {
+                const hint = failedReasons[0] ? `\nFirst error: ${failedReasons[0]}` : '';
+                alert(`No contacts were imported.${hint}`);
+            }
+        } finally {
+            setIsImporting(false);
+            e.target.value = '';
+        }
     };
 
     return (
@@ -110,7 +381,7 @@ export default function ContactsPage() {
                     <SheetHeader className="shrink-0 border-b border-zinc-200 px-6 py-5 text-left space-y-1">
                         <SheetTitle className="text-[17px] font-bold flex items-center gap-2 text-zinc-900">
                             <Plus className="h-4.5 w-4.5 bg-zinc-900 rounded text-white p-0.5" />
-                            Add New Contact
+                            {editingContactId ? 'Edit Contact' : 'Add New Contact'}
                         </SheetTitle>
                         <SheetDescription className="text-zinc-500 text-xs font-normal">
                             Manually add a new customer record to your CRM
@@ -123,6 +394,11 @@ export default function ContactsPage() {
                                 <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Full Name</label>
                                 <input className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm" 
                                     value={newContact.name} onChange={e => setNewContact({...newContact, name: e.target.value})} placeholder="e.g. Rahul Sharma" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Contact</label>
+                                <input className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm" 
+                                    value={newContact.contact} onChange={e => setNewContact({...newContact, contact: e.target.value})} placeholder="+91 98765 43210" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Email Address</label>
@@ -148,6 +424,16 @@ export default function ContactsPage() {
                                     <input type="date" className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm" 
                                         value={newContact.birthday} onChange={e => setNewContact({...newContact, birthday: e.target.value})} />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">No. of times purchased</label>
+                                    <input type="number" min={0} className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm" 
+                                        value={newContact.purchase_count} onChange={e => setNewContact({...newContact, purchase_count: Number(e.target.value || 0)})} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Total amount purchased</label>
+                                    <input type="number" min={0} step="0.01" className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 shadow-sm" 
+                                        value={newContact.total_purchase_amount} onChange={e => setNewContact({...newContact, total_purchase_amount: Number(e.target.value || 0)})} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -155,7 +441,9 @@ export default function ContactsPage() {
                     <SheetFooter className="shrink-0 bg-zinc-50 p-6 border-t border-zinc-200">
                        <div className="flex w-full gap-3">
                             <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1 h-11 text-sm font-bold border-zinc-200 rounded-full">Cancel</Button>
-                            <Button className="flex-1 h-11 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold rounded-full shadow-md transition-all" onClick={handleAddManual}>Save Contact</Button>
+                            <Button className="flex-1 h-11 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold rounded-full shadow-md transition-all" onClick={handleAddManual}>
+                                {editingContactId ? 'Update Contact' : 'Save Contact'}
+                            </Button>
                        </div>
                     </SheetFooter>
                 </SheetContent>
@@ -170,7 +458,7 @@ export default function ContactsPage() {
                             Import Contacts
                         </SheetTitle>
                         <SheetDescription className="text-zinc-500 text-xs font-normal">
-                            Upload a CSV file to bulk import customer records
+                            Upload a spreadsheet or CSV file to bulk import customer records
                         </SheetDescription>
                     </SheetHeader>
                     
@@ -179,21 +467,43 @@ export default function ContactsPage() {
                             <Upload className="h-10 w-10 text-blue-500" />
                         </div>
                         <div className="space-y-2 mb-8">
-                            <h3 className="text-lg font-bold text-zinc-900">Upload CSV File</h3>
-                            <p className="text-sm text-zinc-500 max-w-[280px]">Ensure your CSV has columns for Name, Email, Location, and Birthday.</p>
+                            <h3 className="text-lg font-bold text-zinc-900">Upload Contacts File</h3>
+                            <p className="text-sm text-zinc-500 max-w-[280px]">
+                                CSV columns: name, contact, email, location, status, birthday, purchase_count, total_purchase_amount
+                            </p>
                         </div>
                         
-                        <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleCSVUpload} />
+                        <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            disabled={isImporting}
+                        />
                         
                         <button 
                             onClick={() => fileInputRef.current?.click()}
+                            disabled={isImporting}
                             className="w-full h-32 border-2 border-dashed border-zinc-200 rounded-2xl flex flex-col items-center justify-center gap-3 bg-zinc-50 hover:bg-zinc-100/50 hover:border-zinc-300 transition-all group"
                         >
-                            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                <FileText className="h-5 w-5 text-zinc-400" />
-                            </div>
-                            <span className="text-sm font-bold text-zinc-600">Click to browse or drag & drop</span>
-                            <span className="text-[11px] text-zinc-400 font-medium">Support .CSV up to 10MB</span>
+                            {isImporting ? (
+                                <>
+                                    <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                        <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                                    </div>
+                                    <span className="text-sm font-bold text-zinc-700">Importing contacts...</span>
+                                    <span className="text-[11px] text-zinc-400 font-medium">Please wait while we upload your file</span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                        <FileText className="h-5 w-5 text-zinc-400" />
+                                    </div>
+                                    <span className="text-sm font-bold text-zinc-600">Click to browse or drag & drop</span>
+                                    <span className="text-[11px] text-zinc-400 font-medium">Supports .csv, .xlsx, .xls</span>
+                                </>
+                            )}
                         </button>
                     </div>
 
@@ -215,12 +525,63 @@ export default function ContactsPage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {selectedIds.length > 0 && (
+                        <Button
+                            variant="outline"
+                            className="h-9 px-5 text-xs font-bold gap-2 border-red-200 text-red-600 hover:bg-red-50 rounded-full transition-all"
+                            onClick={handleDeleteSelected}
+                        >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete Selected ({selectedIds.length})
+                        </Button>
+                    )}
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all"
+                                    disabled={isSyncingCalendar}
+                                    onClick={() => void handleSyncToCalendar()}
+                                >
+                                    {isSyncingCalendar ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <CalendarClock className="h-3.5 w-3.5" />
+                                    )}
+                                    Sync to calendar
+                                </Button>
+                                <button
+                                    type="button"
+                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 cursor-help"
+                                    aria-label="About syncing to calendar"
+                                >
+                                    <Info className="h-4 w-4" aria-hidden />
+                                </button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent
+                            side="bottom"
+                            align="end"
+                            sideOffset={6}
+                            className="max-w-[min(100vw-2rem,20rem)] px-3 py-2.5 text-left text-xs leading-relaxed font-normal"
+                        >
+                            <span className="font-semibold block mb-1.5">Sync to calendar</span>
+                            <p className="opacity-95">
+                                Adds CRM reminders to your <strong>Postings Calendar</strong> for{" "}
+                                <strong>today</strong> (your local date): birthday lines for contacts whose birthday
+                                is today, and on the <strong>1st, 14th, and 28th</strong> of each month a loyalty-style
+                                reminder (reward points, thank-you). These are planning rows—they don&apos;t
+                                auto-post to social unless you act on them. A daily job also runs in the background.
+                            </p>
+                        </TooltipContent>
+                    </Tooltip>
                     <Button 
                         variant="outline" 
                         className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all" 
                         onClick={() => setIsImportModalOpen(true)}
                     >
-                        <Upload className="h-3.5 w-3.5" /> Import CSV
+                        <Upload className="h-3.5 w-3.5" /> Import File
                     </Button>
                     <Button 
                         className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-6 rounded-full gap-2 shadow-md transition-all" 
@@ -238,41 +599,66 @@ export default function ContactsPage() {
                         <thead>
                             <tr className="bg-zinc-50/50 border-b border-zinc-200">
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-8">
-                                    <input type="checkbox" className="rounded border-zinc-300" />
+                                    <input
+                                        type="checkbox"
+                                        className="rounded border-zinc-300"
+                                        checked={allVisibleSelected}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedIds(Array.from(new Set([...selectedIds, ...filteredContacts.map((c) => c.id)])));
+                                            } else {
+                                                const visible = new Set(filteredContacts.map((c) => c.id));
+                                                setSelectedIds(selectedIds.filter((id) => !visible.has(id)));
+                                            }
+                                        }}
+                                    />
                                 </th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Name</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Contact</th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Location</th>
-                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Birthday</th>
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Birthday</th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Purchase Count</th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Total Amount</th>
+                                <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
                             {isLoading ? (
-                                <tr><td colSpan={5} className="text-center py-10 text-sm text-zinc-400">Loading contacts...</td></tr>
-                            ) : contacts.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())).map((contact) => (
+                                <tr><td colSpan={10} className="text-center py-10 text-sm text-zinc-400">Loading contacts...</td></tr>
+                            ) : filteredContacts.map((contact) => (
                                 <tr key={contact.id} className="hover:bg-zinc-50 transition-colors group">
-                                    <td className="px-6 py-4"><input type="checkbox" className="rounded border-zinc-300" /></td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center border border-zinc-200">
-                                                <User className="h-4 w-4 text-zinc-500" />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-zinc-900 leading-none mb-1">{contact.name}</span>
-                                                <div className="flex items-center gap-1 text-[11px] text-zinc-500 leading-none">
-                                                    <Mail className="h-2.5 w-2.5" /> {contact.email}
-                                                </div>
-                                            </div>
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-zinc-300"
+                                            checked={selectedIds.includes(contact.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedIds((prev) => [...prev, contact.id]);
+                                                } else {
+                                                    setSelectedIds((prev) => prev.filter((id) => id !== contact.id));
+                                                }
+                                            }}
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4 text-[13px] text-zinc-700 font-semibold">
+                                        {contact.name}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
+                                            <Phone className="h-3.5 w-3.5 text-zinc-400" /> {contact.contact || 'N/A'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
+                                            <Mail className="h-3.5 w-3.5 text-zinc-400" /> {contact.email}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
                                             <MapPin className="h-3.5 w-3.5 text-zinc-400" /> {contact.location}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
-                                            <Cake className="h-3.5 w-3.5 text-zinc-400" /> {contact.birthday || 'N/A'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -282,6 +668,42 @@ export default function ContactsPage() {
                                         )}>
                                             {contact.status}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5 text-[13px] text-zinc-600 font-medium">
+                                            <Cake className="h-3.5 w-3.5 text-zinc-400" /> {contact.birthday || 'N/A'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-[13px] text-zinc-700 font-semibold">
+                                        {contact.purchase_count ?? 0}
+                                    </td>
+                                    <td className="px-6 py-4 text-[13px] text-zinc-700 font-semibold">
+                                        ₹{Number(contact.total_purchase_amount ?? 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 text-zinc-600 hover:bg-zinc-100"
+                                                >
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-36">
+                                                <DropdownMenuItem onClick={() => handleEdit(contact)} className="gap-2">
+                                                    <Edit2 className="h-3.5 w-3.5" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    onClick={() => handleDelete(contact.id)}
+                                                    className="gap-2 text-red-600 focus:text-red-600"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </td>
                                 </tr>
                             ))}

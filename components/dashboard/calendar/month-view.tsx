@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { PlatformPreviewCard } from './platform-preview';
 import { EventApprovalBadge } from './event-approval-badge';
-
 export function MonthView() {
     const { currentDate, setCurrentDate, events, openCreateDialog, openEditDialog, socialConnections } = useCalendar();
 
@@ -44,7 +43,6 @@ export function MonthView() {
 
                         const festivals = dayEvents.filter(e => e.type === 'festival');
                         const isFestival = festivals.length > 0;
-
                         return (
                             <div 
                                 key={day.toString()}
@@ -84,12 +82,18 @@ export function MonthView() {
                                             ? socialConnections.find((c) => c.id === event.account_id)
                                             : undefined;
                                         const platformKey = ((account?.platform || event.platform) || '').toLowerCase();
+                                        const isCrm = event.type === 'crm_birthday' || event.type === 'crm_loyalty';
 
                                         return (
                                             <div
                                                 key={event.id}
                                                 onClick={(e) => { e.stopPropagation(); openEditDialog(event); }}
-                                                className="relative w-full rounded-xl border-2 border-zinc-200 bg-white shadow-sm hover:border-amber-300 hover:shadow-md transition-all overflow-hidden"
+                                                className={cn(
+                                                    'relative w-full rounded-xl border-2 bg-white shadow-sm hover:shadow-md transition-all overflow-hidden',
+                                                    isCrm
+                                                        ? 'border-rose-200 ring-1 ring-rose-100/90 hover:border-rose-300'
+                                                        : 'border-zinc-200 hover:border-amber-300'
+                                                )}
                                             >
                                                 <EventApprovalBadge
                                                     event={event}

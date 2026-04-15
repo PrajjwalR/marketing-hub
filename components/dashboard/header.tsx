@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/context/workspace-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -20,6 +21,7 @@ import {
 export function Header() {
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
+    const { activeWorkspace } = useWorkspace();
 
     useEffect(() => {
         const auth = getAuth(app);
@@ -33,9 +35,14 @@ export function Header() {
         router.push('/');
     };
 
-    const initials = user?.displayName
-        ? user.displayName.substring(0, 2).toUpperCase()
-        : user?.email?.substring(0, 2).toUpperCase() || 'U';
+    const displayName = activeWorkspace?.name || user?.displayName || 'User';
+    const photoURL = activeWorkspace?.logo_url || user?.photoURL || '';
+
+    const initials = activeWorkspace?.name 
+        ? activeWorkspace.name.substring(0, 2).toUpperCase()
+        : user?.displayName
+            ? user.displayName.substring(0, 2).toUpperCase()
+            : user?.email?.substring(0, 2).toUpperCase() || 'U';
 
     return (
         <header className="flex h-14 items-center justify-between border-b border-zinc-200 bg-white px-4 shrink-0 transition-all font-sans">
@@ -67,7 +74,7 @@ export function Header() {
                     <DropdownMenuTrigger asChild>
                         <button className="relative ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 hover:ring-2 hover:ring-indigo-100 transition-all outline-none">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                                <AvatarImage src={photoURL} alt={displayName} />
                                 <AvatarFallback className="bg-emerald-100 text-emerald-800 text-xs font-medium">
                                     {initials}
                                 </AvatarFallback>
@@ -77,7 +84,7 @@ export function Header() {
                     <DropdownMenuContent align="end" className="w-56 font-sans mt-2 rounded-xl">
                         <DropdownMenuLabel className="font-normal p-2">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-bold leading-none text-zinc-900">{user?.displayName || 'User'}</p>
+                                <p className="text-sm font-bold leading-none text-zinc-900">{displayName}</p>
                                 <p className="text-xs leading-none text-zinc-500 truncate">{user?.email}</p>
                             </div>
                         </DropdownMenuLabel>

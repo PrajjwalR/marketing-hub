@@ -22,6 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
 
 const WhatsappIcon = ({ className }: { className?: string }) => (
   <svg
@@ -432,6 +433,14 @@ export function Sidebar() {
           >
                     {isCollapsed ? <Menu className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
           </button>
+        </div>
+
+        {/* Workspace Switcher */}
+        <div className={cn(
+          'border-b border-white/[0.07] py-2',
+          isCollapsed ? 'px-1.5' : 'px-3'
+        )}>
+          <WorkspaceSwitcher isCollapsed={isCollapsed} />
         </div>
 
         {/* Navigation Scroll Area */}
