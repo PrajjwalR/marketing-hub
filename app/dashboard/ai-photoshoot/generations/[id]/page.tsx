@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Loader2, ArrowLeft, Film, Download } from "lucide-react";
+import { Loader2, ArrowLeft, Film, Download, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   PhotoshootGenerationCard,
@@ -29,11 +29,13 @@ type SessionRow = {
 
 export default function AiPhotoshootGenerationDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = typeof params.id === "string" ? params.id : "";
   const { getIdToken, loading: authLoading } = useAuth();
   const [session, setSession] = useState<SessionRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -75,6 +77,31 @@ export default function AiPhotoshootGenerationDetailPage() {
     ? `${session.jewelry_type}`
     : "";
 
+  const handleDeleteSession = useCallback(async () => {
+    if (!session?.id || deleting) return;
+    const ok = window.confirm("Delete this generation session? This cannot be undone.");
+    if (!ok) return;
+
+    const token = await getIdToken();
+    if (!token) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/AI-photoshoot/sessions/${session.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      router.push("/dashboard/ai-photoshoot/generations");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete session");
+      setDeleting(false);
+    }
+  }, [session?.id, deleting, getIdToken, router]);
+
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-[#F5F0E8] pb-16">
       <div className="relative z-10 mx-auto max-w-[1400px] px-4 pt-8 sm:px-6 lg:px-8">
@@ -112,12 +139,23 @@ export default function AiPhotoshootGenerationDetailPage() {
               </div>
             )}
           </div>
-          <Link
-            href={STUDIO_HREF}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-[#E0B428] bg-[#F5C842] px-5 text-sm font-bold text-zinc-900 shadow-sm transition hover:bg-[#E0B428]"
-          >
-            Generate more
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleDeleteSession()}
+              disabled={!session || deleting}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 text-sm font-bold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete session
+            </button>
+            <Link
+              href={STUDIO_HREF}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-[#E0B428] bg-[#F5C842] px-5 text-sm font-bold text-zinc-900 shadow-sm transition hover:bg-[#E0B428]"
+            >
+              Generate more
+            </Link>
+          </div>
         </div>
 
         {loading && (

@@ -3,13 +3,18 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Loader2, Sparkles, Camera, Film, Download } from "lucide-react";
+import { Loader2, Sparkles, Camera, Film, Download, Trash2, MoreVertical } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import {
   PhotoshootGenerationCard,
-  formatFileTitleFromLabel,
   PHOTOSHOOT_GENERATIONS_GRID_CLASS,
 } from "@/components/AI_photoshoot/PhotoshootGenerationCard";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const STUDIO_HREF = "/dashboard/ai-photoshoot/studio";
 
@@ -54,13 +59,14 @@ export default function AiPhotoshootGenerationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("photos");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const catchyPhrase = useMemo(
-    () =>
-      CATCHY_PHRASES[Math.floor(Math.random() * CATCHY_PHRASES.length)] ??
-      CATCHY_PHRASES[0],
-    []
-  );
+  const [catchyPhrase, setCatchyPhrase] = useState(CATCHY_PHRASES[0]);
+
+  useEffect(() => {
+    const randomPhrase = CATCHY_PHRASES[Math.floor(Math.random() * CATCHY_PHRASES.length)];
+    setCatchyPhrase(randomPhrase);
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -103,6 +109,35 @@ export default function AiPhotoshootGenerationsPage() {
   );
 
   const activeSessions = activeTab === "photos" ? photoSessions : videoSessions;
+
+  const handleDeleteSession = useCallback(
+    async (sessionId: string) => {
+      if (deletingId) return;
+      const ok = window.confirm("Delete this generation session? This cannot be undone.");
+      if (!ok) return;
+
+      const token = await getIdToken();
+      if (!token) return;
+
+      setDeletingId(sessionId);
+      try {
+        const res = await fetch(`/api/AI-photoshoot/sessions/${sessionId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j.error || `HTTP ${res.status}`);
+        }
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to delete session");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [deletingId, getIdToken]
+  );
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-[#F5F0E8] pb-16">
@@ -195,23 +230,59 @@ export default function AiPhotoshootGenerationsPage() {
           <div className={PHOTOSHOOT_GENERATIONS_GRID_CLASS}>
             {photoSessions.map((s) => {
               const coverUrl = getSessionCoverUrl(s);
-              const firstLabel = s.images?.[0]?.label?.trim() || "Cover";
-              const fileTitle = formatFileTitleFromLabel(firstLabel);
               const headline = `${s.model_name || "Session"} · ${s.jewelry_type}`;
               const description =
                 s.model_style?.trim() ||
                 `Generated ${format(new Date(s.created_at), "MMM d, yyyy")} · ${s.image_count} image${s.image_count === 1 ? "" : "s"}.`;
               const tags = `${s.jewelry_type.toLowerCase()}, ${format(new Date(s.created_at), "MMM d")}`;
               return (
-                <PhotoshootGenerationCard
-                  key={s.id}
-                  href={`/dashboard/ai-photoshoot/generations/${s.id}`}
-                  imageUrl={coverUrl}
-                  headline={headline}
-                  description={description}
-                  tags={tags}
-                  imageCountBadge={s.image_count}
-                />
+                <div key={s.id} className="relative">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 z-20 inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition hover:bg-black/5 hover:text-zinc-700"
+                        aria-label="Open session actions"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuItem
+                        disabled={deletingId === s.id}
+                        className="text-red-600 focus:text-red-700"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          void handleDeleteSession(s.id);
+                        }}
+                      >
+                        {deletingId === s.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-3.5 w-3.5" />
+                            Delete session
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <PhotoshootGenerationCard
+                    href={`/dashboard/ai-photoshoot/generations/${s.id}`}
+                    imageUrl={coverUrl}
+                    headline={headline}
+                    description={description}
+                    tags={tags}
+                    imageCountBadge={s.image_count}
+                  />
+                </div>
               );
             })}
           </div>
@@ -221,7 +292,46 @@ export default function AiPhotoshootGenerationsPage() {
         {!loading && activeTab === "videos" && videoSessions.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {videoSessions.map((s) => (
-              <VideoSessionCard key={s.id} session={s} />
+              <div key={s.id} className="relative">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="absolute right-2 top-2 z-20 inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition hover:bg-black/5 hover:text-zinc-700"
+                      aria-label="Open session actions"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem
+                      disabled={deletingId === s.id}
+                      className="text-red-600 focus:text-red-700"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handleDeleteSession(s.id);
+                      }}
+                    >
+                      {deletingId === s.id ? (
+                        <>
+                          <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 h-3.5 w-3.5" />
+                          Delete session
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <VideoSessionCard session={s} />
+              </div>
             ))}
           </div>
         )}

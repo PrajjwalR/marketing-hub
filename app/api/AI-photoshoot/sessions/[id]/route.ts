@@ -65,3 +65,56 @@ export async function GET(
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await getAuthUser(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await ctx.params;
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    }
+
+    // Delete from photos first (if exists)
+    const { error: photoError, count: photoDeleted } = await supabaseAdmin
+      .from("ai_photoshoot_sessions")
+      .delete({ count: "exact" })
+      .eq("id", id)
+      .eq("user_id", userId);
+    if (photoError) {
+      console.error("[ai_photoshoot session DELETE]", photoError);
+      return NextResponse.json({ error: photoError.message }, { status: 500 });
+    }
+
+    // Delete from videos too (if exists)
+    const { error: videoError, count: videoDeleted } = await supabaseAdmin
+      .from("ai_video_sessions")
+      .delete({ count: "exact" })
+      .eq("id", id)
+      .eq("user_id", userId);
+    if (videoError) {
+      console.error("[ai_video_session DELETE]", videoError);
+      return NextResponse.json({ error: videoError.message }, { status: 500 });
+    }
+
+    const deleted = (photoDeleted ?? 0) + (videoDeleted ?? 0);
+    if (deleted === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, deleted });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Internal error";
+    if (msg === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("[ai_photoshoot session DELETE]", e);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
