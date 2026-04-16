@@ -11,6 +11,7 @@ import path from "path";
 const IMAGE_MODEL = "gemini-3.1-flash-image-preview";
 const VIDEO_MODEL = "veo-3.1-generate-preview";
 const AI_PHOTOSHOOT_BUCKET = "ai-photoshoot";
+const PHOTO_GENERATION_CONCURRENCY = 2;
 
 type GeminiImagePart = { inlineData?: { data?: string } };
 type GeminiGenerateContentResponse = {
@@ -20,26 +21,21 @@ type GeminiGenerateContentResponse = {
 async function ensureBucketExists(bucketName: string) {
   const { data: buckets, error } = await supabaseAdmin.storage.listBuckets();
   if (error) {
-    console.error("[AI Photoshoot] listBuckets failed:", error);
-    return;
+    throw new Error(`Unable to list storage buckets: ${error.message}`);
   }
 
   const exists = (buckets ?? []).some((b: { name: string }) => b.name === bucketName);
   if (exists) return;
 
+  // Keep creation config minimal for broad compatibility across projects/plans.
   const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
     public: true,
-    fileSizeLimit: 60 * 1024 * 1024, // 60 MB
-    allowedMimeTypes: [
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-      "video/mp4",
-      "video/quicktime",
-    ],
   });
   if (createError) {
-    console.error(`[AI Photoshoot] create bucket '${bucketName}' failed:`, createError);
+    const msg = createError.message || "unknown error";
+    // If another request created it first, continue.
+    if (/already exists/i.test(msg)) return;
+    throw new Error(`Unable to create storage bucket '${bucketName}': ${msg}`);
   }
 }
 
@@ -73,6 +69,12 @@ export async function POST(req: NextRequest) {
     const jewelryImage = formData.get("jewelry_image") as File | null;
     let jewelryType = formData.get("jewelry_type") as string | null;
     const generationMode = (formData.get("generation_mode") as string) || "photo";
+    const runSessionIdInput = (formData.get("run_session_id") as string | null)?.trim() || null;
+    const variationIndexRaw = formData.get("variation_index");
+    const variationIndex =
+      typeof variationIndexRaw === "string" && variationIndexRaw.trim() !== ""
+        ? Number(variationIndexRaw)
+        : null;
 
     if (!modelImage || !jewelryImage || !jewelryType) {
       return NextResponse.json({ detail: "Missing required fields" }, { status: 400 });
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ detail: "Missing GEMINI_API_KEY" }, { status: 500 });
     }
 
-    const sessionId = crypto.randomUUID().slice(0, 8);
+    const sessionId = runSessionIdInput || crypto.randomUUID().slice(0, 8);
     const tmpDir = path.join(os.tmpdir(), "ai-photoshoot");
 
     await ensureBucketExists(AI_PHOTOSHOOT_BUCKET);
@@ -274,8 +276,21 @@ export async function POST(req: NextRequest) {
     genAI.getGenerativeModel({ model: IMAGE_MODEL });
     const prompts = PROMPT_MAP[jewelryType];
     const promptEntries = Object.entries(prompts).slice(0, AI_PHOTOSHOOT_VARIATIONS_PER_RUN);
+    const selectedEntries =
+      variationIndex === null
+        ? promptEntries
+        : Number.isInteger(variationIndex) && variationIndex >= 0 && variationIndex < promptEntries.length
+          ? [promptEntries[variationIndex]]
+          : null;
 
-    async function generateVariation(variationName: string, promptText: string) {
+    if (!selectedEntries) {
+      return NextResponse.json(
+        { detail: `Invalid variation_index. Must be between 0 and ${Math.max(0, promptEntries.length - 1)}.` },
+        { status: 400 }
+      );
+    }
+
+    async function generateVariation(variationName: string, promptText: string): Promise<string> {
       const safeName = variationName.replace(/[\s\-\/]/g, "_").toLowerCase();
       const maxRetries = 3;
       let delay = 15000;
@@ -337,17 +352,26 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+      const fallbackName = variationName.replace(/[\s\-\/]/g, "_").toLowerCase();
+      const fallbackColor = fallbackName === "jewelry" ? "2d2d2d" : "4a3728";
+      return `https://placehold.co/800x1067/${fallbackColor}/fff?text=${variationName.replace(/\s/g, '+')}+failed`;
     }
 
     console.log(`\n==================================================`);
-    console.log(`🎬 Session ${sessionId} — PHOTO mode — type: ${jewelryType} — generating ${promptEntries.length} images`);
+    console.log(`🎬 Session ${sessionId} — PHOTO mode — type: ${jewelryType} — generating ${selectedEntries.length} images`);
     console.log(`==================================================`);
 
-    const images_data = [];
-    for (const [variationName, promptText] of promptEntries) {
-      const url = await generateVariation(variationName, promptText);
-      console.log(`  ✅ ${variationName} → ${url}`);
-      images_data.push({ label: variationName, url });
+    const images_data: { label: string; url: string }[] = [];
+    for (let i = 0; i < selectedEntries.length; i += PHOTO_GENERATION_CONCURRENCY) {
+      const batch = selectedEntries.slice(i, i + PHOTO_GENERATION_CONCURRENCY);
+      const generatedBatch = await Promise.all(
+        batch.map(async ([variationName, promptText]) => {
+          const url = await generateVariation(variationName, promptText);
+          console.log(`  ✅ ${variationName} → ${url}`);
+          return { label: variationName, url };
+        })
+      );
+      images_data.push(...generatedBatch);
     }
 
     return NextResponse.json({

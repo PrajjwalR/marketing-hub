@@ -16,10 +16,10 @@ import {
 } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import SkeletonLoader from "./SkeletonLoader";
+import { usePhotoshoot, type Message } from "@/context/photoshoot-context";
 import {
   generatePhotoshoot,
   type ModelInfo,
-  type GenerationMode,
 } from "@/app/api/AI-photoshoot/photoshoot";
 import { useAuth } from "@/lib/auth-context";
 import { AI_PHOTOSHOOT_VARIATIONS_PER_RUN } from "@/lib/prompts";
@@ -28,17 +28,6 @@ interface JewelryType {
   id: string;
   label: string;
   icon: string;
-}
-
-interface Message {
-  id: string;
-  role: "system" | "user";
-  type: "welcome" | "image" | "results" | "text" | "video-result";
-  model?: ModelInfo;
-  text: string;
-  imageUrl?: string;
-  images?: (string | { url: string; label: string })[];
-  videoUrl?: string;
 }
 
 const JEWELRY_TYPES: JewelryType[] = [
@@ -53,18 +42,24 @@ interface ChatInterfaceProps {
   selectedModel: ModelInfo;
 }
 
-export type { Message };
-
 export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
   const { getIdToken } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const {
+    messages,
+    setMessages,
+    jewelryType,
+    setJewelryType,
+    generationMode,
+    setGenerationMode,
+    isLoading,
+    setIsLoading,
+    hasResults,
+    setHasResults,
+  } = usePhotoshoot();
+
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
-  const [jewelryType, setJewelryType] = useState("necklace");
-  const [generationMode, setGenerationMode] = useState<GenerationMode>("photo");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasResults, setHasResults] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -75,8 +70,10 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
     }, 100);
   }, []);
 
-  // Send initial system message
+  // Send initial system message only if no messages exist
   useEffect(() => {
+    if (messages.length > 0) return;
+    
     const timer = setTimeout(() => {
       setMessages([
         {
@@ -89,7 +86,7 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
       ]);
     }, 400);
     return () => clearTimeout(timer);
-  }, [selectedModel]);
+  }, [selectedModel, setMessages, messages.length]);
 
   useEffect(() => scrollToBottom(), [messages, isLoading, scrollToBottom]);
 
@@ -145,11 +142,45 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
     setIsLoading(true);
 
     try {
+      const progressiveResultId =
+        modeToSend === "photo" ? `system-result-progress-${Date.now()}` : null;
+      if (progressiveResultId) {
+        const startMsg: Message = {
+          id: progressiveResultId,
+          role: "system",
+          type: "results",
+          images: [],
+          text: `Generating your ${selectedType.label.toLowerCase()} photoshoot… 0/${AI_PHOTOSHOOT_VARIATIONS_PER_RUN} ready.`,
+        };
+        setMessages((prev) => [...prev, startMsg]);
+      }
+
       const result = await generatePhotoshoot(
         selectedModel,
         fileToSend,
         typeToSend,
         modeToSend,
+        ({ image, index, total }: { image: { url: string; label: string }; index: number; total: number }) => {
+          if (!progressiveResultId) return;
+          setMessages((prev: Message[]) =>
+            prev.map((m) => {
+              if (m.id !== progressiveResultId) return m;
+              const existing = m.images || [];
+              const already = existing.some((it) =>
+                typeof it === "string" ? it === image.url : it.url === image.url
+              );
+              const nextImages = already ? existing : [...existing, image];
+              return {
+                ...m,
+                images: nextImages,
+                text: `Generating your ${selectedType.label.toLowerCase()} photoshoot… ${Math.min(
+                  index + 1,
+                  total
+                )}/${total} ready.`,
+              };
+            })
+          );
+        }
       );
 
       if (result.type === "video" && result.video_url) {
@@ -162,6 +193,18 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
           text: `Your AI ${selectedType.label.toLowerCase()} video is ready! Here's your luxury jewelry advertisement:`,
         };
         setMessages((prev) => [...prev, resultMsg]);
+      } else if (progressiveResultId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === progressiveResultId
+              ? {
+                  ...m,
+                  images: result.images || [],
+                  text: `Your AI ${selectedType.label.toLowerCase()} photoshoot is ready! Here are ${AI_PHOTOSHOOT_VARIATIONS_PER_RUN} stunning variations:`,
+                }
+              : m
+          )
+        );
       } else {
         // Photo result (existing logic)
         const resultMsg: Message = {
@@ -178,7 +221,7 @@ export default function ChatInterface({ selectedModel }: ChatInterfaceProps) {
 
       const token = await getIdToken();
       if (token && result.session_id) {
-        const imagesPayload = (result.images || []).map((entry) =>
+        const imagesPayload = (result.images || []).map((entry: string | { url: string; label: string }) =>
           typeof entry === "string"
             ? { url: entry, label: "Result" }
             : { url: entry.url, label: entry.label || "Shot" }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import Header from "@/components/AI_photoshoot/Header";
 import ModelSelection from "@/components/AI_photoshoot/ModelSelection";
 import ChatInterface from "@/components/AI_photoshoot/ChatInterface";
 import StudioHowItWorks from "@/components/AI_photoshoot/StudioHowItWorks";
 import type { ModelInfo } from "@/app/api/AI-photoshoot/photoshoot";
+import { usePhotoshoot } from "@/context/photoshoot-context";
 
 const MODELS: ModelInfo[] = [
   {
@@ -113,8 +114,13 @@ const MODELS: ModelInfo[] = [
 ];
 
 export default function AiPhotoshootStudioPage() {
-  const [screen, setScreen] = useState<"selection" | "chat">("selection");
-  const [selectedModel, setSelectedModel] = useState<ModelInfo | null>(null);
+  const { 
+    screen, 
+    setScreen, 
+    selectedModel, 
+    setSelectedModel, 
+    resetSession 
+  } = usePhotoshoot();
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleModelSelect = useCallback((model: ModelInfo) => {
@@ -124,16 +130,15 @@ export default function AiPhotoshootStudioPage() {
       setScreen("chat");
       setIsTransitioning(false);
     }, 450);
-  }, []);
+  }, [setSelectedModel, setScreen]);
 
   const handleBackToSelection = useCallback(() => {
     setIsTransitioning(true);
     setTimeout(() => {
-      setScreen("selection");
-      setSelectedModel(null);
+      resetSession();
       setIsTransitioning(false);
     }, 450);
-  }, []);
+  }, [resetSession]);
 
   return (
     <div className="relative min-h-screen bg-zinc-50">

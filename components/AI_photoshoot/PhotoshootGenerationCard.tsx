@@ -57,7 +57,7 @@ function CardBody({
     <>
       <div className="relative h-36 w-full shrink-0 overflow-hidden bg-zinc-100 sm:h-40">
         {typeof imageCountBadge === "number" && imageCountBadge > 1 && (
-          <span className="absolute right-1.5 top-1.5 z-10 rounded-full bg-zinc-900/85 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+          <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-zinc-900/85 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
             {imageCountBadge}
           </span>
         )}
