@@ -11,7 +11,8 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
         pathname === '/dashboard/inbox-activity' ||
         pathname === '/dashboard/ad-insights' ||
         pathname.startsWith('/dashboard/academy') ||
-        pathname.startsWith('/dashboard/ai-photoshoot');
+        pathname.startsWith('/dashboard/ai-photoshoot') ||
+        pathname.startsWith('/dashboard/designer');
         
     const isDashboardHome =
         pathname === '/dashboard' || 
@@ -22,7 +23,8 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
         isDashboardHome ||
         pathname.startsWith('/dashboard/competitors') ||
         pathname.startsWith('/dashboard/analytics-dashboard') ||
-        pathname.startsWith('/dashboard/analytics');
+        pathname.startsWith('/dashboard/analytics') ||
+        pathname.startsWith('/dashboard/designer');
 
     return (
         <div
