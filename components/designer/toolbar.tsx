@@ -1,162 +1,387 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useDesigner } from '@/lib/designer-context';
+import { useState } from "react";
+
 import { 
-  Bold, 
-  Italic, 
+  FaBold, 
+  FaItalic, 
+  FaStrikethrough, 
+  FaUnderline
+} from "react-icons/fa";
+import { TbColorFilter } from "react-icons/tb";
+import { BsBorderWidth } from "react-icons/bs";
+import { RxTransparencyGrid } from "react-icons/rx";
+import { 
+  ArrowUp, 
+  ArrowDown, 
+  ChevronDown, 
   AlignLeft, 
   AlignCenter, 
-  AlignRight, 
-  Trash2, 
-  Copy, 
-  MoveUp, 
-  MoveDown,
-  ChevronDown
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+  AlignRight,
+  Trash,
+  SquareSplitHorizontal,
+  Copy
+} from "lucide-react";
+
+import { isTextType } from "./utils";
+import { FontSizeInput } from "./font-size-input";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+  ActiveTool, 
+  Editor, 
+  FONT_SIZE, 
+  FONT_WEIGHT
+} from "./types";
+import { Hint } from "./hint";
 
-export function Toolbar() {
-  const { canvas, selectedObject, saveState } = useDesigner();
-  const [fill, setFill] = useState('#000000');
-  const [fontSize, setFontSize] = useState('16');
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-  useEffect(() => {
-    if (selectedObject) {
-      setFill((selectedObject.fill as string) || '#000000');
-      // @ts-ignore
-      setFontSize(selectedObject.fontSize?.toString() || '16');
-    }
-  }, [selectedObject]);
+interface ToolbarProps {
+  editor: Editor | undefined;
+  activeTool: ActiveTool;
+  onChangeActiveTool: (tool: ActiveTool) => void;
+};
 
-  if (!selectedObject) {
+export const Toolbar = ({
+  editor,
+  activeTool,
+  onChangeActiveTool,
+}: ToolbarProps) => {
+  const initialFillColor = editor?.getActiveFillColor();
+  const initialStrokeColor = editor?.getActiveStrokeColor();
+  const initialFontFamily = editor?.getActiveFontFamily();
+  const initialFontWeight = editor?.getActiveFontWeight() || FONT_WEIGHT;
+  const initialFontStyle = editor?.getActiveFontStyle();
+  const initialFontLinethrough = editor?.getActiveFontLinethrough();
+  const initialFontUnderline = editor?.getActiveFontUnderline();
+  const initialTextAlign = editor?.getActiveTextAlign();
+  const initialFontSize = editor?.getActiveFontSize() || FONT_SIZE;
+
+  const [properties, setProperties] = useState({
+    fillColor: initialFillColor,
+    strokeColor: initialStrokeColor,
+    fontFamily: initialFontFamily,
+    fontWeight: initialFontWeight,
+    fontStyle: initialFontStyle,
+    fontLinethrough: initialFontLinethrough,
+    fontUnderline: initialFontUnderline,
+    textAlign: initialTextAlign,
+    fontSize: initialFontSize,
+  });
+
+  const selectedObject = editor?.selectedObjects[0];
+  const selectedObjectType = editor?.selectedObjects[0]?.type;
+
+  const isText = isTextType(selectedObjectType);
+  const isImage = selectedObjectType === "image";
+
+  const onChangeFontSize = (value: number) => {
+    if (!selectedObject) return;
+    editor?.changeFontSize(value);
+    setProperties((current) => ({ ...current, fontSize: value }));
+  };
+
+  const onChangeTextAlign = (value: string) => {
+    if (!selectedObject) return;
+    editor?.changeTextAlign(value);
+    setProperties((current) => ({ ...current, textAlign: value }));
+  };
+
+  const toggleBold = () => {
+    if (!selectedObject) return;
+    const newValue = properties.fontWeight > 500 ? 500 : 700;
+    editor?.changeFontWeight(newValue);
+    setProperties((current) => ({ ...current, fontWeight: newValue }));
+  };
+
+  const toggleItalic = () => {
+    if (!selectedObject) return;
+    const isItalic = properties.fontStyle === "italic";
+    const newValue = isItalic ? "normal" : "italic";
+    editor?.changeFontStyle(newValue);
+    setProperties((current) => ({ ...current, fontStyle: newValue }));
+  };
+
+  const toggleLinethrough = () => {
+    if (!selectedObject) return;
+    const newValue = properties.fontLinethrough ? false : true;
+    editor?.changeFontLinethrough(newValue);
+    setProperties((current) => ({ ...current, fontLinethrough: newValue }));
+  };
+
+  const toggleUnderline = () => {
+    if (!selectedObject) return;
+    const newValue = properties.fontUnderline ? false : true;
+    editor?.changeFontUnderline(newValue);
+    setProperties((current) => ({ ...current, fontUnderline: newValue }));
+  };
+
+  if (editor?.selectedObjects.length === 0) {
     return (
-      <div className="h-12 border-b bg-white flex items-center px-4 shrink-0">
-        <span className="text-xs text-zinc-400">Select an object to edit</span>
-      </div>
+      <div className="shrink-0 h-[56px] border-b bg-white w-full flex items-center overflow-x-auto z-[49] p-2 gap-x-2" />
     );
   }
 
-  const isText = selectedObject.type === 'i-text' || selectedObject.type === 'text';
-
-  const updateProp = (prop: string, value: any) => {
-    if (selectedObject && canvas) {
-      const c = canvas;
-      selectedObject.set(prop as any, value);
-      c.renderAll();
-      saveState();
-      
-      if (prop === 'fill') setFill(value);
-      if (prop === 'fontSize') setFontSize(value.toString());
-    }
-  };
-
-  const deleteObject = () => {
-    const c = canvas;
-    if (selectedObject && c) {
-      c.remove(selectedObject);
-      c.discardActiveObject();
-      c.renderAll();
-      saveState();
-    }
-  };
-
-  const bringToFront = () => {
-    const c = canvas;
-    if (selectedObject && c) {
-        selectedObject.bringToFront();
-        c.renderAll();
-        saveState();
-    }
-  };
-
-  const sendToBack = () => {
-    const c = canvas;
-    if (selectedObject && c) {
-        selectedObject.sendToBack();
-        c.renderAll();
-        saveState();
-    }
-  };
-
   return (
-    <div className="h-12 border-b bg-white flex items-center px-4 shrink-0 gap-2">
-      {/* Property Controls */}
-      <div className="flex items-center gap-1">
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="h-6 w-10 rounded border shadow-sm" style={{ backgroundColor: fill }} />
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-2">
-            <div className="grid grid-cols-6 gap-1">
-              {['#000000', '#ffffff', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#71717a', '#facc15'].map(color => (
-                <button 
-                  key={color} 
-                  className="h-6 w-6 rounded border" 
-                  style={{ backgroundColor: color }} 
-                  onClick={() => updateProp('fill', color)}
-                />
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {isText && (
-          <>
-            <div className="h-4 w-px bg-zinc-200 mx-1" />
-            <Select value={fontSize} onValueChange={(v) => updateProp('fontSize', parseInt(v))}>
-                <SelectTrigger className="h-8 w-16 text-xs">
-                    <SelectValue placeholder="Size" />
-                </SelectTrigger>
-                <SelectContent>
-                    {[12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72].map(size => (
-                        <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProp('fontWeight', (selectedObject as any).fontWeight === 'bold' ? 'normal' : 'bold')}>
-                <Bold className="h-4 w-4" />
+    <div className="shrink-0 h-[56px] border-b bg-white w-full flex items-center overflow-x-auto z-[49] p-2 gap-x-2">
+      {!isImage && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Color" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("fill")}
+              size="icon"
+              variant="ghost"
+              className={cn(activeTool === "fill" && "bg-gray-100")}
+            >
+              <div
+                className="rounded-sm size-4 border"
+                style={{ backgroundColor: properties.fillColor }}
+              />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProp('fontStyle', (selectedObject as any).fontStyle === 'italic' ? 'normal' : 'italic')}>
-                <Italic className="h-4 w-4" />
+          </Hint>
+        </div>
+      )}
+      {!isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Stroke color" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("stroke-color")}
+              size="icon"
+              variant="ghost"
+              className={cn(activeTool === "stroke-color" && "bg-gray-100")}
+            >
+              <div
+                className="rounded-sm size-4 border-2 bg-white"
+                style={{ borderColor: properties.strokeColor }}
+              />
             </Button>
-            <div className="h-4 w-px bg-zinc-200 mx-1" />
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProp('textAlign', 'left')}><AlignLeft className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProp('textAlign', 'center')}><AlignCenter className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => updateProp('textAlign', 'right')}><AlignRight className="h-4 w-4" /></Button>
-          </>
-        )}
+          </Hint>
+        </div>
+      )}
+      {!isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Stroke width" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("stroke-width")}
+              size="icon"
+              variant="ghost"
+              className={cn(activeTool === "stroke-width" && "bg-gray-100")}
+            >
+              <BsBorderWidth className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Font" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("font")}
+              size="icon"
+              variant="ghost"
+              className={cn("w-auto px-2 text-sm", activeTool === "font" && "bg-gray-100")}
+            >
+              <div className="max-w-[100px] truncate">
+                {properties.fontFamily}
+              </div>
+              <ChevronDown className="size-4 ml-2 shrink-0" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Bold" side="bottom" sideOffset={5}>
+            <Button
+              onClick={toggleBold}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.fontWeight > 500 && "bg-gray-100")}
+            >
+              <FaBold className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Italic" side="bottom" sideOffset={5}>
+            <Button
+              onClick={toggleItalic}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.fontStyle === "italic" && "bg-gray-100")}
+            >
+              <FaItalic className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Underline" side="bottom" sideOffset={5}>
+            <Button
+              onClick={toggleUnderline}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.fontUnderline && "bg-gray-100")}
+            >
+              <FaUnderline className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Strike" side="bottom" sideOffset={5}>
+            <Button
+              onClick={toggleLinethrough}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.fontLinethrough && "bg-gray-100")}
+            >
+              <FaStrikethrough className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Align left" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeTextAlign("left")}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.textAlign === "left" && "bg-gray-100")}
+            >
+              <AlignLeft className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Align center" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeTextAlign("center")}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.textAlign === "center" && "bg-gray-100")}
+            >
+              <AlignCenter className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Align right" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeTextAlign("right")}
+              size="icon"
+              variant="ghost"
+              className={cn(properties.textAlign === "right" && "bg-gray-100")}
+            >
+              <AlignRight className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isText && (
+        <div className="flex items-center h-full justify-center">
+         <FontSizeInput
+            value={properties.fontSize}
+            onChange={onChangeFontSize}
+         />
+        </div>
+      )}
+      {isImage && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Filters" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("filter")}
+              size="icon"
+              variant="ghost"
+              className={cn(activeTool === "filter" && "bg-gray-100")}
+            >
+              <TbColorFilter className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      {isImage && (
+        <div className="flex items-center h-full justify-center">
+          <Hint label="Remove background" side="bottom" sideOffset={5}>
+            <Button
+              onClick={() => onChangeActiveTool("remove-bg")}
+              size="icon"
+              variant="ghost"
+              className={cn(activeTool === "remove-bg" && "bg-gray-100")}
+            >
+              <SquareSplitHorizontal className="size-4" />
+            </Button>
+          </Hint>
+        </div>
+      )}
+      <div className="flex items-center h-full justify-center">
+        <Hint label="Bring forward" side="bottom" sideOffset={5}>
+          <Button
+            onClick={() => editor?.bringForward()}
+            size="icon"
+            variant="ghost"
+          >
+            <ArrowUp className="size-4" />
+          </Button>
+        </Hint>
       </div>
-
-      <div className="flex-1" />
-
-      {/* Layering & Actions */}
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" title="Bring to Front" className="h-8 w-8" onClick={bringToFront}><MoveUp className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" title="Send to Back" className="h-8 w-8" onClick={sendToBack}><MoveDown className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" title="Duplicate" className="h-8 w-8" onClick={() => {
-             if (canvas) {
-                const c = canvas;
-                selectedObject.clone((cloned: fabric.Object) => {
-                    c.add(cloned.set({ left: (selectedObject.left || 0) + 10, top: (selectedObject.top || 0) + 10 }));
-                    c.setActiveObject(cloned);
-                    saveState();
-                });
-             }
-        }}><Copy className="h-4 w-4" /></Button>
-        <div className="h-4 w-px bg-zinc-200 mx-1" />
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={deleteObject}>
-            <Trash2 className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center h-full justify-center">
+        <Hint label="Send backwards" side="bottom" sideOffset={5}>
+          <Button
+            onClick={() => editor?.sendBackwards()}
+            size="icon"
+            variant="ghost"
+          >
+            <ArrowDown className="size-4" />
+          </Button>
+        </Hint>
+      </div>
+      <div className="flex items-center h-full justify-center">
+        <Hint label="Opacity" side="bottom" sideOffset={5}>
+          <Button
+            onClick={() => onChangeActiveTool("opacity")}
+            size="icon"
+            variant="ghost"
+            className={cn(activeTool === "opacity" && "bg-gray-100")}
+          >
+            <RxTransparencyGrid className="size-4" />
+          </Button>
+        </Hint>
+      </div>
+      <div className="flex items-center h-full justify-center">
+        <Hint label="Duplicate" side="bottom" sideOffset={5}>
+          <Button
+            onClick={() => {
+              editor?.onCopy();
+              editor?.onPaste();
+            }}
+            size="icon"
+            variant="ghost"
+          >
+            <Copy className="size-4" />
+          </Button>
+        </Hint>
+      </div>
+      <div className="flex items-center h-full justify-center">
+        <Hint label="Delete" side="bottom" sideOffset={5}>
+          <Button
+            onClick={() => editor?.delete()}
+            size="icon"
+            variant="ghost"
+          >
+            <Trash className="size-4" />
+          </Button>
+        </Hint>
       </div>
     </div>
   );
-}
+};

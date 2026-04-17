@@ -1,104 +1,218 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { useDesigner, DesignerProvider } from '@/lib/designer-context';
-import { FabricCanvas } from './fabric-canvas';
-import { Sidebar } from './sidebar';
-import { Toolbar } from '@/components/designer/toolbar';
-import { Button } from '@/components/ui/button';
-import { Save, Download, Share2, Undo2, Redo2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { fabric } from "fabric";
+import debounce from "lodash.debounce";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { 
+  ActiveTool, 
+  selectionDependentTools
+} from "./types";
+import { Navbar } from "./navbar";
+import { Footer } from "./footer";
+import { useEditor } from "./hooks/use-editor";
+import { Sidebar } from "./sidebar";
+import { Toolbar } from "./toolbar";
+import { ShapeSidebar } from "./shape-sidebar";
+import { FillColorSidebar } from "./fill-color-sidebar";
+import { StrokeColorSidebar } from "./stroke-color-sidebar";
+import { StrokeWidthSidebar } from "./stroke-width-sidebar";
+import { OpacitySidebar } from "./opacity-sidebar";
+import { TextSidebar } from "./text-sidebar";
+import { FontSidebar } from "./font-sidebar";
+import { ImageSidebar } from "./image-sidebar";
+import { FilterSidebar } from "./filter-sidebar";
+import { DrawSidebar } from "./draw-sidebar";
+import { AiSidebar } from "./ai-sidebar";
+import { TemplateSidebar } from "./template-sidebar";
+import { RemoveBgSidebar } from "./remove-bg-sidebar";
+import { SettingsSidebar } from "./settings-sidebar";
 
 interface DesignerEditorProps {
-  initialData?: any;
   designId?: string;
+  initialData?: string | null;
 }
 
-function EditorInner({ initialData, designId }: DesignerEditorProps) {
-  const { canvas, saveState } = useDesigner();
+export const DesignerEditor = ({ designId, initialData }: DesignerEditorProps) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  const handleSave = async () => {
-    if (!canvas) return;
-    const c = canvas;
-    const json = c.toJSON();
-    
-    try {
-      const res = await fetch(designId ? `/api/designs/${designId}` : '/api/designs', {
-        method: designId ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Untitled Design',
-          json_data: json,
-          preview_url: c.toDataURL({ format: 'png', quality: 0.8 }),
-        }),
-      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSave = useCallback(
+    debounce(
+      async (values: { 
+        json: string;
+        height: number;
+        width: number;
+      }) => {
+        if (!designId) return;
+        setIsSaving(true);
+        setHasError(false);
+        try {
+          await fetch(`/api/designs/${designId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ json_data: values.json }),
+          });
+        } catch {
+          setHasError(true);
+        } finally {
+          setIsSaving(false);
+        }
+      },
+      500
+    ),
+    [designId]
+  );
 
-      if (!res.ok) throw new Error('Failed to save');
-      toast.success('Design saved');
-    } catch (error) {
-      toast.error('Error saving design');
+  const [activeTool, setActiveTool] = useState<ActiveTool>("select");
+
+  const onClearSelection = useCallback(() => {
+    if (selectionDependentTools.includes(activeTool)) {
+      setActiveTool("select");
     }
-  };
+  }, [activeTool]);
 
-  const handleExport = () => {
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL({ format: 'png', multiplier: 2 });
-    const link = document.createElement('a');
-    link.download = 'design.png';
-    link.href = dataUrl;
-    link.click();
-  };
+  const { init, editor } = useEditor({
+    defaultState: initialData || undefined,
+    defaultWidth: 900,
+    defaultHeight: 1200,
+    clearSelectionCallback: onClearSelection,
+    saveCallback: debouncedSave,
+  });
+
+  const onChangeActiveTool = useCallback((tool: ActiveTool) => {
+    if (tool === "draw") {
+      editor?.enableDrawingMode();
+    }
+
+    if (activeTool === "draw") {
+      editor?.disableDrawingMode();
+    }
+
+    if (tool === activeTool) {
+      return setActiveTool("select");
+    }
+    
+    setActiveTool(tool);
+  }, [activeTool, editor]);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      controlsAboveOverlay: true,
+      preserveObjectStacking: true,
+    });
+
+    init({
+      initialCanvas: canvas,
+      initialContainer: containerRef.current!,
+    });
+
+    return () => {
+      canvas.dispose();
+    };
+  }, [init]);
 
   return (
-    <div className="flex h-screen w-full flex-col bg-white overflow-hidden">
-      {/* Header */}
-      <header className="flex h-14 items-center justify-between border-b px-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-             <div className="h-8 w-8 rounded bg-zinc-900 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">E</span>
-             </div>
-             <h1 className="font-semibold text-zinc-900">Creative AI</h1>
+    <div className="h-full flex flex-col">
+      <Navbar
+        editor={editor}
+        activeTool={activeTool}
+        onChangeActiveTool={onChangeActiveTool}
+        isSaving={isSaving}
+        hasError={hasError}
+      />
+      <div className="flex-1 flex w-full overflow-hidden relative">
+        <Sidebar
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <ShapeSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <FillColorSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <StrokeColorSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <StrokeWidthSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <OpacitySidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <TextSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <FontSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <ImageSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <TemplateSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <FilterSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <AiSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <RemoveBgSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <DrawSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <SettingsSidebar
+          editor={editor}
+          activeTool={activeTool}
+          onChangeActiveTool={onChangeActiveTool}
+        />
+        <main className="bg-muted flex-1 overflow-auto relative flex flex-col">
+          <Toolbar
+            editor={editor}
+            activeTool={activeTool}
+            onChangeActiveTool={onChangeActiveTool}
+            key={JSON.stringify(editor?.canvas.getActiveObject())}
+          />
+          <div className="flex-1 bg-muted relative" ref={containerRef}>
+            <canvas ref={canvasRef} />
           </div>
-          <div className="h-4 w-px bg-zinc-200" />
-          <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" className="h-8 w-8"><Undo2 className="h-4 w-4" /></Button>
-             <Button variant="ghost" size="icon" className="h-8 w-8"><Redo2 className="h-4 w-4" /></Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleSave}>
-            <Save className="h-4 w-4" /> Save
-          </Button>
-          <Button size="sm" className="bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 gap-2 font-medium" onClick={handleExport}>
-            <Download className="h-4 w-4" /> Download
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-            <Share2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <Toolbar />
-          <div className="flex-1 relative">
-             <FabricCanvas initialData={initialData} />
-          </div>
+          <Footer editor={editor} />
         </main>
       </div>
     </div>
   );
-}
-
-export function DesignerEditor(props: DesignerEditorProps) {
-  return (
-    <DesignerProvider>
-      <EditorInner {...props} />
-    </DesignerProvider>
-  );
-}
+};

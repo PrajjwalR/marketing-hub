@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { DesignerEditor } from '@/components/designer/designer-editor';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DesignerEditor } from '@/components/designer/designer-editor';
 
 export default function DesignPage() {
   const { id } = useParams();
