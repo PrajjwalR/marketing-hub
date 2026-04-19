@@ -15,7 +15,7 @@ export default function DesignPage() {
       fetch(`/api/designs/${id}`)
         .then((res) => res.json())
         .then((data) => {
-          setInitialData(data.json_data);
+          setInitialData(data);
           setLoading(false);
         })
         .catch(() => setLoading(false));

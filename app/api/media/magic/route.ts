@@ -17,18 +17,8 @@ export async function POST(req: Request) {
 
         let outputUrl = '';
 
-        if (action === 'remove-bg') {
-            const output = await replicate.run(
-                "cjwbw/rembg:fb8a57bb237f77e83db3510f6a36406d4af4463fe57e93dc4474706c09bda439",
-                {
-                    input: {
-                        image: image
-                    }
-                }
-            );
-            outputUrl = Array.isArray(output) ? (output[0] as string) : (output as unknown as string);
-        } else if (action === 'erase') {
-            // Placeholder for Magic Erase - for now using a cleanup model
+        if (action === 'erase') {
+            // Magic Erase
             const output = await replicate.run(
                 "timothybrooks/instruct-pix2pix:172283085202ed69e763b652614b998cf931ff7188b9070a259c40212f45e2cd",
                 {

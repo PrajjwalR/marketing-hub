@@ -10,6 +10,7 @@ import {
   Type,
   Palette,
   Box,
+  Layers,
 } from "lucide-react";
 
 import { ActiveTool } from "./types";
@@ -25,11 +26,11 @@ export const Sidebar = ({
   onChangeActiveTool,
 }: SidebarProps) => {
   return (
-    <aside className="w-20 border-r flex flex-col items-center py-4 bg-zinc-50 shrink-0 h-full">
+    <aside className="w-20 border-r border-border flex flex-col items-center py-4 bg-background shrink-0 h-full">
       <div className="flex flex-col w-full">
         <SidebarItem
           icon={LayoutTemplate}
-          label="Design"
+          label="Templates"
           isActive={activeTool === "templates"}
           onClick={() => onChangeActiveTool("templates")}
         />
@@ -69,7 +70,17 @@ export const Sidebar = ({
           isActive={activeTool === "settings"}
           onClick={() => onChangeActiveTool("settings")}
         />
+        <SidebarItem
+          icon={Layers}
+          label="Layers"
+          isActive={activeTool === "layers"}
+          onClick={() => onChangeActiveTool("layers")}
+        />
       </div>
     </aside>
   );
 };
+
+
+
+

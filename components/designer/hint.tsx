@@ -29,7 +29,7 @@ export const Hint = ({
           {children}
         </TooltipTrigger>
         <TooltipContent
-          className="text-white bg-slate-800 border-slate-800"
+          className="text-foreground bg-slate-800 border-slate-800"
           side={side}
           align={align}
           sideOffset={sideOffset}
@@ -43,3 +43,7 @@ export const Hint = ({
     </TooltipProvider>
   );
 };
+
+
+
+

@@ -105,7 +105,7 @@ const sidebarData: SidebarSection[] = [
             { name: 'Series', href: '/dashboard/series' },
             { name: 'Gallery', href: '/dashboard/videos' },
             { name: 'Create Content', href: '/dashboard/posters' },
-            { name: 'Designer', href: '/dashboard/designer/new' },
+            { name: 'Designer', href: '/dashboard/designer' },
             { name: 'Create New', href: '/dashboard/create' },
         ]
   },

@@ -40,19 +40,20 @@ export const StrokeWidthSidebar = ({
   };
 
   return (
-    <aside
+    <div
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "stroke-width" ? "visible" : "hidden",
+        "bg-background w-full h-full flex flex-col",
+        activeTool === "stroke-width" ? "block" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Stroke options"
         description="Modify the stroke of your element"
+        onBack={() => onChangeActiveTool("select")}
       />
-      <ScrollArea>
-        <div className="p-4 space-y-4 border-b">
-          <Label className="text-sm">
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-4 border-b border-border">
+          <Label className="text-sm text-muted-foreground">
             Stroke width
           </Label>
           <Slider
@@ -60,8 +61,8 @@ export const StrokeWidthSidebar = ({
             onValueChange={(values) => onChangeStrokeWidth(values[0])}
           />
         </div>
-        <div className="p-4 space-y-4 border-b">
-          <Label className="text-sm">
+        <div className="p-4 space-y-4 border-b border-border">
+          <Label className="text-sm text-muted-foreground">
             Stroke type
           </Label>
           <Button
@@ -69,32 +70,35 @@ export const StrokeWidthSidebar = ({
             variant="secondary"
             size="lg"
             className={cn(
-              "w-full h-16 justify-start text-left",
-              JSON.stringify(typeValue) === `[]` && "border-2 border-blue-500"
+              "w-full h-16 justify-start text-left bg-secondary/50 hover:bg-secondary border-border",
+              JSON.stringify(typeValue) === `[]` && "ring-2 ring-[var(--ci-accent-primary)]"
             )}
             style={{
               padding: "8px 16px"
             }}
           >
-            <div className="w-full border-black rounded-full border-4" />
+            <div className="w-full border-white rounded-full border-4" />
           </Button>
           <Button
             onClick={() => onChangeStrokeType([5, 5])}
             variant="secondary"
             size="lg"
             className={cn(
-              "w-full h-16 justify-start text-left",
-              JSON.stringify(typeValue) === `[5,5]` && "border-2 border-blue-500"
+              "w-full h-16 justify-start text-left bg-secondary/50 hover:bg-secondary border-border",
+              JSON.stringify(typeValue) === `[5,5]` && "ring-2 ring-[var(--ci-accent-primary)]"
             )}
             style={{
               padding: "8px 16px"
             }}
           >
-            <div className="w-full border-black rounded-full border-4 border-dashed" />
+            <div className="w-full border-white rounded-full border-4 border-dashed" />
           </Button>
         </div>
       </ScrollArea>
-      <ToolSidebarClose onClick={onClose} />
-    </aside>
+    </div>
   );
 };
+
+
+
+

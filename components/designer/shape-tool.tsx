@@ -17,9 +17,13 @@ export const ShapeTool = ({
   return (
     <button
       onClick={onClick}
-      className="aspect-square border rounded-md p-5"
+      className="aspect-square border border-border rounded-md p-5 bg-secondary/50 hover:bg-secondary transition-all group"
     >
-      <Icon className={cn("h-full w-full", iconClassName)} />
+      <Icon className={cn("h-full w-full text-foreground group-hover:scale-110 transition-transform", iconClassName)} />
     </button>
   );
 };
+
+
+
+

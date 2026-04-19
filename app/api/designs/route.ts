@@ -37,11 +37,48 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
+    const { userId } = await getAuthUser(request);
     const body = await request.json();
-    const { name, json_data, type, width, height, preview_url, user_id } = body;
+    const { 
+      name, 
+      json_data, 
+      type, 
+      width, 
+      height, 
+      preview_url, 
+      thumbnail_base64 
+    } = body;
 
     if (!name || !json_data) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    let finalPreviewUrl = preview_url;
+
+    // Handle server-side thumbnail upload if base64 is provided
+    if (thumbnail_base64 && thumbnail_base64.startsWith('data:image')) {
+      try {
+        const base64Data = thumbnail_base64.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const fileName = `thumbnails/${userId}-${Date.now()}.png`;
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('designs')
+          .upload(fileName, buffer, {
+            contentType: 'image/png',
+            upsert: true
+          });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabaseAdmin.storage
+            .from('designs')
+            .getPublicUrl(fileName);
+          finalPreviewUrl = publicUrl;
+        }
+      } catch (uploadErr) {
+        console.error('[THUMBNAIL_UPLOAD_ERROR]', uploadErr);
+        // Continue without thumbnail if upload fails
+      }
     }
 
     const { data, error } = await supabaseAdmin
@@ -53,8 +90,8 @@ export async function POST(request: Request) {
           type: type || 'poster', 
           width: width || 1080, 
           height: height || 1080,
-          preview_url,
-          user_id // Ideally this should be from the auth token
+          preview_url: finalPreviewUrl,
+          user_id: userId // Using Firebase UID directly now that schema is fixed
         }
       ])
       .select()
@@ -66,7 +103,7 @@ export async function POST(request: Request) {
     console.error('[DESIGNS_POST_ERROR]', error);
     return NextResponse.json(
       { error: error.message || 'Internal Server Error' }, 
-      { status: 500 }
+      { status: error.message === 'Unauthorized' ? 401 : 500 }
     );
   }
 }

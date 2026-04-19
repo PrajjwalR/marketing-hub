@@ -10,7 +10,19 @@ export const JSON_KEYS = [
   "linkData",
   "editable",
   "extensionType",
-  "extension"
+  "extension",
+  "left",
+  "top",
+  "width",
+  "height",
+  "scaleX",
+  "scaleY",
+  "angle",
+  "flipX",
+  "flipY",
+  "opacity",
+  "visible",
+  "globalCompositeOperation",
 ];
 
 export const filters = [
@@ -68,6 +80,7 @@ export const selectionDependentTools = [
   "remove-bg",
   "stroke-color",
   "stroke-width",
+  "adjust",
 ];
 
 export const colors = [
@@ -107,7 +120,9 @@ export type ActiveTool =
   | "settings"
   | "ai"
   | "remove-bg"
-  | "templates";
+  | "templates"
+  | "layers"
+  | "adjust";
 
 export const FILL_COLOR = "rgba(0,0,0,1)";
 export const STROKE_COLOR = "rgba(0,0,0,1)";
@@ -169,7 +184,7 @@ export const TEXT_OPTIONS = {
 };
 
 export interface EditorHookProps {
-  defaultState?: string;
+  defaultState?: any;
   defaultWidth?: number;
   defaultHeight?: number;
   clearSelectionCallback?: () => void;
@@ -202,6 +217,8 @@ export type BuildEditorProps = {
   setStrokeColor: (value: string) => void;
   setStrokeWidth: (value: number) => void;
   setFontFamily: (value: string) => void;
+  setZoom: (value: number) => void;
+  zoom: number;
 };
 
 export interface Editor {
@@ -209,7 +226,7 @@ export interface Editor {
   saveJpg: () => void;
   saveSvg: () => void;
   saveJson: () => void;
-  loadJson: (json: string) => void;
+  loadJson: (json: string | object) => void;
   loadTemplate: (templateData: any) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -218,6 +235,8 @@ export interface Editor {
   autoZoom: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  setZoom: (value: number) => void;
+  zoom: number;
   getWorkspace: () => fabric.Object | undefined;
   changeBackground: (value: string) => void;
   changeSize: (value: { width: number; height: number }) => void;
@@ -227,6 +246,8 @@ export interface Editor {
   onPaste: () => void;
   changeImageFilter: (value: string) => void;
   addImage: (value: string) => void;
+  replaceActiveImage: (value: string) => void;
+  getActiveImageSrc: () => string | null;
   delete: () => void;
   changeFontSize: (value: number) => void;
   getActiveFontSize: () => number;
@@ -247,6 +268,8 @@ export interface Editor {
   changeOpacity: (value: number) => void;
   bringForward: () => void;
   sendBackwards: () => void;
+  bringToFront: () => void;
+  sendToBack: () => void;
   changeStrokeWidth: (value: number) => void;
   changeFillColor: (value: string) => void;
   changeStrokeColor: (value: string) => void;
@@ -257,10 +280,36 @@ export interface Editor {
   addTriangle: () => void;
   addInverseTriangle: () => void;
   addDiamond: () => void;
+  changeLineHeight: (value: number) => void;
+  getActiveLineHeight: () => number;
+  changeCharSpacing: (value: number) => void;
+  getActiveCharSpacing: () => number;
+  group: () => void;
+  ungroup: () => void;
+  align: (direction: string) => void;
+  changeImageAdjustment: (type: string, value: number) => void;
+  getActiveAdjustment: (type: string) => number;
+  getObjects: () => fabric.Object[];
   canvas: fabric.Canvas;
   getActiveFillColor: () => string;
   getActiveStrokeColor: () => string;
   getActiveStrokeWidth: () => number;
   getActiveStrokeDashArray: () => number[];
+  changeAngle: (value: number) => void;
+  getActiveAngle: () => number;
+  flipX: () => void;
+  flipY: () => void;
+  getActiveFlipX: () => boolean;
+  getActiveFlipY: () => boolean;
+  changeBlendMode: (value: string) => void;
+  getActiveBlendMode: () => string;
+  changeCornerRadius: (value: number) => void;
+  getActiveCornerRadius: () => number;
+  changeVisibility: (value: boolean) => void;
+  getActiveVisibility: () => boolean;
+  changeObjectPosition: (value: { left?: number; top?: number }) => void;
+  getActiveObjectPosition: () => { left: number; top: number };
+  changeObjectSize: (value: { width?: number; height?: number }) => void;
+  getActiveObjectSize: () => { width: number; height: number };
   selectedObjects: fabric.Object[];
 };

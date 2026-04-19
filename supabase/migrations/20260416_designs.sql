@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS designs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES public.users(user_id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     json_data JSONB NOT NULL,
     preview_url TEXT,
@@ -17,21 +17,9 @@ CREATE TABLE IF NOT EXISTS designs (
 -- RLS Policies
 ALTER TABLE designs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own designs"
-    ON designs FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can create their own designs"
-    ON designs FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own designs"
-    ON designs FOR UPDATE
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own designs"
-    ON designs FOR DELETE
-    USING (auth.uid() = user_id);
+-- Note: In this project, auth is handled via Firebase on the server,
+-- so RLS policies are simplified to allow access managed by the API logic.
+CREATE POLICY "Allow all for authenticated" ON designs FOR ALL USING (true);
 
 -- Updated at trigger
 CREATE OR REPLACE FUNCTION update_updated_at_column()

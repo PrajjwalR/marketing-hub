@@ -64,20 +64,21 @@ export const SettingsSidebar = ({
   };
 
   return (
-    <aside
+    <div
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "settings" ? "visible" : "hidden",
+        "bg-background w-full h-full flex flex-col",
+        activeTool === "settings" ? "block" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Settings"
         description="Change the look of your workspace"
+        onBack={() => onChangeActiveTool("select")}
       />
-      <ScrollArea>
-        <form className="space-y-4 p-4" onSubmit={onSubmit}>
+      <ScrollArea className="flex-1">
+        <form className="space-y-4 p-4 border-b border-border" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <Label>
+            <Label className="text-muted-foreground">
               Height
             </Label>
             <Input
@@ -85,10 +86,11 @@ export const SettingsSidebar = ({
               value={height}
               type="number"
               onChange={(e) => changeHeight(e.target.value)}
+              className="bg-secondary/50 border-border text-foreground"
             />
           </div>
           <div className="space-y-2">
-            <Label>
+            <Label className="text-muted-foreground">
               Width
             </Label>
             <Input
@@ -96,20 +98,62 @@ export const SettingsSidebar = ({
               value={width}
               type="number"
               onChange={(e) => changeWidth(e.target.value)}
+              className="bg-secondary/50 border-border text-foreground"
             />
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full bg-[var(--ci-accent-primary)] hover:bg-[var(--ci-accent-primary)]/80 text-white">
             Resize
           </Button>
         </form>
+        <div className="p-4 space-y-2 border-b border-border">
+          <Label className="text-muted-foreground">Presets</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-secondary/50 hover:bg-secondary border-border text-muted-foreground text-[10px]"
+              onClick={() => editor?.changeSize({ width: 1080, height: 1080 })}
+            >
+              Instagram Post
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-secondary/50 hover:bg-secondary border-border text-muted-foreground text-[10px]"
+              onClick={() => editor?.changeSize({ width: 1080, height: 1920 })}
+            >
+              Instagram Story
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-secondary/50 hover:bg-secondary border-border text-muted-foreground text-[10px]"
+              onClick={() => editor?.changeSize({ width: 1280, height: 720 })}
+            >
+              YouTube Thumbnail
+            </Button>
+             <Button
+              variant="secondary"
+              size="sm"
+              className="bg-secondary/50 hover:bg-secondary border-border text-muted-foreground text-[10px]"
+              onClick={() => editor?.changeSize({ width: 1200, height: 630 })}
+            >
+              Facebook Post
+            </Button>
+          </div>
+        </div>
         <div className="p-4">
+          <Label className="text-muted-foreground mb-4 block">Background Color</Label>
           <ColorPicker
             value={background as string}
             onChange={changeBackground}
           />
         </div>
       </ScrollArea>
-      <ToolSidebarClose onClick={onClose} />
-    </aside>
+    </div>
   );
 };
+
+
+
+

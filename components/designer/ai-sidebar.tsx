@@ -58,33 +58,34 @@ export const AiSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[370px] h-full flex flex-col",
-        activeTool === "ai" ? "visible" : "hidden",
+        "bg-background relative border-r border-border z-[40] w-[370px] h-full flex flex-col transition-all",
+        activeTool === "ai" ? "visible translate-x-0" : "hidden -translate-x-full",
       )}
     >
       <ToolSidebarHeader
-        title="Magic"
-        description="Describe what you want to see, and AI will create it for you"
+        title="Magic Creation"
+        description="Describe your vision and watch AI bring it to life"
       />
       <ScrollArea>
         <form onSubmit={onSubmit} className="p-4 space-y-6">
           <Textarea
             disabled={isLoading}
-            placeholder="A futuristic city in the style of cyberpunk with neon lights and flying cars..."
+            placeholder="A cinematic aerial view of a futuristic neon city, 8k resolution, highly detailed..."
             cols={30}
             rows={10}
             required
             minLength={3}
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            className="bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-[var(--ci-accent-primary)]"
           />
           <Button
             disabled={isLoading}
             type="submit"
-            className="w-full"
+            className="w-full bg-[var(--ci-accent-primary)] hover:bg-[var(--ci-accent-primary)]/80 text-white shadow-[0_0_15px_rgba(71,26,255,0.3)]"
           >
             {isLoading && <Loader className="size-4 mr-2 animate-spin" />}
-            Generate Image
+            Generate Magic
           </Button>
         </form>
       </ScrollArea>
@@ -92,3 +93,7 @@ export const AiSidebar = ({
     </aside>
   );
 };
+
+
+
+

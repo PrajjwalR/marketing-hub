@@ -27,8 +27,8 @@ export const TextSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[370px] h-full flex flex-col",
-        activeTool === "text" ? "visible" : "hidden",
+        "bg-background relative border-r border-border z-[40] w-[370px] h-full flex flex-col transition-all",
+        activeTool === "text" ? "visible translate-x-0" : "hidden -translate-x-full",
       )}
     >
       <ToolSidebarHeader
@@ -36,15 +36,15 @@ export const TextSidebar = ({
         description="Add text to your canvas"
       />
       <ScrollArea>
-        <div className="p-4 space-y-4 border-b">
+        <div className="p-4 space-y-4 border-b border-border">
           <Button
-            className="w-full"
+            className="w-full bg-[var(--ci-accent-primary)] hover:bg-[var(--ci-accent-primary)]/80 text-foreground"
             onClick={() => editor?.addText("Textbox")}
           >
             Add a textbox
           </Button>
           <Button
-            className="w-full h-16"
+            className="w-full h-16 bg-secondary/50 hover:bg-secondary border-border text-foreground"
             variant="secondary"
             size="lg"
             onClick={() => editor?.addText("Heading", {
@@ -57,7 +57,7 @@ export const TextSidebar = ({
             </span>
           </Button>
           <Button
-            className="w-full h-16"
+            className="w-full h-16 bg-secondary/50 hover:bg-secondary border-border text-foreground"
             variant="secondary"
             size="lg"
             onClick={() => editor?.addText("Subheading", {
@@ -70,7 +70,7 @@ export const TextSidebar = ({
             </span>
           </Button>
           <Button
-            className="w-full h-16"
+            className="w-full h-16 bg-secondary/50 hover:bg-secondary border-border text-foreground"
             variant="secondary"
             size="lg"
             onClick={() => editor?.addText("Paragraph", {
@@ -85,3 +85,7 @@ export const TextSidebar = ({
     </aside>
   );
 };
+
+
+
+

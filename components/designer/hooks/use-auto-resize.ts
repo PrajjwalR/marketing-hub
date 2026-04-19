@@ -4,9 +4,10 @@ import { useCallback, useEffect } from "react";
 interface UseAutoResizeProps {
   canvas: fabric.Canvas | null;
   container: HTMLDivElement | null;
+  setZoom: (value: number) => void;
 }
 
-export const useAutoResize = ({ canvas, container }: UseAutoResizeProps) => {
+export const useAutoResize = ({ canvas, container, setZoom }: UseAutoResizeProps) => {
   const autoZoom = useCallback(() => {
     if (!canvas || !container) return;
 
@@ -81,7 +82,9 @@ export const useAutoResize = ({ canvas, container }: UseAutoResizeProps) => {
       canvas.clipPath = undefined;
       canvas.requestRenderAll();
     }
-  }, [canvas, container]);
+
+    setZoom(canvas.getZoom());
+  }, [canvas, container, setZoom]);
 
   useEffect(() => {
     let resizeObserver: ResizeObserver | null = null;

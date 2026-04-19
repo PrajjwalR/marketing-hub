@@ -28,17 +28,18 @@ export const StrokeColorSidebar = ({
   };
 
   return (
-    <aside
+    <div
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "stroke-color" ? "visible" : "hidden",
+        "bg-background w-full h-full flex flex-col",
+        activeTool === "stroke-color" ? "block" : "hidden",
       )}
     >
       <ToolSidebarHeader
         title="Stroke color"
         description="Add stroke color to your element"
+        onBack={() => onChangeActiveTool("select")}
       />
-      <ScrollArea>
+      <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
           <ColorPicker
             value={value}
@@ -46,7 +47,10 @@ export const StrokeColorSidebar = ({
           />
         </div>
       </ScrollArea>
-      <ToolSidebarClose onClick={onClose} />
-    </aside>
+    </div>
   );
 };
+
+
+
+

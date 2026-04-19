@@ -80,23 +80,23 @@ export const TemplateSidebar = ({
               style={{ 
                 aspectRatio: `${template.width || 1080}/${template.height || 1080}`
               }}
-              className="relative w-full group hover:opacity-75 transition bg-muted rounded-sm overflow-hidden border"
+              className="relative w-full group hover:ring-2 hover:ring-[var(--ci-accent-primary)] transition-all bg-secondary/50 rounded-md overflow-hidden border border-border"
             >
               {thumbnailUrl ? (
                 <Image
                   fill
                   src={thumbnailUrl}
                   alt={template.name || "Template"}
-                  className="object-cover"
+                  className="object-cover transition-transform group-hover:scale-110"
                 />
               ) : (
-                <div className="flex items-center justify-center w-full h-full bg-slate-100">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold">
+                <div className="flex items-center justify-center w-full h-full bg-secondary">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">
                     {template.type || "Template"}
                   </span>
                 </div>
               )}
-              <div className="opacity-0 group-hover:opacity-100 absolute left-0 bottom-0 w-full text-[10px] truncate text-white p-1 bg-black/50 text-left">
+              <div className="opacity-0 group-hover:opacity-100 absolute left-0 bottom-0 w-full text-[10px] truncate text-foreground p-2 bg-black/70 backdrop-blur-sm text-left transition-opacity">
                 {template.name}
               </div>
             </button>
@@ -114,20 +114,20 @@ export const TemplateSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[370px] h-full flex flex-col",
-        activeTool === "templates" ? "visible" : "hidden",
+        "bg-background relative border-r border-border z-[40] w-[370px] h-full flex flex-col transition-all",
+        activeTool === "templates" ? "visible translate-x-0" : "hidden -translate-x-full",
       )}
     >
       <ToolSidebarHeader
-        title="Design"
-        description="Choose a starting point for your creation"
+        title="Templates"
+        description="Choose a high-end starting point"
       />
       
       <Tabs defaultValue="library" className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-2 border-b">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="library">Library</TabsTrigger>
-            <TabsTrigger value="personal">My Designs</TabsTrigger>
+        <div className="px-4 py-3 border-b border-border">
+          <TabsList className="w-full grid grid-cols-2 bg-secondary/50 p-1 h-10 border-border">
+            <TabsTrigger value="library" className="data-[state=active]:bg-background data-[state=active]:text-foreground text-muted-foreground">Library</TabsTrigger>
+            <TabsTrigger value="personal" className="data-[state=active]:bg-background data-[state=active]:text-foreground text-muted-foreground">Personal</TabsTrigger>
           </TabsList>
         </div>
 
@@ -168,3 +168,7 @@ export const TemplateSidebar = ({
     </aside>
   );
 };
+
+
+
+

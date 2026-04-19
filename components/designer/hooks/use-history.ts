@@ -8,7 +8,7 @@ interface UseHistoryProps {
   defaultHeight?: number;
   defaultWidth?: number;
   saveCallback?: (values: {
-    json: string;
+    json: any;
     height: number;
     width: number;
   }) => void;
@@ -44,7 +44,7 @@ export const useHistory = ({ canvas, saveCallback, defaultHeight, defaultWidth }
     const height = workspace?.height || defaultHeight || 0;
     const width = workspace?.width || defaultWidth || 0;
 
-    saveCallback?.({ json, height, width });
+    saveCallback?.({ json: currentState, height, width });
   }, 
   [
     canvas,
@@ -64,6 +64,11 @@ export const useHistory = ({ canvas, saveCallback, defaultHeight, defaultWidth }
       );
 
       canvas?.loadFromJSON(previousState, () => {
+        // Find the 'clip' object and set it as the canvas clipPath
+        const workspace = canvas?.getObjects().find((obj) => obj.name === "clip");
+        if (workspace && canvas) {
+          canvas.clipPath = workspace;
+        }
         canvas?.renderAll();
         setHistoryIndex(previousIndex);
         skipSave.current = false;
@@ -82,6 +87,11 @@ export const useHistory = ({ canvas, saveCallback, defaultHeight, defaultWidth }
       );
 
       canvas?.loadFromJSON(nextState, () => {
+        // Find the 'clip' object and set it as the canvas clipPath
+        const workspace = canvas?.getObjects().find((obj) => obj.name === "clip");
+        if (workspace && canvas) {
+          canvas.clipPath = workspace;
+        }
         canvas?.renderAll();
         setHistoryIndex(nextIndex);
         skipSave.current = false;

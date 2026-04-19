@@ -43,8 +43,8 @@ export const DrawSidebar = ({
   return (
     <aside
       className={cn(
-        "bg-white relative border-r z-[40] w-[360px] h-full flex flex-col",
-        activeTool === "draw" ? "visible" : "hidden",
+        "bg-background relative border-r border-border z-[40] w-[370px] h-full flex flex-col transition-all",
+        activeTool === "draw" ? "visible translate-x-0" : "hidden -translate-x-full",
       )}
     >
       <ToolSidebarHeader
@@ -52,8 +52,8 @@ export const DrawSidebar = ({
         description="Modify brush settings"
       />
       <ScrollArea>
-        <div className="p-4 space-y-6 border-b">
-          <Label className="text-sm">
+        <div className="p-4 space-y-6 border-b border-border">
+          <Label className="text-sm text-muted-foreground">
             Brush width
           </Label>
           <Slider
@@ -72,3 +72,7 @@ export const DrawSidebar = ({
     </aside>
   );
 };
+
+
+
+

@@ -32,6 +32,7 @@ import { useAutoResize } from "./use-auto-resize";
 import { useCanvasEvents } from "./use-canvas-events";
 import { useWindowEvents } from "./use-window-events";
 import { useLoadState } from "./use-load-state";
+import { initAligningGuidelines } from "./use-alignment-guides";
 
 const buildEditor = ({
   save,
@@ -54,6 +55,8 @@ const buildEditor = ({
   selectedObjects,
   strokeDashArray,
   setStrokeDashArray,
+  zoom,
+  setZoom,
 }: BuildEditorProps): Editor => {
   const generateSaveOptions = () => {
     const { width, height, left, top } = getWorkspace() as fabric.Rect;
@@ -100,24 +103,32 @@ const buildEditor = ({
   };
 
   const saveJson = async () => {
-    const dataUrl = canvas.toJSON(JSON_KEYS);
+    const data = canvas.toJSON(JSON_KEYS);
 
-    await transformText(dataUrl.objects);
+    await transformText(data.objects);
     const fileString = `data:text/json;charset=utf-8,${encodeURIComponent(
-      JSON.stringify(dataUrl, null, "\t"),
+      JSON.stringify(data, null, "\t"),
     )}`;
     downloadFile(fileString, "json");
   };
 
-  const loadJson = (json: string) => {
-    const data = JSON.parse(json);
+  const loadJson = (json: string | object) => {
+    const data = typeof json === "string" ? JSON.parse(json) : json;
 
     canvas.loadFromJSON(data, () => {
+      // Find the 'clip' object and set it as the canvas clipPath
+      const workspace = canvas.getObjects().find((obj) => obj.name === "clip");
+      if (workspace) {
+        canvas.clipPath = workspace;
+      }
       autoZoom();
+      setZoom(canvas.getZoom());
     });
   };
 
-  const loadTemplate = async (templateData: any) => {
+    const loadTemplate = async (templateData: any) => {
+    canvas.discardActiveObject();
+
     // If it's a string, try to parse it
     let data = templateData;
     if (typeof templateData === "string") {
@@ -181,7 +192,9 @@ const buildEditor = ({
               left: width / 2,
               top: currentTop,
               originX: "center",
+              objectCaching: false,
             });
+            img.setCoords();
             canvas.add(img);
             currentTop += img.getScaledHeight() + margin;
             canvas.renderAll();
@@ -222,27 +235,30 @@ const buildEditor = ({
       // 3. Process background image (Scale to Cover)
       if (data.background?.src) {
         fabric.Image.fromURL(data.background.src, (img) => {
+          if (!img) return;
           const scale = Math.max(width / img.width!, height / img.height!);
           img.set({
             scaleX: scale,
             scaleY: scale,
-            selectable: false,
-            evented: false,
+            selectable: true,
+            evented: true,
             name: "background_image",
             originX: "center",
             originY: "center",
             left: width / 2,
             top: height / 2,
+            objectCaching: false,
           });
+          img.setCoords();
           canvas.add(img);
-          img.sendToBack();
-          workspace?.sendToBack();
+          img.moveTo(1); // Workspace is at 0, background at 1
           canvas.renderAll();
         }, { crossOrigin: "anonymous" });
       }
 
       // 4. Process layers
-      for (const layer of data.layers) {
+      const layerStartIndex = data.background?.src ? 2 : 1;
+      data.layers.forEach((layer: any, index: number) => {
         const left = layer.position?.x ?? 0;
         const top = layer.position?.y ?? 0;
 
@@ -259,6 +275,7 @@ const buildEditor = ({
             textAlign: "left",
           });
           canvas.add(text);
+          text.moveTo(layerStartIndex + index);
         } else if (layer.type === "shape" && layer.shape_type === "rectangle") {
           const shape = new fabric.Rect({
             left,
@@ -268,17 +285,25 @@ const buildEditor = ({
             fill: layer.color || "rgba(0,0,0,0.5)",
           });
           canvas.add(shape);
+          shape.moveTo(layerStartIndex + index);
         } else if (layer.type === "image") {
           fabric.Image.fromURL(layer.src, (img) => {
+            if (!img) return;
             if (layer.size?.width && layer.size?.width !== "auto") {
               img.scaleToWidth(layer.size.width);
             }
-            img.set({ left, top });
+            img.set({ 
+              left, 
+              top,
+              objectCaching: false,
+            });
+            img.setCoords();
             canvas.add(img);
+            img.moveTo(layerStartIndex + index);
             canvas.renderAll();
           }, { crossOrigin: "anonymous" });
         }
-      }
+      });
 
       canvas.renderAll();
       setTimeout(autoZoom, 50); // Small delay to ensure all async images are handled or at least started
@@ -287,7 +312,13 @@ const buildEditor = ({
 
     // Fallback to standard Fabric JSON
     canvas.loadFromJSON(data, () => {
+      // Find the 'clip' object and set it as the canvas clipPath
+      const workspace = canvas.getObjects().find((obj) => obj.name === "clip");
+      if (workspace) {
+        canvas.clipPath = workspace;
+      }
       autoZoom();
+      setZoom(canvas.getZoom());
     });
   };
 
@@ -323,7 +354,6 @@ const buildEditor = ({
     canUndo,
     canRedo,
     autoZoom,
-    getWorkspace,
     zoomIn: () => {
       let zoomRatio = canvas.getZoom();
       zoomRatio += 0.05;
@@ -332,6 +362,7 @@ const buildEditor = ({
         new fabric.Point(center.left, center.top),
         zoomRatio > 1 ? 1 : zoomRatio
       );
+      setZoom(canvas.getZoom());
     },
     zoomOut: () => {
       let zoomRatio = canvas.getZoom();
@@ -341,7 +372,11 @@ const buildEditor = ({
         new fabric.Point(center.left, center.top),
         zoomRatio < 0.2 ? 0.2 : zoomRatio,
       );
+      setZoom(canvas.getZoom());
     },
+    setZoom: (value: number) => setZoom(value),
+    zoom,
+    getWorkspace,
     changeSize: (value: { width: number; height: number }) => {
       const workspace = getWorkspace();
 
@@ -383,20 +418,196 @@ const buildEditor = ({
         }
       });
     },
+    changeImageAdjustment: (type: string, value: number) => {
+      const objects = canvas.getActiveObjects();
+      objects.forEach((object) => {
+        if (object.type === "image") {
+          const imageObject = object as fabric.Image;
+          let filter: any;
+
+          switch (type) {
+            case "brightness":
+              filter = imageObject.filters?.find(f => f instanceof fabric.Image.filters.Brightness);
+              if (filter) {
+                filter.brightness = value;
+              } else {
+                imageObject.filters?.push(new fabric.Image.filters.Brightness({ brightness: value }));
+              }
+              break;
+            case "contrast":
+              filter = imageObject.filters?.find(f => f instanceof fabric.Image.filters.Contrast);
+              if (filter) {
+                filter.contrast = value;
+              } else {
+                imageObject.filters?.push(new fabric.Image.filters.Contrast({ contrast: value }));
+              }
+              break;
+            case "saturation":
+              filter = imageObject.filters?.find(f => f instanceof fabric.Image.filters.Saturation);
+              if (filter) {
+                filter.saturation = value;
+              } else {
+                imageObject.filters?.push(new fabric.Image.filters.Saturation({ saturation: value }));
+              }
+              break;
+            case "blur":
+              filter = imageObject.filters?.find(f => f instanceof fabric.Image.filters.Blur);
+              if (filter) {
+                filter.blur = value;
+              } else {
+                imageObject.filters?.push(new fabric.Image.filters.Blur({ blur: value }));
+              }
+              break;
+             case "hue":
+              filter = imageObject.filters?.find(f => f instanceof fabric.Image.filters.HueRotation);
+              if (filter) {
+                filter.rotation = value;
+              } else {
+                imageObject.filters?.push(new fabric.Image.filters.HueRotation({ rotation: value }));
+              }
+              break;
+             case "gamma":
+              filter = imageObject.filters?.find(f => f instanceof (fabric.Image.filters as any).Gamma);
+              if (filter) {
+                filter.gamma = [value, value, value];
+              } else {
+                imageObject.filters?.push(new (fabric.Image.filters as any).Gamma({ gamma: [value, value, value] }) as any);
+              }
+              break;
+          }
+
+          imageObject.applyFilters();
+          canvas.renderAll();
+        }
+      });
+    },
+    getActiveAdjustment: (type: string) => {
+      const selectedObject = selectedObjects[0] as fabric.Image;
+      if (!selectedObject || selectedObject.type !== "image") return 0;
+
+      const filter = (selectedObject.filters || []).find((f) => {
+        switch (type) {
+          case "brightness": return f instanceof fabric.Image.filters.Brightness;
+          case "contrast": return f instanceof fabric.Image.filters.Contrast;
+          case "saturation": return f instanceof fabric.Image.filters.Saturation;
+          case "blur": return f instanceof fabric.Image.filters.Blur;
+          case "hue": return f instanceof fabric.Image.filters.HueRotation;
+          case "gamma": return f instanceof (fabric.Image.filters as any).Gamma;
+          default: return false;
+        }
+      });
+
+      if (!filter) {
+        if (type === "brightness" || type === "contrast" || type === "saturation" || type === "blur" || type === "hue" || type === "gamma") {
+          return 0;
+        }
+        return 0;
+      }
+
+      const f = filter as any;
+      switch (type) {
+        case "brightness": return f.brightness ?? 0;
+        case "contrast": return f.contrast ?? 0;
+        case "saturation": return f.saturation ?? 0;
+        case "blur": return f.blur ?? 0;
+        case "hue": return f.rotation ?? 0;
+        case "gamma": return f.gamma?.[0] ?? 0;
+        default: return 0;
+      }
+    },
     addImage: (value: string) => {
       fabric.Image.fromURL(
         value,
         (image) => {
           const workspace = getWorkspace();
 
-          image.scaleToWidth(workspace?.width || 0);
-          image.scaleToHeight(workspace?.height || 0);
+          // Scale to 80% of workspace width, keeping aspect ratio
+          const workspaceWidth = workspace?.width || 0;
+          const workspaceHeight = workspace?.height || 0;
+          
+          if (image.width! > workspaceWidth || image.height! > workspaceHeight) {
+            const scale = Math.min(
+                (workspaceWidth * 0.8) / image.width!, 
+                (workspaceHeight * 0.8) / image.height!
+            );
+            image.set({
+                scaleX: scale,
+                scaleY: scale,
+            });
+          }
+
+          image.set({
+            objectCaching: false,
+          });
 
           addToCanvas(image);
         },
         {
           crossOrigin: "anonymous",
         },
+      );
+    },
+    getActiveImageSrc: (): string | null => {
+      const active = selectedObjects[0];
+      if (!active || active.type !== "image") return null;
+      const img = active as fabric.Image;
+      // Try to export the current object as a data URL (works for any source)
+      try {
+        const dataUrl = img.toDataURL({ format: "png", quality: 1 });
+        return dataUrl;
+      } catch {
+        // Fallback: return the src of the underlying img element
+        // @ts-ignore
+        return img._originalElement?.currentSrc || img.getSrc?.() || null;
+      }
+    },
+    replaceActiveImage: (value: string) => {
+      const activeObject = selectedObjects[0];
+      if (!activeObject || activeObject.type !== "image") return;
+      const oldImg = activeObject as fabric.Image;
+
+      // Store current position/scale/angle so the replacement looks seamless
+      const props = {
+        left: oldImg.left,
+        top: oldImg.top,
+        scaleX: oldImg.scaleX,
+        scaleY: oldImg.scaleY,
+        angle: oldImg.angle,
+        flipX: oldImg.flipX,
+        flipY: oldImg.flipY,
+        opacity: oldImg.opacity,
+        objectCaching: false,
+        // preserve z-index
+        _idx: canvas.getObjects().indexOf(oldImg),
+      };
+
+      fabric.Image.fromURL(
+        value,
+        (newImg) => {
+          newImg.set({
+            left: props.left,
+            top: props.top,
+            scaleX: props.scaleX,
+            scaleY: props.scaleY,
+            angle: props.angle,
+            flipX: props.flipX,
+            flipY: props.flipY,
+            opacity: props.opacity,
+            objectCaching: false,
+          });
+          newImg.setCoords();
+
+          // Remove old, insert new at same z-index
+          canvas.remove(oldImg);
+          canvas.add(newImg);
+          if (props._idx >= 0) {
+            newImg.moveTo(props._idx);
+          }
+          canvas.setActiveObject(newImg);
+          canvas.renderAll();
+          save();
+        },
+        { crossOrigin: "anonymous" }
       );
     },
     delete: () => {
@@ -559,17 +770,27 @@ const buildEditor = ({
       canvas.getActiveObjects().forEach((object) => {
         canvas.bringForward(object);
       });
-
       canvas.renderAll();
-      
-      const workspace = getWorkspace();
-      workspace?.sendToBack();
     },
     sendBackwards: () => {
       canvas.getActiveObjects().forEach((object) => {
         canvas.sendBackwards(object);
       });
 
+      canvas.renderAll();
+      const workspace = getWorkspace();
+      workspace?.sendToBack();
+    },
+    bringToFront: () => {
+      canvas.getActiveObjects().forEach((object) => {
+        canvas.bringToFront(object);
+      });
+      canvas.renderAll();
+    },
+    sendToBack: () => {
+      canvas.getActiveObjects().forEach((object) => {
+        canvas.sendToBack(object);
+      });
       canvas.renderAll();
       const workspace = getWorkspace();
       workspace?.sendToBack();
@@ -709,6 +930,92 @@ const buildEditor = ({
       );
       addToCanvas(object);
     },
+    getObjects: () => {
+      return canvas.getObjects().filter((obj) => obj.name !== "clip");
+    },
+    group: () => {
+      const activeSelection = canvas.getActiveObject() as fabric.ActiveSelection;
+      if (!activeSelection || activeSelection.type !== "activeSelection") {
+        return;
+      }
+
+      activeSelection.toGroup();
+      canvas.requestRenderAll();
+      save();
+    },
+    ungroup: () => {
+      const activeObject = canvas.getActiveObject() as fabric.Group;
+      if (!activeObject || activeObject.type !== "group") {
+        return;
+      }
+
+      activeObject.toActiveSelection();
+      canvas.requestRenderAll();
+      save();
+    },
+    align: (direction: string) => {
+      const workspace = getWorkspace();
+      const activeObjects = canvas.getActiveObjects();
+
+      if (!workspace || activeObjects.length === 0) return;
+
+      activeObjects.forEach((obj) => {
+        switch (direction) {
+          case "left":
+            obj.set({ left: workspace.left });
+            break;
+          case "right":
+            obj.set({ left: (workspace.left || 0) + (workspace.width || 0) - (obj.getScaledWidth() || 0) });
+            break;
+          case "center":
+            obj.set({ left: (workspace.left || 0) + (workspace.width || 0) / 2 - (obj.getScaledWidth() || 0) / 2 });
+            break;
+          case "top":
+            obj.set({ top: workspace.top });
+            break;
+          case "bottom":
+            obj.set({ top: (workspace.top || 0) + (workspace.height || 0) - (obj.getScaledHeight() || 0) });
+            break;
+          case "middle":
+            obj.set({ top: (workspace.top || 0) + (workspace.height || 0) / 2 - (obj.getScaledHeight() || 0) / 2 });
+            break;
+        }
+        obj.setCoords();
+      });
+
+      canvas.renderAll();
+      save();
+    },
+    changeLineHeight: (value: number) => {
+      canvas.getActiveObjects().forEach((object) => {
+        if (isTextType(object.type)) {
+          // @ts-ignore
+          object.set({ lineHeight: value });
+        }
+      });
+      canvas.renderAll();
+    },
+    getActiveLineHeight: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return 1.16;
+      // @ts-ignore
+      return selectedObject.get("lineHeight") || 1.16;
+    },
+    changeCharSpacing: (value: number) => {
+      canvas.getActiveObjects().forEach((object) => {
+        if (isTextType(object.type)) {
+          // @ts-ignore
+          object.set({ charSpacing: value });
+        }
+      });
+      canvas.renderAll();
+    },
+    getActiveCharSpacing: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return 0;
+      // @ts-ignore
+      return selectedObject.get("charSpacing") || 0;
+    },
     canvas,
     getActiveFontWeight: () => {
       const selectedObject = selectedObjects[0];
@@ -781,6 +1088,124 @@ const buildEditor = ({
 
       return value;
     },
+    changeAngle: (value: number) => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set({ angle: value });
+        object.setCoords();
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveAngle: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return 0;
+      return selectedObject.get("angle") || 0;
+    },
+    flipX: () => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set({ flipX: !object.flipX });
+      });
+      canvas.renderAll();
+      save();
+    },
+    flipY: () => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set({ flipY: !object.flipY });
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveFlipX: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return false;
+      return selectedObject.get("flipX") || false;
+    },
+    getActiveFlipY: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return false;
+      return selectedObject.get("flipY") || false;
+    },
+    changeBlendMode: (value: string) => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set({ globalCompositeOperation: value });
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveBlendMode: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return "source-over";
+      return selectedObject.get("globalCompositeOperation") as string || "source-over";
+    },
+    changeCornerRadius: (value: number) => {
+      canvas.getActiveObjects().forEach((object) => {
+        if (object.type === "rect") {
+          object.set({ rx: value, ry: value } as any);
+        }
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveCornerRadius: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject || selectedObject.type !== "rect") return 0;
+      // @ts-ignore
+      return selectedObject.get("rx") || 0;
+    },
+    changeVisibility: (value: boolean) => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set({ visible: value });
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveVisibility: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return true;
+      return selectedObject.get("visible") ?? true;
+    },
+    changeObjectPosition: (value: { left?: number; top?: number }) => {
+      canvas.getActiveObjects().forEach((object) => {
+        object.set(value);
+        object.setCoords();
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveObjectPosition: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return { left: 0, top: 0 };
+      return { 
+        left: Math.round(selectedObject.get("left") || 0), 
+        top: Math.round(selectedObject.get("top") || 0) 
+      };
+    },
+    changeObjectSize: (value: { width?: number; height?: number }) => {
+      canvas.getActiveObjects().forEach((object) => {
+        if (object.type === "image") {
+            const img = object as fabric.Image;
+            if (value.width) {
+                img.scaleToWidth(value.width);
+            }
+            if (value.height) {
+                img.scaleToHeight(value.height);
+            }
+        } else {
+            object.set(value);
+        }
+        object.setCoords();
+      });
+      canvas.renderAll();
+      save();
+    },
+    getActiveObjectSize: () => {
+      const selectedObject = selectedObjects[0];
+      if (!selectedObject) return { width: 0, height: 0 };
+      return { 
+        width: Math.round(selectedObject.getScaledWidth() || 0), 
+        height: Math.round(selectedObject.getScaledHeight() || 0) 
+      };
+    },
     selectedObjects,
   };
 };
@@ -805,6 +1230,7 @@ export const useEditor = ({
   const [strokeColor, setStrokeColor] = useState(STROKE_COLOR);
   const [strokeWidth, setStrokeWidth] = useState(STROKE_WIDTH);
   const [strokeDashArray, setStrokeDashArray] = useState<number[]>(STROKE_DASH_ARRAY);
+  const [zoom, setZoom] = useState(1);
 
   useWindowEvents();
 
@@ -828,6 +1254,7 @@ export const useEditor = ({
   const { autoZoom } = useAutoResize({
     canvas,
     container,
+    setZoom,
   });
 
   useCanvasEvents({
@@ -877,6 +1304,8 @@ export const useEditor = ({
         setStrokeDashArray,
         fontFamily,
         setFontFamily,
+        zoom,
+        setZoom,
       });
     }
 
@@ -898,6 +1327,7 @@ export const useEditor = ({
     selectedObjects,
     strokeDashArray,
     fontFamily,
+    zoom,
   ]);
 
   const init = useCallback(
@@ -925,9 +1355,10 @@ export const useEditor = ({
         fill: "white",
         selectable: false,
         hasControls: false,
+        evented: false,
         shadow: new fabric.Shadow({
-          color: "rgba(0,0,0,0.8)",
-          blur: 5,
+          color: "rgba(0,0,0,0.5)",
+          blur: 15,
         }),
       });
 
@@ -937,6 +1368,8 @@ export const useEditor = ({
       initialCanvas.add(initialWorkspace);
       initialCanvas.centerObject(initialWorkspace);
       initialCanvas.clipPath = initialWorkspace;
+
+      initAligningGuidelines(initialCanvas);
 
       setCanvas(initialCanvas);
       setContainer(initialContainer);
