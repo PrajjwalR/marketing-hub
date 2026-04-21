@@ -10,6 +10,76 @@ Output formatting (critical):
 - No trailing comma after the last item. Valid JSON only.
 `;
 
+const PREMIUM_CREATIVE_GUARDRAILS = `
+Premium quality rules (critical):
+- Avoid generic fluff (e.g., "engaging", "amazing", "high-quality") unless backed by concrete details.
+- Every suggestion must include all 4 elements: hook angle, visual direction, proof element, CTA direction.
+- Keep outputs brand-safe, specific, and production-ready.
+- Avoid repetitive openings and repeated creative angles across the 8 suggestions.
+`;
+
+const IMAGE_NO_TEXT_RULE = `
+Image-only constraint (critical):
+- For image/poster prompts, the generated image must contain NO text, NO letters, NO words, NO logos, NO watermark, and NO signatures.
+- CTA direction should be represented via composition/mood/subject action, not in-image typography.
+`;
+
+function getPlatformNativeGuidance(platformRaw?: string): string {
+    const platform = (platformRaw || '').trim().toLowerCase();
+
+    if (platform.includes('instagram')) {
+        return `Platform-native guidance (${platformRaw}):
+- Prioritize thumb-stopping first-line hooks and visually clear composition for mobile.
+- Use short, scannable copy and "save/share/comment" CTA patterns.
+- For reels/video, structure around quick hook -> value reveal -> payoff/CTA.
+- Favor relatable proof cues (UGC vibe, before/after, mini result snapshots).`;
+    }
+
+    if (platform.includes('linkedin')) {
+        return `Platform-native guidance (${platformRaw}):
+- Start with a POV or insight-led hook that can spark professional discussion.
+- Keep authority and trust high: include process, rationale, or measurable proof.
+- Use comment-driven or DM-style CTAs rather than purely promotional language.
+- Keep tone credible, practical, and low-hype.`;
+    }
+
+    if (platform.includes('youtube')) {
+        return `Platform-native guidance (${platformRaw}):
+- Use curiosity-driven hooks and clear narrative progression for retention.
+- For shorts/video, include a strong opening beat and a payoff before the end.
+- Favor tutorial, myth-bust, or transformation structures with explicit value.
+- Use CTAs suited to watch behavior (subscribe, comment keyword, watch next).`;
+    }
+
+    if (platform.includes('tiktok')) {
+        return `Platform-native guidance (${platformRaw}):
+- Open with a punchy hook and immediate visual action.
+- Keep pacing fast and conversational with native-style framing.
+- Use trend-aware but brand-safe angles (challenge, reaction, POV, quick demo).
+- Use interaction CTAs (comment prompt, share, follow).`;
+    }
+
+    if (platform.includes('facebook')) {
+        return `Platform-native guidance (${platformRaw}):
+- Favor clarity and relatability with community-friendly framing.
+- Include practical value and trust cues quickly (proof, testimonials, outcomes).
+- Use explicit CTAs (comment, message, learn more) with clear user intent.
+- Keep creative understandable without relying on trend context.`;
+    }
+
+    if (platform === 'x' || platform.includes('twitter')) {
+        return `Platform-native guidance (${platformRaw}):
+- Lead with a bold, concise take or contrarian hook.
+- Keep copy tight, punchy, and discussion-oriented.
+- Use clear perspective + proof + quick CTA to drive replies/reposts.
+- Avoid bloated copy; optimize for skim speed.`;
+    }
+
+    return `Platform-native guidance:
+- Tailor hook style, pacing, and CTA to how users consume content on this platform.
+- Keep format-native structure and avoid one-size-fits-all creative.`;
+}
+
 export function formatStrategyContextBlock(ctx: StrategyPostersContext): string {
     const p = ctx.post;
     const lines: string[] = [
@@ -40,16 +110,23 @@ export function buildGenericSuggestionsPrompt(type: 'image' | 'video', style?: s
             : 'Video / reel generation — motion, transitions, product reveals, hooks, pacing';
 
     return `
-You are an expert at creating creative, varied prompts for AI image and video generation.
-Generate exactly 8 diverse prompt suggestions that users can pick from.
-Each prompt should be 1-2 sentences, specific and evocative - like trending prompts on creative AI galleries.
+You are a senior growth creative strategist creating premium prompts for AI image and video generation.
+Generate exactly 8 high-performing prompt suggestions users can directly run.
+Each prompt should be 1-2 sentences, concrete and execution-ready.
 
 Context: ${medium}
 ${style ? `\nCRITICAL CONSTRAINTS:\n- The outputs MUST follow this visual style / regional trend: ${style}\n` : ''}${tone ? `- The outputs MUST follow this content tone: ${tone}\n` : ''}
 Requirements:
-- Each prompt must be unique and cover different styles (cinematic, minimalist, bold, vintage, etc.)
-- Mix use cases: product promo, portrait editing, background replacement, brand assets, social media
-- Be concrete (e.g. "Replace the background with a bright outdoor brunch setup" not "Make it look nice")
+- Include varied creative angles (e.g., authority, social proof, objection handling, product reveal, emotional transformation).
+- Mix use cases: product promo, portrait editing, background replacement, brand assets, social media.
+- Include platform-native intent where relevant (hook style, pacing, CTA behavior).
+- Be concrete (e.g. "Replace the background with a bright outdoor brunch setup" not "Make it look nice").
+- No two prompts should start similarly.
+- Self-evaluate each draft on: specificity, originality, conversion potential, and clarity.
+- Rewrite weak drafts before finalizing.
+${type === 'image' ? IMAGE_NO_TEXT_RULE : ''}
+
+${PREMIUM_CREATIVE_GUARDRAILS}
 - Return ONLY a valid JSON array of 8 strings. No markdown, no code blocks.
 ${JSON_OUTPUT_RULES}
 Example format: ["Prompt one...", "Prompt two...", ...]
@@ -63,17 +140,19 @@ export function buildStrategyAnchoredSuggestionsPrompt(
     tone?: string
 ): string {
     const block = formatStrategyContextBlock(ctx);
+    const platformGuidance = getPlatformNativeGuidance(ctx.post.platform);
     const medium =
         type === 'image'
             ? 'still image / poster / edit (composition, lighting, typography, product placement)'
             : 'short video / reel (motion, pacing, hook, transitions, on-screen text)';
 
     return `
-You are an expert social creative director. The user is creating ${type === 'image' ? 'an image or poster' : 'a video or reel'} for ONE scheduled post inside an existing marketing strategy — not a random idea.
+You are a senior social creative director and conversion strategist. The user is creating ${type === 'image' ? 'an image or poster' : 'a video or reel'} for ONE scheduled post inside an existing marketing strategy — not a random idea.
 
 You MUST anchor every suggestion to the strategy and post context below. Prompts should feel like direct production briefs for THIS brand, THIS platform, THIS content type, and THIS day — variations on the same post, not unrelated concepts.
 
 ${style ? `CRITICAL CONSTRAINTS:\n- The outputs MUST follow this visual style / regional trend: ${style}\n` : ''}${tone ? `- The outputs MUST follow this content tone: ${tone}\n` : ''}
+${type === 'image' ? IMAGE_NO_TEXT_RULE : ''}
 
 STRATEGY + POST CONTEXT:
 ---
@@ -85,9 +164,17 @@ Output rules:
 - Each must be 1-2 sentences, concrete and production-ready.
 - All 8 must stay faithful to: brand, business vertical, audience, strategy goal, and the post's idea/theme/caption.
 - Reflect platform: ${ctx.post.platform} and format: ${ctx.post.contentType} (${medium}).
-- Include different angles (e.g. alternative hook, CTA, visual metaphor, B-roll, text-overlay idea) but NEVER drift to a different campaign or unrelated product.
+- ${platformGuidance}
+- Include different angles (e.g. alternative hook, CTA, visual metaphor, B-roll idea) but NEVER drift to a different campaign or unrelated product.
+- Every suggestion must include: hook angle + visual direction + proof cue + CTA direction.
+- Keep funnel alignment implied in copy (awareness/consideration/conversion), matching the post goal.
+- Prioritize concrete assets (testimonial, result metric, process snapshot, before/after, founder POV) over vague claims.
+- Enforce premium aesthetics (clean composition, intentional lighting, no cluttered scenes).
+- Self-score each draft suggestion from 1-10 on: brand fit, platform fit, specificity, conversion potential, originality.
+- Rewrite any draft that scores below 8 on any criterion before producing final output.
 - Do not mention that you are following instructions; output JSON only.
 
+${PREMIUM_CREATIVE_GUARDRAILS}
 Return ONLY a valid JSON array of 8 strings. No markdown, no code blocks.
 ${JSON_OUTPUT_RULES}
 Example format: ["Prompt one...", "Prompt two...", ...]
@@ -100,8 +187,9 @@ export function buildStrategyAnchoredRefinePrompt(
     refine: { originalPrompt: string; feedback?: string }
 ): string {
     const block = formatStrategyContextBlock(ctx);
+    const platformGuidance = getPlatformNativeGuidance(ctx.post.platform);
     return `
-You are an expert at refining prompts for AI ${type === 'image' ? 'image' : 'video'} generation.
+You are a senior prompt optimizer for AI ${type === 'image' ? 'image' : 'video'} generation.
 
 The user is editing content for this specific strategy post — keep prompts aligned with the context below.
 
@@ -116,14 +204,22 @@ ORIGINAL PROMPT that was used:
 USER FEEDBACK (what they didn't like / what to change):
 "${refine.feedback || 'No specific feedback provided.'}"
 
+${type === 'image' ? IMAGE_NO_TEXT_RULE : ''}
+
 Generate exactly 8 refined prompt suggestions that address the feedback while keeping the good parts of the original.
 Each prompt should be 1-2 sentences, specific and evocative.
 - Stay on-brand and on-strategy for THIS post (same platform, content type, idea)
+- ${platformGuidance}
 - Incorporate the user's feedback and requested changes
 - Fix what they didn't like
 - Keep the overall intent where feedback doesn't contradict it
 - Be concrete and actionable
+- Preserve what already worked in the original (strong hook, visual clarity, CTA), unless feedback contradicts it
+- Every refined prompt must include: hook angle + visual direction + proof cue + CTA direction
+- Self-score each refined prompt from 1-10 on: alignment with feedback, brand fit, specificity, conversion potential
+- Rewrite any draft below 8 before finalizing
 
+${PREMIUM_CREATIVE_GUARDRAILS}
 Return ONLY a valid JSON array of 8 strings. No markdown, no code blocks.
 ${JSON_OUTPUT_RULES}
 Example format: ["Refined prompt one...", "Refined prompt two...", ...]
@@ -136,7 +232,7 @@ export function buildGenericRefinePrompt(
 ): string {
     const medium = type === 'image' ? 'image / poster generation' : 'video / reel generation';
     return `
-You are an expert at refining prompts for AI ${medium} based on user feedback.
+You are a senior prompt optimizer for AI ${medium} based on user feedback.
 
 ORIGINAL PROMPT that was used:
 "${refine.originalPrompt}"
@@ -144,13 +240,19 @@ ORIGINAL PROMPT that was used:
 USER FEEDBACK (what they didn't like / what to change):
 "${refine.feedback || 'No specific feedback provided.'}"
 
+${type === 'image' ? IMAGE_NO_TEXT_RULE : ''}
+
 Generate exactly 8 refined prompt suggestions that address the feedback while keeping the good parts of the original.
 Each prompt should be 1-2 sentences, specific and evocative.
 - Incorporate the user's feedback and requested changes
 - Fix what they didn't like
 - Keep the overall intent where feedback doesn't contradict it
 - Be concrete and actionable
+- Every refined prompt must include: hook angle + visual direction + proof cue + CTA direction
+- Self-score each refined prompt from 1-10 on: feedback alignment, specificity, originality, conversion potential
+- Rewrite any draft below 8 before finalizing
 
+${PREMIUM_CREATIVE_GUARDRAILS}
 Return ONLY a valid JSON array of 8 strings. No markdown, no code blocks.
 ${JSON_OUTPUT_RULES}
 Example format: ["Refined prompt one...", "Refined prompt two...", ...]

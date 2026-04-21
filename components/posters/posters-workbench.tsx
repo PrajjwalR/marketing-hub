@@ -43,6 +43,7 @@ const LANDING_BTN =
     'bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 rounded-full font-medium text-[15px] shadow-md transition-all';
 
 export type WorkbenchType = 'image' | 'video';
+type ReferenceRole = 'scene_reference' | 'model_reference' | 'product_reference';
 
 function StepHeader({
     step,
@@ -254,6 +255,8 @@ export function PostersWorkbench({
 }) {
     const [referenceFile, setReferenceFile] = useState<File | null>(null);
     const [referenceGalleryUrl, setReferenceGalleryUrl] = useState<string | null>(null);
+    const [modelReferenceFile, setModelReferenceFile] = useState<File | null>(null);
+    const [productReferenceFile, setProductReferenceFile] = useState<File | null>(null);
     const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
     const [description, setDescription] = useState('');
     const [requirements, setRequirements] = useState('');
@@ -282,11 +285,33 @@ export function PostersWorkbench({
         return null;
     }, [referenceFile, referenceGalleryUrl]);
 
+    const modelPreviewUrl = useMemo(() => {
+        if (!modelReferenceFile) return null;
+        return URL.createObjectURL(modelReferenceFile);
+    }, [modelReferenceFile]);
+
+    const productPreviewUrl = useMemo(() => {
+        if (!productReferenceFile) return null;
+        return URL.createObjectURL(productReferenceFile);
+    }, [productReferenceFile]);
+
     useEffect(() => {
         return () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
         };
     }, [previewUrl]);
+
+    useEffect(() => {
+        return () => {
+            if (modelPreviewUrl) URL.revokeObjectURL(modelPreviewUrl);
+        };
+    }, [modelPreviewUrl]);
+
+    useEffect(() => {
+        return () => {
+            if (productPreviewUrl) URL.revokeObjectURL(productPreviewUrl);
+        };
+    }, [productPreviewUrl]);
 
     function handleReferenceChange(newFile: File | null, galleryUrl?: string | null) {
         if (type === 'image' && (referenceFile || referenceGalleryUrl) && currentGenerations.length > 0) {
@@ -473,6 +498,32 @@ export function PostersWorkbench({
         });
     }
 
+    async function buildReferencePayload(): Promise<
+        Array<{ role: ReferenceRole; base64: string; mimeType: string }>
+    > {
+        const refs: Array<{ role: ReferenceRole; base64: string; mimeType: string }> = [];
+
+        if (referenceFile) {
+            const { base64, mimeType } = await fileToBase64(referenceFile);
+            refs.push({ role: 'scene_reference', base64, mimeType });
+        } else if (referenceGalleryUrl) {
+            const { base64, mimeType } = await urlToBase64(referenceGalleryUrl);
+            refs.push({ role: 'scene_reference', base64, mimeType });
+        }
+
+        if (modelReferenceFile) {
+            const { base64, mimeType } = await fileToBase64(modelReferenceFile);
+            refs.push({ role: 'model_reference', base64, mimeType });
+        }
+
+        if (productReferenceFile) {
+            const { base64, mimeType } = await fileToBase64(productReferenceFile);
+            refs.push({ role: 'product_reference', base64, mimeType });
+        }
+
+        return refs;
+    }
+
     return (
         <>
         <Card className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -513,25 +564,39 @@ export function PostersWorkbench({
                         <StepHeader
                             step={1}
                             title="Pick your reference"
-                            hint={type === 'image' ? 'Upload a brand asset or inspiration image.' : 'Upload a video as reference.'}
+                            hint={type === 'image' ? 'Add scene, model, and product references for better consistency.' : 'Upload a video as reference.'}
                             icon={type === 'image' ? <ImageIcon className="h-4 w-4" /> : <Film className="h-4 w-4" />}
                         />
                         <div className="mt-3 space-y-2">
                             {type === 'image' ? (
                                 <>
                                     <UploadTile
-                                        label="Upload image"
+                                        label="Upload main scene/style reference"
                                         accept="image/*"
                                         previewUrl={previewUrl}
                                         onFile={(file) => handleReferenceChange(file, null)}
                                     />
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <UploadTile
+                                            label="Upload model/person reference"
+                                            accept="image/*"
+                                            previewUrl={modelPreviewUrl}
+                                            onFile={setModelReferenceFile}
+                                        />
+                                        <UploadTile
+                                            label="Upload product reference"
+                                            accept="image/*"
+                                            previewUrl={productPreviewUrl}
+                                            onFile={setProductReferenceFile}
+                                        />
+                                    </div>
                                     <Button
                                         variant="outline"
                                         className="w-full h-10 rounded-lg gap-2 border-dashed border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50"
                                         onClick={() => setGalleryPickerOpen(true)}
                                     >
                                         <ImagePlus className="h-5 w-5 text-zinc-600" />
-                                        Upload from gallery
+                                        Pick main reference from gallery
                                     </Button>
                                 </>
                             ) : (
@@ -595,7 +660,6 @@ export function PostersWorkbench({
                                     </Select>
                                 </div>
                             </div>
-
                             <Button
                                 variant="outline"
                                 className="w-full h-9 rounded-full gap-1.5 text-sm"
@@ -637,17 +701,10 @@ export function PostersWorkbench({
                                 onClick={async () => {
                                     setIsGenerating(true);
                                     try {
-                                        let referenceImageBase64: string | undefined;
-                                        let referenceImageMimeType: string | undefined;
-                                        if (referenceFile) {
-                                            const { base64, mimeType } = await fileToBase64(referenceFile);
-                                            referenceImageBase64 = base64;
-                                            referenceImageMimeType = mimeType;
-                                        } else if (referenceGalleryUrl) {
-                                            const { base64, mimeType } = await urlToBase64(referenceGalleryUrl);
-                                            referenceImageBase64 = base64;
-                                            referenceImageMimeType = mimeType;
-                                        }
+                                        const referenceImages = await buildReferencePayload();
+                                        const primaryReference = referenceImages[0];
+                                        const referenceImageBase64 = primaryReference?.base64;
+                                        const referenceImageMimeType = primaryReference?.mimeType;
                                         const auth = getAuth(app);
                                         const token = await auth.currentUser?.getIdToken(true);
                                         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -662,6 +719,7 @@ export function PostersWorkbench({
                                                 format,
                                                 style,
                                                 tone,
+                                                referenceImages,
                                                 referenceImageBase64,
                                                 referenceImageMimeType,
                                             }),
@@ -828,17 +886,10 @@ export function PostersWorkbench({
             onRegenerate={async (params) => {
                 setIsGenerating(true);
                 try {
-                    let referenceImageBase64: string | undefined;
-                    let referenceImageMimeType: string | undefined;
-                    if (referenceFile) {
-                        const { base64, mimeType } = await fileToBase64(referenceFile);
-                        referenceImageBase64 = base64;
-                        referenceImageMimeType = mimeType;
-                    } else if (referenceGalleryUrl) {
-                        const { base64, mimeType } = await urlToBase64(referenceGalleryUrl);
-                        referenceImageBase64 = base64;
-                        referenceImageMimeType = mimeType;
-                    }
+                    const referenceImages = await buildReferencePayload();
+                    const primaryReference = referenceImages[0];
+                    const referenceImageBase64 = primaryReference?.base64;
+                    const referenceImageMimeType = primaryReference?.mimeType;
                     const auth = getAuth(app);
                     const token = await auth.currentUser?.getIdToken(true);
                     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -853,6 +904,7 @@ export function PostersWorkbench({
                             format: params.format,
                             style: params.style,
                             tone: params.tone,
+                            referenceImages,
                             referenceImageBase64,
                             referenceImageMimeType,
                             parentId: params.parentId,

@@ -73,6 +73,7 @@
     "remark-gfm": "^4.0.1",
     "remotion": "^4.0.409",
     "replicate": "^1.4.0",
+    "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "vaul": "^1.1.2",
