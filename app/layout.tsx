@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 
-const hankenGrotesk = Hanken_Grotesk({
-  variable: "--font-hanken-grotesk",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
@@ -30,7 +30,7 @@ export default function RootLayout({
         ></script>
       </head>
       <body
-        className={`${hankenGrotesk.variable} antialiased font-sans`}
+        className={`${manrope.variable} antialiased font-sans`}
       >
         <Providers>{children}</Providers>
         <Toaster position="top-right" richColors closeButton />
