@@ -28,24 +28,22 @@ async function ensureBucketExists(bucketName: string) {
     });
 }
 
-async function generateAndUploadImage(
+async function generateImageBuffer(
     prompt: string,
-    userId: string,
-    referenceImage?: { base64: string; mimeType: string }
+    referenceImages?: Array<{ base64: string; mimeType: string }>
 ) {
-    await ensureBucketExists('posters');
-
-    const content: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = referenceImage
-        ? [
-              { inlineData: { mimeType: referenceImage.mimeType, data: referenceImage.base64 } },
-              { text: prompt },
-          ]
-        : [{ text: prompt }];
+    const content: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
+    for (const ref of referenceImages || []) {
+        content.push({ inlineData: { mimeType: ref.mimeType, data: ref.base64 } });
+    }
+    content.push({ text: prompt });
 
     const result = await imageModel.generateContent(content);
     const response = await result.response;
 
-    const part = response.candidates?.[0]?.content?.parts?.find((p) => (p as any).inlineData) as
+    const part = response.candidates?.[0]?.content?.parts?.find(
+        (p: { inlineData?: unknown }) => Boolean(p.inlineData)
+    ) as
         | { inlineData?: { data: string } }
         | undefined;
 
@@ -54,7 +52,11 @@ async function generateAndUploadImage(
         throw new Error('Image model did not return an image');
     }
 
-    const buffer = Buffer.from(part.inlineData.data, 'base64');
+    return Buffer.from(part.inlineData.data, 'base64');
+}
+
+async function uploadPosterBuffer(buffer: Buffer, userId: string) {
+    await ensureBucketExists('posters');
     const fileName = `${userId}/poster-${Date.now()}.png`;
 
     const { error: uploadError } = await supabaseAdmin.storage.from('posters').upload(fileName, buffer, {
@@ -116,9 +118,25 @@ export async function POST(req: Request) {
         const format = body?.format ? String(body.format) : undefined;
         const style = body?.style ? String(body.style) : undefined;
         const tone = body?.tone ? String(body.tone) : undefined;
+        const referenceImagesInput = Array.isArray(body?.referenceImages) ? body.referenceImages : [];
+        type ParsedReference = { base64: string; mimeType: string; role: string };
         const referenceImageBase64 = typeof body?.referenceImageBase64 === 'string' ? body.referenceImageBase64 : undefined;
         const referenceImageMimeType =
             typeof body?.referenceImageMimeType === 'string' ? body.referenceImageMimeType : 'image/png';
+        const multiReferences = referenceImagesInput
+            .map((entry: unknown): ParsedReference => {
+                const obj = entry as Record<string, unknown>;
+                const base64 = typeof obj.base64 === 'string' ? obj.base64 : '';
+                const mimeType = typeof obj.mimeType === 'string' ? obj.mimeType : 'image/png';
+                const role = typeof obj.role === 'string' ? obj.role : 'scene_reference';
+                return { base64, mimeType, role };
+            })
+            .filter((x: ParsedReference) => x.base64.length > 0);
+        const fallbackReference =
+            referenceImageBase64
+                ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType, role: 'scene_reference' }]
+                : [];
+        const allReferences = multiReferences.length ? multiReferences : fallbackReference;
 
         const { prompt, negativePrompt } = await buildPowerPrompt({
             type,
@@ -127,16 +145,22 @@ export async function POST(req: Request) {
             format,
             style,
             tone,
-            hasReferenceImage: !!referenceImageBase64,
+            hasReferenceImage: allReferences.length > 0,
         });
+        const referenceHints = allReferences.length
+            ? `\n\nReference context (use all images):\n${allReferences
+                  .map((r: ParsedReference, i: number) => `- Image ${i + 1}: role=${r.role}`)
+                  .join('\n')}`
+            : '';
+        const finalPrompt = `${prompt}${referenceHints}`;
 
         // Video: free-form prompt. Image: JSON spec prompt (buildPowerPrompt handles routing).
         if (type === 'video') {
             const referenceImage =
-                referenceImageBase64 ?
-                    { base64: referenceImageBase64, mimeType: referenceImageMimeType }
-                : undefined;
-            const outputUrl = await generateVideo(prompt, referenceImage);
+                allReferences.length > 0
+                    ? { base64: allReferences[0]!.base64, mimeType: allReferences[0]!.mimeType }
+                    : undefined;
+            const outputUrl = await generateVideo(finalPrompt, referenceImage);
 
             const parentId = body?.parentId ? String(body.parentId) : null;
             const { data: generation, error: insertError } = await supabaseAdmin
@@ -150,7 +174,7 @@ export async function POST(req: Request) {
                     format: format || null,
                     style: style || null,
                     tone: tone || null,
-                    prompt,
+                    prompt: finalPrompt,
                     negative_prompt: negativePrompt || null,
                     parent_id: parentId || null,
                 })
@@ -162,7 +186,7 @@ export async function POST(req: Request) {
             }
 
             return NextResponse.json({
-                prompt,
+                prompt: finalPrompt,
                 negativePrompt,
                 outputUrl,
                 generationId: generation?.id ?? null,
@@ -170,11 +194,11 @@ export async function POST(req: Request) {
             }, { status: 200 });
         }
 
-        const referenceImage =
-            referenceImageBase64 ?
-                { base64: referenceImageBase64, mimeType: referenceImageMimeType }
-            : undefined;
-        const outputUrl = await generateAndUploadImage(prompt, userId, referenceImage);
+        const generatedBuffer = await generateImageBuffer(
+            finalPrompt,
+            allReferences.map((r: ParsedReference) => ({ base64: r.base64, mimeType: r.mimeType }))
+        );
+        const outputUrl = await uploadPosterBuffer(generatedBuffer, userId);
 
         const parentId = body?.parentId ? String(body.parentId) : null;
         const { data: generation, error: insertError } = await supabaseAdmin
@@ -188,7 +212,7 @@ export async function POST(req: Request) {
                 format: format || null,
                 style: style || null,
                 tone: tone || null,
-                prompt,
+                prompt: finalPrompt,
                 negative_prompt: negativePrompt || null,
                 parent_id: parentId || null,
             })
@@ -200,7 +224,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({
-            prompt,
+            prompt: finalPrompt,
             negativePrompt,
             outputUrl,
             generationId: generation?.id ?? null,

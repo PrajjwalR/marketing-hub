@@ -10,6 +10,11 @@ export interface StrategyPostInput {
   goal: string;
   status: string;
   post_time?: string;
+  funnel_stage?: string;
+  hook_type?: string;
+  primary_emotion?: string;
+  proof_asset?: string;
+  cta_type?: string;
 }
 
 export interface GenerateStrategyInput {
@@ -138,16 +143,32 @@ Detected Vertical: ${vertical}
 
 Requirements:
 - Create exactly ${durationDays} days of content. Distribute posts across the platforms. Not every day needs a post; vary the posting schedule naturally.
-- Each post must have: day (1-${durationDays}), platform, content_type, theme, idea, caption, goal, status, post_time
+- Each post must have: day (1-${durationDays}), platform, content_type, theme, idea, caption, goal, status, post_time, funnel_stage, hook_type, primary_emotion, proof_asset, cta_type
 - content_type must be one of: reel, carousel, image, video, text_post
 - platform must be one of: ${platforms.map(p => p.toLowerCase()).join(', ')}
 - goal must be one of: increase_followers, increase_sales, brand_awareness, engagement
   - For every post, set goal to exactly "${normalizedGoal}".
 - status must be: planned
+- funnel_stage must be one of: tofu, mofu, bofu
+- hook_type must be one of: question, contrarian, listicle, before_after, founder_pov, myth_vs_fact, stat_led, tutorial
+- primary_emotion must be one of: trust, aspiration, urgency, curiosity, confidence, relief, excitement, belonging
+- cta_type must be one of: comment, dm, save_share, click_link, visit_store, follow
 - theme examples: festival, educational, promotion, behind_the_scenes, product_launch, seasonal, etc.
 - idea: short catchy title for the post concept (e.g. "Holi outfit styling tips")
 - caption: 1-2 sentence caption suggestion (use the strategy focus to choose tone and CTA)
 - post_time: suggesting an optimal time of day to post (e.g. "10:00 AM", "6:30 PM", "9:00 PM") based on typical audience activity.
+- proof_asset: a concrete proof cue for the post (e.g. testimonial snippet, process detail, material/certification cue, mini case result, founder proof point).
+
+Advanced quality constraints:
+- Use audience psychology in every post: include either a pain point, aspiration, objection, or trigger.
+- Maintain creative diversity. Do not repeat the same hook_type on adjacent posts.
+- Keep a strategic funnel mix across full plan:
+  - TOFU ~40-50% (awareness/attention)
+  - MOFU ~30-40% (consideration/trust)
+  - BOFU ~15-25% (conversion intent)
+- Ensure every post has a distinct angle and avoids generic phrasing.
+- Premium content standard: concrete details over vague claims; no filler adjectives without evidence.
+- For posts that will use AI image generation (image/carousel/reel visual assets), keep visual direction text-free: no in-image text, no logos, no watermarks.
 
 ${strategyTypeGuidance}
 
@@ -169,7 +190,12 @@ Return ONLY a valid JSON object. No markdown, no code blocks, no extra text.
       "caption": "Short caption suggestion",
       "goal": "${normalizedGoal}",
       "status": "planned",
-      "post_time": "10:00 AM"
+      "post_time": "10:00 AM",
+      "funnel_stage": "tofu",
+      "hook_type": "stat_led",
+      "primary_emotion": "curiosity",
+      "proof_asset": "Short proof cue for credibility",
+      "cta_type": "save_share"
     }
   ]
 }
@@ -203,5 +229,10 @@ export async function generateStrategyPosts(input: GenerateStrategyInput): Promi
     goal: String(p.goal || 'engagement').toLowerCase().replace(/\s/g, '_'),
     status: 'planned',
     post_time: String(p.post_time || '10:00 AM'),
+    funnel_stage: String(p.funnel_stage || '').toLowerCase(),
+    hook_type: String(p.hook_type || '').toLowerCase(),
+    primary_emotion: String(p.primary_emotion || '').toLowerCase(),
+    proof_asset: String(p.proof_asset || ''),
+    cta_type: String(p.cta_type || '').toLowerCase(),
   }));
 }
