@@ -109,7 +109,7 @@ export async function POST(req: Request) {
                 org_id: hellostoresUserData?.org_id || null,
                 project_id: hellostoresUserData?.project_id || null,
                 source_login: 'hellostores',
-                redirect: '/dashboard',
+                redirect: '/dashboard/calendar',
             },
             { headers: cors }
         );

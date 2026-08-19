@@ -3,7 +3,10 @@ import { inngest } from "@/inngest/client";
 import { helloWorld, generateVideo, scheduleDailyVideos, processScheduledPosts } from "@/inngest/functions";
 import { instagramCommentMonitor, instagramProcessAccount } from "@/inngest/instagram-auto-reply";
 
-// Create an API route that serves the Inngest functions
+const serveHost =
+    process.env.INNGEST_SERVE_HOST ||
+    (process.env.NODE_ENV === "production" ? undefined : "http://localhost:3100");
+
 export const { GET, POST, PUT } = serve({
     client: inngest,
     functions: [
@@ -14,4 +17,5 @@ export const { GET, POST, PUT } = serve({
         instagramCommentMonitor,
         instagramProcessAccount,
     ],
+    serveHost,
 });
