@@ -357,19 +357,23 @@ export const processScheduledPosts = inngest.createFunction(
     { id: "process-scheduled-posts" },
     { cron: "* * * * *" }, // Run every minute
     async ({ step }) => {
-        // 1. Fetch all due scheduled posts
-        const duePosts = await step.run("fetch-due-posts", async () => {
+        // 1. Atomically claim due posts by moving them from 'scheduled' -> 'processing'.
+        // This prevents concurrent cron invocations (or Inngest retries) from picking
+        // up the same row and publishing duplicates. Only one caller wins the update
+        // per row; others get zero rows and skip. Supabase update+select is atomic.
+        const duePosts = await step.run("fetch-and-claim-due-posts", async () => {
             const now = new Date().toISOString();
             const { data, error } = await supabaseAdmin
                 .from('calendar_events')
-                .select('*, social_connections(profile_name)')
+                .update({ status: 'processing' })
                 .eq('status', 'scheduled')
                 .eq('type', 'post')
                 .lte('scheduled_at', now)
+                .select('*, social_connections(profile_name)')
                 .order('scheduled_at', { ascending: true })
                 .limit(50);
-                
-            if (error) throw new Error(`Failed to fetch due posts: ${error.message}`);
+
+            if (error) throw new Error(`Failed to claim due posts: ${error.message}`);
             return data;
         });
 
@@ -462,7 +466,7 @@ export const processScheduledPosts = inngest.createFunction(
                 await step.run(`mark-failed-${post.id}`, async () => {
                     await supabaseAdmin
                         .from('calendar_events')
-                        .update({ status: 'error' })
+                        .update({ status: 'failed' })
                         .eq('id', post.id);
                 });
                 results.push({ id: post.id, status: 'error', error: errorMessage });
