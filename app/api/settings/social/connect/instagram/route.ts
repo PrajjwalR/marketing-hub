@@ -40,7 +40,6 @@ export async function GET(req: Request) {
             'public_profile',
             'pages_show_list',        // Required to get Facebook Pages and linked IG accounts
             'business_management',    // Required for Business Suite / Business-owned Pages
-            'ads_read',               // Required when Page role granted via Business Manager (for instagram_business_account)
             'instagram_basic',        // Basic Instagram access
             'instagram_content_publish', // Publish media to Instagram
             'instagram_manage_comments', // Manage comments
