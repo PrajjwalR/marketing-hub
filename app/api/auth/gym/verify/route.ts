@@ -2,21 +2,18 @@ import { NextResponse } from 'next/server';
 import { verifyFirebaseToken } from '@/lib/auth-helpers';
 import { ensureFirebaseUser } from '@/lib/auth-server-utils';
 
-const DEFAULT_DEV_ORIGINS = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3300',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:3300',
-];
+// Any localhost / 127.0.0.1 origin (any port) is allowed for local dev.
+// Production origins must be listed explicitly in GYM_ALLOWED_ORIGINS.
+const LOCALHOST_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
-function allowedOrigins(): string[] {
-    const fromEnv = (process.env.GYM_ALLOWED_ORIGINS || '')
+function isOriginAllowed(origin: string | null): boolean {
+    if (!origin) return false;
+    if (LOCALHOST_RE.test(origin)) return true;
+    const explicit = (process.env.GYM_ALLOWED_ORIGINS || '')
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
-    return fromEnv.length ? fromEnv : DEFAULT_DEV_ORIGINS;
+    return explicit.includes(origin);
 }
 
 function corsHeaders(origin: string | null): Record<string, string> {
@@ -26,8 +23,8 @@ function corsHeaders(origin: string | null): Record<string, string> {
         'Access-Control-Max-Age': '600',
         Vary: 'Origin',
     };
-    if (origin && allowedOrigins().includes(origin)) {
-        headers['Access-Control-Allow-Origin'] = origin;
+    if (isOriginAllowed(origin)) {
+        headers['Access-Control-Allow-Origin'] = origin!;
     }
     return headers;
 }
