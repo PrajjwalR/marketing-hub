@@ -69,19 +69,25 @@ async function createContainer(
  * Helper to poll container status
  */
 async function pollStatus(accessToken: string, creationId: string) {
+    // Serverless-friendly polling. Total budget ≈ 45s so we stay well within
+    // Vercel's 60s Hobby / 300s Pro function timeout even with other work.
+    // Poll every 3s for the first 30s, then every 5s for another 15s.
     let status = 'IN_PROGRESS';
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 13;
 
     while (status !== 'FINISHED' && attempts < maxAttempts) {
-        if (attempts > 0) await new Promise(resolve => setTimeout(resolve, 10000));
-        
+        if (attempts > 0) {
+            const delay = attempts < 10 ? 3000 : 5000;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
         const res = await fetch(`https://graph.facebook.com/v21.0/${creationId}?fields=status_code&access_token=${accessToken}`);
         const data = await res.json();
-        
+
         if (res.ok) {
             status = data.status_code;
-            console.log(`[Instagram] Container ${creationId} status:`, status);
+            console.log(`[Instagram] Container ${creationId} status (attempt ${attempts + 1}):`, status);
         } else {
             console.warn("[Instagram] Status check failed:", data);
         }
@@ -89,12 +95,12 @@ async function pollStatus(accessToken: string, creationId: string) {
         if (status === 'ERROR') {
             throw new Error('Media processing failed');
         }
-        
+
         attempts++;
     }
 
     if (status !== 'FINISHED') {
-        throw new Error("Media processing timed out");
+        throw new Error(`Media processing timed out after ${attempts} attempts`);
     }
 }
 
