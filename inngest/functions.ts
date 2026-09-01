@@ -510,33 +510,36 @@ export const processScheduledPosts = inngest.createFunction(
                             return { skipped: true };
                         }
 
-                        try {
-                            const urls = post.media_url ? post.media_url.split(',').map((u: string) => u.trim()) : [];
-                            const result = await publishToInstagram({
-                                connectionId: post.account_id!,
-                                text: `${post.title}${post.description ? `\n\n${post.description}` : ''}`,
-                                mediaUrls: urls
-                            });
+                        // DO NOT wrap the publish in try/catch to release the reservation.
+                        // Reason: if publishToInstagram throws (network error, IG 5xx,
+                        // Vercel killing our fetch as IG responds, etc.), IG MAY have
+                        // received our /media_publish call and created the post anyway.
+                        // Clearing the reservation would let a later cron tick pick this
+                        // row up again, publish AGAIN, and now we truly have two IG posts.
+                        //
+                        // Safer: leave the PENDING_ sentinel in place. The recovery step
+                        // will mark the row 'failed' after 5 min (Case B). The user
+                        // manually verifies on IG:
+                        //   - if a post exists → set platform_post_id to the real ID and
+                        //     status='published' via SQL
+                        //   - if no post exists → clear platform_post_id and reschedule
+                        // Trade-off: no auto-retry of transient failures, but a *guarantee*
+                        // of no duplicates.
+                        const urls = post.media_url ? post.media_url.split(',').map((u: string) => u.trim()) : [];
+                        const result = await publishToInstagram({
+                            connectionId: post.account_id!,
+                            text: `${post.title}${post.description ? `\n\n${post.description}` : ''}`,
+                            mediaUrls: urls
+                        });
 
-                            if (result?.postId) {
-                                await supabaseAdmin
-                                    .from('calendar_events')
-                                    .update({ platform_post_id: result.postId })
-                                    .eq('id', post.id);
-                            }
-
-                            return { postId: result?.postId };
-                        } catch (err) {
-                            // Publish failed — release the reservation so a future retry
-                            // can pick this up. Only clear if it still equals OUR sentinel
-                            // (defensive; something else may have overwritten it).
+                        if (result?.postId) {
                             await supabaseAdmin
                                 .from('calendar_events')
-                                .update({ platform_post_id: null })
-                                .eq('id', post.id)
-                                .eq('platform_post_id', reservationId);
-                            throw err;
+                                .update({ platform_post_id: result.postId })
+                                .eq('id', post.id);
                         }
+
+                        return { postId: result?.postId };
                     });
                 } else if (post.platform?.toLowerCase() === 'tiktok') {
                     // TikTok typically expects userId to find connection if account_id isn't directly the connection record ID
