@@ -362,6 +362,32 @@ export const processScheduledPosts = inngest.createFunction(
     { id: "process-scheduled-posts", retries: 0 },
     { cron: "* * * * *" }, // Run every minute
     async ({ step }) => {
+        // 0. Recover rows stuck in 'processing' for > 5 minutes.
+        // If the function was killed mid-publish (Vercel timeout, IG stall, etc.)
+        // a row can end up marked 'processing' with no cron picking it up again.
+        // Safe to reset because the platform_post_id idempotency guard on the
+        // publish step prevents duplicates even on retry.
+        await step.run("recover-stuck-processing-rows", async () => {
+            // Anything still 'processing' whose scheduled_at is > 5 min ago is stuck.
+            // (No updated_at column, so scheduled_at is our next-best proxy.)
+            const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            const { data, error } = await supabaseAdmin
+                .from('calendar_events')
+                .update({ status: 'scheduled' })
+                .eq('status', 'processing')
+                .eq('type', 'post')
+                .lte('scheduled_at', fiveMinAgo)
+                .select('id');
+            if (error) {
+                console.warn(`[recover-stuck] update failed: ${error.message}`);
+                return { recovered: 0 };
+            }
+            if (data && data.length > 0) {
+                console.log(`[recover-stuck] Reset ${data.length} stuck rows to scheduled`);
+            }
+            return { recovered: data?.length ?? 0 };
+        });
+
         // 1. Atomically claim due posts by moving them from 'scheduled' -> 'processing'.
         // This prevents concurrent cron invocations (or Inngest retries) from picking
         // up the same row and publishing duplicates. Only one caller wins the update
