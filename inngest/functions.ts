@@ -532,14 +532,24 @@ export const processScheduledPosts = inngest.createFunction(
                             mediaUrls: urls
                         });
 
-                        if (result?.postId) {
-                            await supabaseAdmin
-                                .from('calendar_events')
-                                .update({ platform_post_id: result.postId })
-                                .eq('id', post.id);
+                        // Publisher MUST return a real postId. If it doesn't (IG returned 200
+                        // with an unexpected shape, our parse dropped it, etc.), treat this
+                        // as failure. Prevents rows landing in status='published' with the
+                        // PENDING_ sentinel still in place (means IG probably has a post but
+                        // we lost track of its ID — sneaky bug that reads like a duplicate).
+                        if (!result?.postId) {
+                            throw new Error(`Instagram publish returned no postId; IG state ambiguous. Reservation ${reservationId} retained; investigate manually.`);
                         }
 
-                        return { postId: result?.postId };
+                        const { error: saveErr } = await supabaseAdmin
+                            .from('calendar_events')
+                            .update({ platform_post_id: result.postId })
+                            .eq('id', post.id);
+                        if (saveErr) {
+                            throw new Error(`Failed to save platform_post_id ${result.postId} for row ${post.id}: ${saveErr.message}`);
+                        }
+
+                        return { postId: result.postId };
                     });
                 } else if (post.platform?.toLowerCase() === 'tiktok') {
                     // TikTok typically expects userId to find connection if account_id isn't directly the connection record ID
