@@ -429,12 +429,40 @@ export const processScheduledPosts = inngest.createFunction(
                     if (!post.media_url) throw new Error("Media URL is required for Instagram");
 
                     await step.run(`publish-instagram-${post.id}`, async () => {
+                        // Idempotency: if platform_post_id is already set for this row, skip.
+                        // Prevents duplicates even if the cron fires this step more than once
+                        // (Inngest step retry, dual triggers, etc.).
+                        const { data: current } = await supabaseAdmin
+                            .from('calendar_events')
+                            .select('platform_post_id')
+                            .eq('id', post.id)
+                            .single();
+
+                        if (current?.platform_post_id) {
+                            console.log(`[publish-instagram] Row ${post.id} already published as ${current.platform_post_id}, skipping.`);
+                            return { skipped: true, existingId: current.platform_post_id };
+                        }
+
                         const urls = post.media_url ? post.media_url.split(',').map((u: string) => u.trim()) : [];
-                        await publishToInstagram({
+                        const result = await publishToInstagram({
                             connectionId: post.account_id!,
                             text: `${post.title}${post.description ? `\n\n${post.description}` : ''}`,
                             mediaUrls: urls
                         });
+
+                        // Save platform_post_id atomically. The .is('platform_post_id', null)
+                        // guard means a concurrent run that already saved a post_id wins;
+                        // this update simply becomes a no-op. Combined with the check above,
+                        // the platform sees at most ONE publish per row for its lifetime.
+                        if (result?.postId) {
+                            await supabaseAdmin
+                                .from('calendar_events')
+                                .update({ platform_post_id: result.postId })
+                                .eq('id', post.id)
+                                .is('platform_post_id', null);
+                        }
+
+                        return { postId: result?.postId };
                     });
                 } else if (post.platform?.toLowerCase() === 'tiktok') {
                     // TikTok typically expects userId to find connection if account_id isn't directly the connection record ID
