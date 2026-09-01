@@ -368,22 +368,49 @@ export const processScheduledPosts = inngest.createFunction(
         // Safe to reset because the platform_post_id idempotency guard on the
         // publish step prevents duplicates even on retry.
         await step.run("recover-stuck-processing-rows", async () => {
-            // Anything still 'processing' whose scheduled_at is > 5 min ago is stuck.
-            // (No updated_at column, so scheduled_at is our next-best proxy.)
+            // Rows still 'processing' whose scheduled_at is >5 min ago are stuck.
+            // Their fate depends on what platform_post_id looks like:
+            //
+            //   platform_post_id = real ID   → publish succeeded, mark-published died.
+            //                                  Complete the transition to 'published'.
+            //   platform_post_id = PENDING_… → publish was in flight, killed mid-way.
+            //                                  IG state is ambiguous. Mark 'failed' so
+            //                                  we never re-publish (no duplicate risk).
+            //   platform_post_id = null      → publish step never even reserved. Safe
+            //                                  to reset to 'scheduled' for a clean retry.
             const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+            // Case A: real ID present -> mark published
+            await supabaseAdmin
+                .from('calendar_events')
+                .update({ status: 'published' })
+                .eq('status', 'processing')
+                .eq('type', 'post')
+                .lte('scheduled_at', fiveMinAgo)
+                .not('platform_post_id', 'is', null)
+                .not('platform_post_id', 'like', 'PENDING_%');
+            // Case B: PENDING_ sentinel -> mark failed (ambiguous)
+            await supabaseAdmin
+                .from('calendar_events')
+                .update({ status: 'failed' })
+                .eq('status', 'processing')
+                .eq('type', 'post')
+                .lte('scheduled_at', fiveMinAgo)
+                .like('platform_post_id', 'PENDING_%');
+            // Case C: nothing reserved -> retry
             const { data, error } = await supabaseAdmin
                 .from('calendar_events')
                 .update({ status: 'scheduled' })
                 .eq('status', 'processing')
                 .eq('type', 'post')
                 .lte('scheduled_at', fiveMinAgo)
+                .is('platform_post_id', null)
                 .select('id');
             if (error) {
                 console.warn(`[recover-stuck] update failed: ${error.message}`);
                 return { recovered: 0 };
             }
             if (data && data.length > 0) {
-                console.log(`[recover-stuck] Reset ${data.length} stuck rows to scheduled`);
+                console.log(`[recover-stuck] Reset ${data.length} unreserved rows to scheduled`);
             }
             return { recovered: data?.length ?? 0 };
         });
@@ -455,40 +482,61 @@ export const processScheduledPosts = inngest.createFunction(
                     if (!post.media_url) throw new Error("Media URL is required for Instagram");
 
                     await step.run(`publish-instagram-${post.id}`, async () => {
-                        // Idempotency: if platform_post_id is already set for this row, skip.
-                        // Prevents duplicates even if the cron fires this step more than once
-                        // (Inngest step retry, dual triggers, etc.).
-                        const { data: current } = await supabaseAdmin
+                        // ATOMIC RESERVATION.
+                        // The previous "check platform_post_id, then publish, then save" pattern
+                        // had a race window between check and save where two concurrent
+                        // invocations both read null, both published (creating 2 IG posts), and
+                        // then only one won the save. Two IG posts, one platform_post_id in DB.
+                        //
+                        // Fix: atomically CLAIM the platform_post_id column BEFORE publishing,
+                        // using a sentinel value. This is compare-and-swap: only one caller
+                        // can transition null -> sentinel. Losers see 0 rows updated and skip.
+                        // If publish then fails, the catch block clears the reservation so a
+                        // future retry can proceed. If publish succeeds, we overwrite the
+                        // sentinel with the real IG post ID.
+                        const reservationId = `PENDING_${Date.now()}_${Math.floor(Math.random() * 1e9)}`;
+                        const { data: reserved, error: resErr } = await supabaseAdmin
                             .from('calendar_events')
-                            .select('platform_post_id')
+                            .update({ platform_post_id: reservationId })
                             .eq('id', post.id)
-                            .single();
+                            .is('platform_post_id', null)
+                            .select('id');
 
-                        if (current?.platform_post_id) {
-                            console.log(`[publish-instagram] Row ${post.id} already published as ${current.platform_post_id}, skipping.`);
-                            return { skipped: true, existingId: current.platform_post_id };
+                        if (resErr) {
+                            throw new Error(`Reservation failed: ${resErr.message}`);
+                        }
+                        if (!reserved || reserved.length === 0) {
+                            console.log(`[publish-instagram] Row ${post.id} already reserved/published, skipping.`);
+                            return { skipped: true };
                         }
 
-                        const urls = post.media_url ? post.media_url.split(',').map((u: string) => u.trim()) : [];
-                        const result = await publishToInstagram({
-                            connectionId: post.account_id!,
-                            text: `${post.title}${post.description ? `\n\n${post.description}` : ''}`,
-                            mediaUrls: urls
-                        });
+                        try {
+                            const urls = post.media_url ? post.media_url.split(',').map((u: string) => u.trim()) : [];
+                            const result = await publishToInstagram({
+                                connectionId: post.account_id!,
+                                text: `${post.title}${post.description ? `\n\n${post.description}` : ''}`,
+                                mediaUrls: urls
+                            });
 
-                        // Save platform_post_id atomically. The .is('platform_post_id', null)
-                        // guard means a concurrent run that already saved a post_id wins;
-                        // this update simply becomes a no-op. Combined with the check above,
-                        // the platform sees at most ONE publish per row for its lifetime.
-                        if (result?.postId) {
+                            if (result?.postId) {
+                                await supabaseAdmin
+                                    .from('calendar_events')
+                                    .update({ platform_post_id: result.postId })
+                                    .eq('id', post.id);
+                            }
+
+                            return { postId: result?.postId };
+                        } catch (err) {
+                            // Publish failed — release the reservation so a future retry
+                            // can pick this up. Only clear if it still equals OUR sentinel
+                            // (defensive; something else may have overwritten it).
                             await supabaseAdmin
                                 .from('calendar_events')
-                                .update({ platform_post_id: result.postId })
+                                .update({ platform_post_id: null })
                                 .eq('id', post.id)
-                                .is('platform_post_id', null);
+                                .eq('platform_post_id', reservationId);
+                            throw err;
                         }
-
-                        return { postId: result?.postId };
                     });
                 } else if (post.platform?.toLowerCase() === 'tiktok') {
                     // TikTok typically expects userId to find connection if account_id isn't directly the connection record ID
