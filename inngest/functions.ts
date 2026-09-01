@@ -354,7 +354,12 @@ export const generateVideo = inngest.createFunction(
 );
 
 export const processScheduledPosts = inngest.createFunction(
-    { id: "process-scheduled-posts" },
+    // retries: 0 — critical. The publish step (esp. IG carousels with many
+    // images) can take 30-60s and hit transient errors. Without retries: 0,
+    // Inngest retries the step and IG creates a duplicate post because there's
+    // no idempotency key on the platform side. Better to leave a failed row
+    // as 'failed' and let the user reschedule than to silently duplicate.
+    { id: "process-scheduled-posts", retries: 0 },
     { cron: "* * * * *" }, // Run every minute
     async ({ step }) => {
         // 1. Atomically claim due posts by moving them from 'scheduled' -> 'processing'.
