@@ -124,48 +124,5 @@ function PlatformIcon({ name, className }: { name: string; className?: string })
 }
 
 export function TrustedBy() {
-    const platforms = [
-        { name: "Instagram", label: "Instagram" },
-        { name: "YouTube", label: "YouTube" },
-        { name: "TikTok", label: "TikTok" },
-        { name: "LinkedIn", label: "LinkedIn" },
-        { name: "Pinterest", label: "Pinterest" },
-        { name: "X", label: "X (Twitter)" },
-        { name: "Facebook", label: "Facebook" },
-        { name: "Threads", label: "Threads" },
-        { name: "Google Business", label: "Google Business" },
-        { name: "Snapchat", label: "Snapchat" },
-        { name: "Google Drive", label: "Google Drive" },
-        { name: "WhatsApp", label: "WhatsApp" },
-    ];
-
-    return (
-        <section className="w-full bg-white border-y border-black/10 py-7 px-6 sm:px-8">
-            <div className="mx-auto flex w-full max-w-[1160px] flex-col gap-4 lg:flex-row lg:items-center lg:gap-10">
-                <p className={`shrink-0 whitespace-nowrap lg:pt-0.5 ${landingEyebrowText}`}>
-                    Supports
-                </p>
-                <div className="grid min-w-0 w-full flex-1 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                    {platforms.map((platform) => (
-                        <div
-                            key={platform.label}
-                            className="flex w-full min-w-0 items-center justify-center gap-1.5 rounded-md border border-black/10 bg-[#F5F0E8] px-3 py-2 text-center text-[13px] font-semibold text-zinc-500 sm:px-4"
-                        >
-                            <span className="shrink-0">
-                                <PlatformIcon
-                                    name={platform.name}
-                                    className={
-                                        platform.name === "Snapchat"
-                                            ? "h-5 w-5 translate-y-[0.5px]"
-                                            : "h-4 w-4"
-                                    }
-                                />
-                            </span>
-                            <span className="truncate">{platform.label}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
+    return null;
 }
