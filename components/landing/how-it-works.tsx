@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { landingCardTitle, landingEyebrow, landingSectionLead, landingSectionTitle } from "@/components/landing/typography";
 
 const steps = [
@@ -39,9 +40,36 @@ export function HowItWorks() {
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
                     {steps.map((step, i) => (
                         <div key={step.number} className={`relative animate-fade-up stagger-${i + 1}`}>
-                            <p className="select-none text-6xl font-bold leading-none text-zinc-200 sm:text-7xl">
-                                {step.number}
-                            </p>
+                            <div className="flex items-center gap-3">
+                                <p className="select-none text-6xl font-bold leading-none text-zinc-200 sm:text-7xl">
+                                    {step.number}
+                                </p>
+                                {step.number === "01" && (
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <Image
+                                            src="/instagram.png"
+                                            alt="Instagram"
+                                            width={32}
+                                            height={32}
+                                            className="h-8 w-8 object-contain transition-transform hover:scale-110"
+                                        />
+                                        <Image
+                                            src="/meta.png"
+                                            alt="Meta"
+                                            width={32}
+                                            height={32}
+                                            className="h-8 w-8 object-contain transition-transform hover:scale-110"
+                                        />
+                                        <Image
+                                            src="/youtube.png"
+                                            alt="YouTube"
+                                            width={32}
+                                            height={32}
+                                            className="h-8 w-8 object-contain transition-transform hover:scale-110"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                             <h3 className={`mt-4 ${landingCardTitle}`}>{step.title}</h3>
                             <p className="mt-3 text-[15px] leading-relaxed text-zinc-500">{step.description}</p>
                             <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[#F5F0E8] px-3.5 py-1.5 text-xs font-semibold text-zinc-900">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import "@/components/landing/hero-24-7.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 
