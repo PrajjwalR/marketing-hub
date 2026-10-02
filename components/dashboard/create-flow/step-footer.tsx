@@ -19,8 +19,8 @@ export function StepFooter({
     canContinue
 }: StepFooterProps) {
     return (
-        <div className="fixed bottom-0 left-0 right-0 md:left-72 flex h-20 items-center justify-between border-t border-zinc-200 bg-white px-8 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
-            <div className="mx-auto flex w-full max-w-4xl items-center justify-between">
+        <div className="sticky bottom-20 z-30 mx-auto mt-6 flex h-16 max-w-5xl items-center rounded-2xl border border-zinc-200/80 bg-white/95 px-4 shadow-[0_18px_40px_-16px_rgba(17,58,43,0.35)] backdrop-blur md:bottom-4 sm:px-6">
+            <div className="flex w-full items-center justify-between">
                 <div>
                     {!isFirstStep && (
                         <Button
@@ -37,7 +37,7 @@ export function StepFooter({
                 <Button
                     onClick={onContinue}
                     disabled={!canContinue}
-                    className="min-w-[140px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-md transition-all active:scale-95"
+                    className="min-w-[140px] bg-gold-400 font-bold text-brand-950 shadow-sm transition-all hover:bg-gold-300 active:scale-95"
                 >
                     {isLastStep ? "Schedule" : "Continue"}
                     {!isLastStep && <ChevronRight className="ml-2 h-4 w-4" />}

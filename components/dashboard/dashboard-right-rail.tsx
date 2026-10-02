@@ -15,13 +15,15 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const railBtn =
-    'flex h-13 w-13 shrink-0 items-center justify-center rounded-full border border-transparent text-black transition-colors hover:text-zinc-700 hover:border-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20';
+    'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-transparent text-zinc-600 transition-colors hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300';
 
 const railBtnActive =
-    'bg-[#205BC3] border-[#205BC3] text-white hover:bg-[#205BC3] hover:border-[#205BC3]/85';
+    'bg-brand-800 border-brand-800 text-white shadow-md shadow-brand-900/20 hover:bg-brand-800 hover:text-white';
 
 const composeBtn =
-    'flex h-13 w-13 shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 border border-transparent hover:border-[#205BC3]/70';
+    'flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold-400 text-brand-950 ring-4 ring-gold-100 shadow-md shadow-gold-600/25 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-gold-200';
+
+const composeBtnActive = 'ring-gold-200';
 
 /**
  * Sprout-style narrow right rail: compose (blue tile), notifications, messages, docs, add, more;
@@ -44,13 +46,13 @@ export function DashboardRightRail() {
 
     return (
         <aside
-            className="font-sans flex h-screen w-[65px] shrink-0 flex-col items-center border-l border-zinc-200 bg-white"
+            className="font-sans flex h-screen w-[68px] shrink-0 flex-col items-center border-l border-zinc-200/80 bg-white"
             aria-label="Quick actions"
         >
-            <div className="flex w-full flex-col items-center gap-2 py-3">
+            <div className="flex w-full flex-col items-center gap-2.5 py-4">
                 <button
                     type="button"
-                    className={cn(composeBtn, activeKey === 'compose' && railBtnActive)}
+                    className={cn(composeBtn, activeKey === 'compose' && composeBtnActive)}
                     aria-label="Compose"
                     title="Compose"
                 >
@@ -71,7 +73,7 @@ export function DashboardRightRail() {
                 </button>
             </div>
 
-            <div className="mt-auto flex w-full flex-col items-center gap-2 border-t border-zinc-200/90 py-3">
+            <div className="mt-auto flex w-full flex-col items-center gap-2 border-t border-zinc-200/80 py-4">
                 <button
                     type="button"
                     className={railBtn}

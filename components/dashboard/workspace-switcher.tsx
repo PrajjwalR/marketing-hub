@@ -127,7 +127,7 @@ export function WorkspaceSwitcher({ isCollapsed }: WorkspaceSwitcherProps) {
       {/* Dropdown */}
       {open && (
         <div className={cn(
-          'absolute z-50 mt-1 min-w-[220px] overflow-hidden rounded-xl border border-white/10 bg-[#1e2a2a] shadow-2xl',
+          'absolute z-50 mt-1 min-w-[220px] overflow-hidden rounded-xl border border-white/10 bg-brand-950 shadow-2xl',
           isCollapsed ? 'left-full ml-2 top-0' : 'left-0 top-full',
         )}>
           {/* Account list */}
@@ -159,7 +159,7 @@ export function WorkspaceSwitcher({ isCollapsed }: WorkspaceSwitcherProps) {
                       <span className="block text-[10px] text-white/40">Default</span>
                     )}
                   </span>
-                  {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-indigo-300" />}
+                  {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-gold-300" />}
                 </button>
               );
             })}
@@ -216,7 +216,7 @@ export function WorkspaceSwitcher({ isCollapsed }: WorkspaceSwitcherProps) {
                   <button
                     onClick={handleLink}
                     disabled={creating || !linkEmail.trim() || !linkPassword.trim()}
-                    className="flex-1 rounded-md bg-white text-[#1e2a2a] py-1.5 text-[11px] font-semibold hover:bg-white/90 disabled:opacity-50 disabled:hover:bg-white transition-all flex items-center justify-center gap-1"
+                    className="flex-1 rounded-md bg-gold-400 text-brand-950 py-1.5 text-[11px] font-semibold hover:bg-gold-300 disabled:opacity-50 disabled:hover:bg-gold-400 transition-all flex items-center justify-center gap-1"
                   >
                     {creating && <Loader2 className="h-3 w-3 animate-spin" />}
                     Link

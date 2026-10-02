@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, List as ListIcon, Users, Star, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Filter, List as ListIcon, ListChecks, Users, Star, ArrowUpDown } from "lucide-react";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 import { useState } from "react";
 
 const lists = [
@@ -16,44 +17,47 @@ export default function ListsPage() {
     const filtered = lists.filter(l => l.name.toLowerCase().includes(search.toLowerCase()));
 
     return (
-        <div className="p-6 space-y-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold text-zinc-900">Lists</h1>
-                    <p className="text-sm text-zinc-500 mt-0.5">Organize your contacts and accounts into targeted lists</p>
-                </div>
-                <Button className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white font-medium px-4 gap-2 text-sm">
-                    <Plus className="h-4 w-4" /> New List
-                </Button>
-            </div>
+        <div className="space-y-5 animate-in fade-in duration-300">
+            <PageHero
+                title="Lists"
+                breadcrumb={['CRM', 'Lists']}
+                icon={ListChecks}
+                description="Organize your contacts and accounts into targeted lists."
+                stats={[{ label: 'Lists', value: lists.length, icon: ListChecks }]}
+                actions={
+                    <button className={heroButtonClass('gold')}>
+                        <Plus className="h-4 w-4" /> New list
+                    </button>
+                }
+            />
 
             {/* Tabs */}
-            <div className="flex gap-6 border-b border-zinc-200">
+            <div className="flex w-fit flex-wrap rounded-full bg-brand-800 p-1">
                 {['All Lists', 'People Lists', 'Company Lists', 'Archived'].map((tab, i) => (
-                    <button key={i} className={`pb-2 text-[13px] font-medium ${i === 0 ? 'text-zinc-900 border-b-2 border-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}>{tab}</button>
+                    <button key={i} className={`rounded-full px-4 py-1.5 text-[13px] font-bold transition-all ${i === 0 ? 'bg-white text-brand-900 shadow-sm' : 'text-white/75 hover:text-white'}`}>{tab}</button>
                 ))}
             </div>
 
             {/* Filter Bar */}
             <div className="flex items-center gap-3">
                 <div className="relative flex-1 max-w-xs">
-                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-zinc-400" />
-                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search lists..." className="h-8 w-full rounded-md border border-zinc-200 pl-8 pr-3 text-sm focus:outline-none" />
+                    <Search className="absolute left-2.5 top-3 h-4 w-4 text-zinc-400" />
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search lists..." className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200" />
                 </div>
-                <Button variant="outline" className="h-8 text-sm gap-1.5 border-zinc-200"><Filter className="h-3.5 w-3.5" /> Filter</Button>
-                <Button variant="outline" className="h-8 text-sm gap-1.5 border-zinc-200"><ArrowUpDown className="h-3.5 w-3.5" /> Sort</Button>
+                <Button variant="outline" className="h-10 gap-1.5 text-sm"><Filter className="h-3.5 w-3.5" /> Filter</Button>
+                <Button variant="outline" className="h-10 gap-1.5 text-sm"><ArrowUpDown className="h-3.5 w-3.5" /> Sort</Button>
             </div>
 
             {/* Table */}
-            <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+            <div className="ae-tile">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b border-zinc-100 bg-zinc-50 text-left">
-                            <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Name</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Type</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Contacts</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Created</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 tracking-wider">Name</th>
+                            <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 tracking-wider">Type</th>
+                            <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 tracking-wider">Contacts</th>
+                            <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 tracking-wider">Created</th>
+                            <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500 tracking-wider">Status</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100">

@@ -27,7 +27,7 @@ export default function CompetitorCard({ competitor }) {
   const engagementStyle = ENGAGEMENT_BADGE[stats.engagementLevel] || ENGAGEMENT_BADGE.Medium;
 
   return (
-    <div className="flex flex-col rounded-[5px] border border-[#E5E7EB] bg-white hover:border-[#D1D5DB] hover:shadow-sm transition-all duration-200 overflow-hidden group">
+    <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white hover:border-[#D1D5DB] hover:shadow-sm transition-all duration-200 overflow-hidden group">
       {/* Card header */}
       <div className="flex items-start gap-3 p-5 pb-4">
         {/* Avatar */}
@@ -41,7 +41,7 @@ export default function CompetitorCard({ competitor }) {
         {/* Name + platform */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-[15px] font-bold text-[#111827] truncate">{name}</h3>
+            <h3 className="text-[15px] font-bold text-zinc-900 truncate">{name}</h3>
             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border ${platformStyle.bg} ${platformStyle.text} ${platformStyle.border}`}>
               {platform}
             </span>
@@ -68,7 +68,7 @@ export default function CompetitorCard({ competitor }) {
           { label: 'Avg Comments', value: formatStat(stats.avgComments) },
         ].map(({ label, value }) => (
           <div key={label} className="flex flex-col items-center py-3 px-2">
-            <div className="text-[16px] font-extrabold text-[#111827]">{value}</div>
+            <div className="text-[16px] font-extrabold text-zinc-900">{value}</div>
             <div className="text-[11px] text-zinc-500 mt-0.5 font-medium">{label}</div>
           </div>
         ))}
@@ -84,7 +84,7 @@ export default function CompetitorCard({ competitor }) {
         </span>
         <Link
           href={`/dashboard/competitors/${id}`}
-          className="inline-flex items-center gap-1 text-[13px] font-bold text-[#2D66C3] hover:text-[#1d4e9f] transition-colors group-hover:gap-1.5"
+          className="inline-flex items-center gap-1 text-[13px] font-bold text-[var(--color-brand-700)] hover:text-[#1d4e9f] transition-colors group-hover:gap-1.5"
         >
           View Details
           <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />

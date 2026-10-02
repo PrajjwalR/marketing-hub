@@ -12,8 +12,8 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
   const firstLesson = course.modules[0]?.lessons[0];
 
   return (
-    <div className="w-full bg-[#F4F5F7] min-h-screen pb-10">
-      <header className="sticky top-0 z-30 -mx-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-4 sm:-mx-4 sm:px-4">
+    <div className="w-full bg-canvas min-h-screen pb-10">
+      <header className="sticky top-0 z-30 -mx-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-canvas px-3 py-4 sm:-mx-4 sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
               <Link href="/dashboard/academy" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-tl-lg rounded-br-lg bg-[#E2E8F0] text-sm font-bold text-[#475569] hover:bg-[#CBD5E1]">
                   <ChevronLeft className="h-5 w-5" />
@@ -50,11 +50,11 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
                     className="group flex items-center justify-between px-5 py-4 transition-colors hover:bg-zinc-50"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-zinc-100 text-zinc-400 transition-colors group-hover:bg-[#205BC3]/10 group-hover:text-[#205BC3]">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-zinc-100 text-zinc-400 transition-colors group-hover:bg-[var(--color-brand-800)]/10 group-hover:text-[var(--color-brand-800)]">
                         <PlayCircle className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-zinc-700 transition-colors group-hover:text-[#205BC3]">
+                        <p className="text-sm font-semibold text-zinc-700 transition-colors group-hover:text-[var(--color-brand-800)]">
                           {lIdx + 1}. {lesson.title}
                         </p>
                         <p className="mt-0.5 text-xs text-zinc-500">{lesson.description}</p>
@@ -82,14 +82,14 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
                 <span className="font-bold text-[#111827]">{totalLessons}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 font-semibold text-zinc-600"><Clock className="h-4 w-4 text-[#205BC3]" /> Instructor</span>
+                <span className="flex items-center gap-2 font-semibold text-zinc-600"><Clock className="h-4 w-4 text-[var(--color-brand-800)]" /> Instructor</span>
                 <span className="font-bold text-[#111827]">{course.instructor}</span>
               </div>
             </div>
             {firstLesson && (
               <Link href={`/dashboard/academy/${course.id}/${firstLesson.id}`} className="block">
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-[5px] py-2.5 text-sm font-bold text-white transition-all bg-[#205BC3] hover:bg-[#1a4b9c]"
+                  className="flex w-full items-center justify-center gap-2 rounded-[5px] py-2.5 text-sm font-bold text-white transition-all bg-[var(--color-brand-800)] hover:bg-[#1a4b9c]"
                 >
                   <PlayCircle className="h-4 w-4" />
                   Start Learning

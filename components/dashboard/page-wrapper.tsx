@@ -21,9 +21,7 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
 
     const shouldStartAtTop =
         isDashboardHome ||
-        pathname.startsWith('/dashboard/competitors') ||
-        pathname.startsWith('/dashboard/analytics-dashboard') ||
-        pathname.startsWith('/dashboard/analytics') ||
+        // Screens using <PageHero> manage their own top spacing.
         pathname.startsWith('/dashboard/designer');
 
     return (
@@ -31,8 +29,8 @@ export function PageWrapper({ children }: { children: React.ReactNode }) {
             className={cn(
                 'animate-in fade-in slide-in-from-bottom-4 duration-500',
                 isFullWidth ? 'w-full max-w-none' : 'mx-auto max-w-7xl',
-                // Keep selected dashboard routes flush to the top.
-                !shouldStartAtTop && 'pt-8'
+                // Keep selected dashboard routes flush to the top; others leave room above the hero on desktop.
+                !shouldStartAtTop && 'md:pt-6'
             )}
         >
             {children}

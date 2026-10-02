@@ -13,6 +13,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { usePlanLimits } from '@/hooks/use-plan-limits';
 import { UpgradeModal } from '@/components/dashboard/upgrade-modal';
+import { PageHero } from '@/components/dashboard/page-hero';
+import { Wand2 } from 'lucide-react';
 
 const TOTAL_STEPS = 6;
 
@@ -214,24 +216,34 @@ function CreateSeriesForm() {
     };
 
     return (
-        <div className="relative pb-24">
-            <div className="mx-auto max-w-4xl space-y-8 mt-0">
-                {/* Stepper Header */}
-                <div className="sticky top-0 z-20 -mx-8 bg-gray-50/80 px-8 py-4 backdrop-blur-md border-b border-zinc-100 mb-2">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[12px] font-bold uppercase tracking-widest text-indigo-600">
-                            {isEditMode ? 'Editing Series' : `Step ${currentStep} of ${TOTAL_STEPS}`}
-                        </span>
-                    </div>
-                    <Stepper currentStep={currentStep} totalSteps={TOTAL_STEPS} />
-                </div>
+        <div className="relative pb-6">
+            <div className="mx-auto max-w-5xl">
+                <PageHero
+                    title={isEditMode ? 'Edit your series' : 'Create a new series'}
+                    breadcrumb={['Content Creation', isEditMode ? 'Edit Series' : 'Create New']}
+                    icon={Wand2}
+                    description="Pick a niche, voice, style and music. We'll generate and publish videos on autopilot."
+                    overlap={
+                        <div>
+                            <div className="mb-3 flex items-center justify-between">
+                                <span className="ae-section-label">
+                                    {isEditMode ? 'Editing series' : `Step ${currentStep} of ${TOTAL_STEPS}`}
+                                </span>
+                                <span className="rounded-full bg-gold-100 px-2.5 py-0.5 text-xs font-bold text-gold-800">
+                                    {Math.round((currentStep / TOTAL_STEPS) * 100)}%
+                                </span>
+                            </div>
+                            <Stepper currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+                        </div>
+                    }
+                />
 
                 {/* Content */}
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="ae-tile animate-in fade-in slide-in-from-bottom-2 p-4 duration-500 sm:p-6">
                     {isLoadingData ? (
                         <div className="flex h-64 flex-col items-center justify-center gap-4">
-                            <div className="h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                            <p className="text-zinc-500 font-medium">Checking plan & series data...</p>
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
+                            <p className="font-medium text-zinc-500">Checking plan & series data...</p>
                         </div>
                     ) : (
                         renderStep()

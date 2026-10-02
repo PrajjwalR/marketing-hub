@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/sheet';
 
 const LANDING_BTN =
-    'bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 rounded-full font-medium text-[15px] shadow-md transition-all';
+    'bg-gold-400 hover:bg-gold-300 text-brand-950 rounded-xl font-bold text-[15px] shadow-sm transition-all';
 
 export type WorkbenchType = 'image' | 'video';
 type ReferenceRole = 'scene_reference' | 'model_reference' | 'product_reference';
@@ -58,7 +58,7 @@ function StepHeader({
 }) {
     return (
         <div className="flex items-start gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-400 text-xs font-extrabold text-brand-950 ring-4 ring-gold-100">
                 {step}
             </div>
             <div className="min-w-0 flex-1">
@@ -189,7 +189,7 @@ function GalleryPickerContent({ onSelect }: { onSelect: (url: string) => void })
                             key={item.id}
                             type="button"
                             onClick={() => onSelect(item.url)}
-                            className="group relative aspect-square rounded-lg overflow-hidden border border-zinc-200 hover:border-[#f2d412] hover:ring-2 hover:ring-[#f2d412]/30 transition-all"
+                            className="group relative aspect-square rounded-lg overflow-hidden border border-zinc-200 hover:border-gold-400 hover:ring-2 hover:ring-gold-400/30 transition-all"
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
@@ -526,14 +526,14 @@ export function PostersWorkbench({
 
     return (
         <>
-        <Card className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <div className="border-b border-zinc-200 bg-zinc-50/60 px-4 py-3">
+        <Card className="ae-tile gap-0 overflow-hidden py-0">
+            <div className="border-b border-zinc-100 bg-gradient-to-r from-brand-50/70 via-white to-gold-50/60 px-5 py-4">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <p className="text-xs font-bold tracking-widest uppercase text-[#239047]">
+                        <p className="ae-section-label">
                             Content Creation
                         </p>
-                        <h2 className="mt-0.5 text-xl font-semibold tracking-tight text-zinc-900">
+                        <h2 className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-zinc-900">
                             {title}
                         </h2>
                         <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
@@ -550,14 +550,14 @@ export function PostersWorkbench({
                             </div>
                         )}
                     </div>
-                    <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600">
-                        <Sparkles className="h-3.5 w-3.5 text-zinc-500" />
+                    <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-gold-100 px-3 py-1 text-xs font-bold text-gold-800">
+                        <Sparkles className="h-3.5 w-3.5 text-gold-600" />
                         AI assisted prompt builder
                     </div>
                 </div>
             </div>
 
-            <div className="p-4">
+            <div className="p-4 sm:p-5">
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                     {/* Step 1 */ }
                     <Card className="rounded-lg border border-zinc-200 bg-white p-3 shadow-none">

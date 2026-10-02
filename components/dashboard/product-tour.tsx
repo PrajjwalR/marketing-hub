@@ -246,6 +246,8 @@ export function ProductTour() {
             ];
         }
 
+        // Sidebar items can be hidden via Explore Apps; skip steps whose target is not on the page.
+        steps = steps.filter((s) => !s.element || document.querySelector(s.element));
         if (steps.length === 0) return;
 
         const driverObj = driver({

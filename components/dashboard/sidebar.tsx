@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, type ComponentType } from 'react';
 import {
-    LayoutDashboard, Search, Send, DollarSign, Wrench, ArrowDownLeft,
+    LayoutDashboard, LayoutGrid, Search, Send, DollarSign, Wrench, ArrowDownLeft,
     Bookmark, ShieldCheck, Settings, ChevronDown, ChevronRight,
     ChevronsLeft, Menu, Film, Video, CalendarDays, Plus, CreditCard, User,
     BarChart2, Target, Home, Brain, LogOut, GraduationCap,Bell, Sparkles,
@@ -23,8 +23,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
+import { useActiveHubId, useHubTabs, EXPLORE_TAB_HREF, type HubTab } from '@/components/dashboard/hub-nav';
 
-const WhatsappIcon = ({ className }: { className?: string }) => (
+export const WhatsappIcon = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 32 32"
@@ -35,14 +36,14 @@ const WhatsappIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-type SidebarSubItem = {
+export type SidebarSubItem = {
   name: string;
   href: string;
   badge?: string;
   external?: boolean;
 };
 
-type SidebarSection = {
+export type SidebarSection = {
   name: string;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
   href?: string;
@@ -50,237 +51,42 @@ type SidebarSection = {
   hasBorderBottom?: boolean;
   defaultExpanded?: boolean;
   hasArrow?: boolean;
+  /** Section id from lib/apps; the tab is active on any route inside that section. */
+  hubId?: string;
   items?: SidebarSubItem[];
   id?: string;
 };
 
-const sidebarData: SidebarSection[] = [
-  {
-        name: 'Launchpad',
-    icon: LayoutDashboard,
-        href: '/dashboard',
-    hasBorderBottom: false,
-  },
-  {
-        name: 'Analytics Dashboard',
-    icon: BarChart2,
-        href: '/dashboard/analytics-dashboard',
-    hasBorderBottom: true,
-        id: 'sidebar-dashboard',
-  },
-  {
-        name: 'Strategy',
-    icon: Target,
-    defaultExpanded: true,
-        id: 'sidebar-strategy',
-    items: [
-            { name: 'Strategy Planner', href: '/dashboard/strategy' },
-            { name: 'Prebuilt Strategy Prompts', href: '/dashboard/prebuilt-strategy-prompts' },
-        ]
-  },
-  {
-        name: 'Competitors',
-    icon: BarChart2,
-        href: '/dashboard/competitors',
-        id: 'sidebar-competitors',
-  },
-  {
-        name: 'Postings Calendar',
-    icon: CalendarDays,
-        href: '/dashboard/calendar',
-        id: 'sidebar-calendar',
-  },
-  {
-        name: 'Auto Reply',
-    icon: MessageSquareReply,
-        href: '/dashboard/auto-reply',
-        id: 'sidebar-auto-reply',
-  },
-  {
-        name: 'Content Creation',
-    icon: Film,
-    defaultExpanded: true,
-        id: 'sidebar-content',
-    items: [
-            { name: 'Series', href: '/dashboard/series' },
-            { name: 'Gallery', href: '/dashboard/videos' },
-            { name: 'Create Content', href: '/dashboard/posters' },
-            { name: 'Designer', href: '/dashboard/designer' },
-            { name: 'Create New', href: '/dashboard/create' },
-        ]
-  },
-  {
-    name: 'AI Photoshoot',
-    icon: Camera,
-    defaultExpanded: true,
-    id: 'sidebar-ai-photoshoot',
-    items: [
-      { name: 'My generations', href: '/dashboard/ai-photoshoot/generations' },
-      { name: 'Studio', href: '/dashboard/ai-photoshoot/studio' },
-    ],
-  },
-  {
-    name: 'Whathub',
-    icon: WhatsappIcon,
-        href: '/api/whathub/sso',
-    external: true,
-  },
-  // {
-  //     name: 'CRM',
-  //     icon: CreditCard,
-  //     href: '/dashboard/billing',
-  //     items: [
-  //         { name: 'Contacts', href: '/dashboard/contacts' },
-  //         { name: 'Companies', href: '/dashboard/companies' },
-  //         { name: 'Lists', href: '/dashboard/lists' },
-  //         { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
-  //     ]
-  // },
-  // {
-  //     name: 'Engage',
-  //     icon: Send,
-  //     defaultExpanded: true,
-  //     items: [
-  //         { name: 'Sequences', href: '/dashboard/sequences' },
-  //         { name: 'Emails', href: '/dashboard/emails' },
-  //         { name: 'Calls', href: '/dashboard/calls' },
-  //         { name: 'Tasks', href: '/dashboard/tasks' },
-  //     ]
-  // },
-  // {
-  //     name: 'Win deals',
-  //     icon: DollarSign,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Meetings', href: '/dashboard/meetings' },
-  //         { name: 'Conversations', href: '/dashboard/conversations' },
-  //         { name: 'Deals', href: '/dashboard/deals' },
-  //     ]
-  // },
-  // {
-  //     name: 'Tools and automation',
-  //     icon: Wrench,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Workflows', href: '/dashboard/workflows' },
-  //         { name: 'Analytics', href: '/dashboard/analytics' },
-  //         { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
-  //     ]
-  // },
-  // {
-  //     name: 'Inbound',
-  //     icon: ArrowDownLeft,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Website visitors', href: '/dashboard/website-visitors', badge: 'New' },
-  //         { name: 'Forms', href: '/dashboard/forms' },
-  //     ]
-  // },
-  // {
-  //     name: 'Saved records',
-  //     icon: Bookmark,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'People', href: '/dashboard/saved-people' },
-  //     ]
-  // },
-  // {
-  //     name: 'Deliverability suite',
-  //     icon: ShieldCheck,
-  //     href: '/dashboard/deliverability'
-  // },
-  {
-        name: 'Academy',
-    icon: GraduationCap,
-        href: '/dashboard/academy',
-        id: 'sidebar-academy',
-  },
-  {
-        name: 'CRM',
-    icon: CreditCard,
-        href: '/dashboard/billing',
-    items: [
-            { name: 'Contacts', href: '/dashboard/contacts' },
-            { name: 'Events & Notifications', href: '/dashboard/events' },
-            { name: 'Companies', href: '/dashboard/companies' },
-            { name: 'Lists', href: '/dashboard/lists' },
-            { name: 'Data enrichment', href: '/dashboard/data-enrichment' },
-        ]
-  },
-  // {
-  //     name: 'Engage',
-  //     icon: Send,
-  //     defaultExpanded: true,
-  //     items: [
-  //         { name: 'Sequences', href: '/dashboard/sequences' },
-  //         { name: 'Emails', href: '/dashboard/emails' },
-  //         { name: 'Calls', href: '/dashboard/calls' },
-  //         { name: 'Tasks', href: '/dashboard/tasks' },
-  //     ]
-  // },
-  // {
-  //     name: 'Win deals',
-  //     icon: DollarSign,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Meetings', href: '/dashboard/meetings' },
-  //         { name: 'Conversations', href: '/dashboard/conversations' },
-  //         { name: 'Deals', href: '/dashboard/deals' },
-  //     ]
-  // },
-  // {
-  //     name: 'Tools and automation',
-  //     icon: Wrench,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Workflows', href: '/dashboard/workflows' },
-  //         { name: 'Analytics', href: '/dashboard/analytics' },
-  //         { name: 'Optimal send times', href: '/dashboard/optimal-send-times' },
-  //     ]
-  // },
-  // {
-  //     name: 'Inbound',
-  //     icon: ArrowDownLeft,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'Website visitors', href: '/dashboard/website-visitors', badge: 'New' },
-  //         { name: 'Forms', href: '/dashboard/forms' },
-  //     ]
-  // },
-  // {
-  //     name: 'Saved records',
-  //     icon: Bookmark,
-  //     defaultExpanded: false,
-  //     items: [
-  //         { name: 'People', href: '/dashboard/saved-people' },
-  //     ]
-  // },
-  // {
-  //     name: 'Deliverability suite',
-  //     icon: ShieldCheck,
-  //     href: '/dashboard/deliverability'
-  // },
 
-  {
-        name: 'Admin Settings',
-    icon: Settings,
-        href: '/dashboard/settings',
-    hasArrow: true,
-        id: 'sidebar-settings',
-    }
-];
+/** Sidebar entries: one tab per enabled section, then Explore All Apps (always last). */
+export function buildNavSections(hubTabs: HubTab[]): SidebarSection[] {
+  return [
+    ...hubTabs.map((tab) => ({
+      name: tab.name,
+      icon: tab.icon,
+      href: tab.href,
+      external: tab.external,
+      hubId: tab.id,
+      id: `sidebar-${tab.id}`,
+    })),
+    { name: 'Explore All Apps', icon: LayoutGrid, href: EXPLORE_TAB_HREF, hubId: 'explore', id: 'sidebar-apps' },
+  ];
+}
 
 const isDashboardHomePath = (p: string) => p === '/dashboard' || p === '/dashboard/';
 
 /** Expanded rail width (collapsed stays icon-only). */
 const SIDEBAR_W_EXPANDED = 'w-[256px]';
-const SIDEBAR_BG = 'bg-[#273333]';
-const SIDEBAR_SECONDARY_BG = 'bg-[#273333]';
+const SIDEBAR_BG = 'bg-brand-900';
+const SIDEBAR_SECONDARY_BG = 'bg-brand-950';
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentPlan } = usePlanLimits();
+  const { currentPlan, planName } = usePlanLimits();
+  const hubTabs = useHubTabs();
+  const activeHubId = useActiveHubId();
+  const visibleSections = buildNavSections(hubTabs);
   const showUpgrade = false; // All features enabled
 
   const handleSignOut = async () => {
@@ -302,7 +108,7 @@ export function Sidebar() {
   const [showSecondary, setShowSecondary] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(
-        sidebarData.reduce((acc, section) => {
+        ([] as SidebarSection[]).reduce((acc, section) => {
         if (section.items) {
           acc[section.name] = section.defaultExpanded === true;
         }
@@ -361,7 +167,7 @@ export function Sidebar() {
       setActiveSectionName(null);
     } else {
       // When collapsing, highlight the parent section that owns the active route
-            const activeParent = sidebarData.find(section =>
+            const activeParent = visibleSections.find(section =>
                 section.items?.some(item =>
                     isNavItemActive(item.href)
                 )
@@ -373,7 +179,7 @@ export function Sidebar() {
   }, [isCollapsed, pathname]);
 
   // Handle clicking a link that has sub-links when collapsed
-    const activeSection = sidebarData.find(s => s.name === activeSectionName);
+    const activeSection = visibleSections.find(s => s.name === activeSectionName);
     const filteredItems = activeSection?.items?.filter(item => 
         item.name.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
@@ -390,14 +196,14 @@ export function Sidebar() {
           setSearchTerm("");
         }}
         className={cn(
-          "font-sans flex h-screen flex-col overflow-hidden border-r border-white/[0.07] text-white transition-all duration-300",
+          "font-sans flex h-screen flex-col overflow-hidden border-r border-white/[0.08] text-white transition-all duration-300",
           SIDEBAR_BG,
                 isCollapsed ? "w-14" : SIDEBAR_W_EXPANDED
         )}
       >
         {/* Header / Logo and Toggle */}
             <div className={cn(
-            "flex shrink-0 items-center border-b border-white/[0.07]",
+            "flex shrink-0 items-center border-b border-white/[0.08]",
                 isCollapsed ? "flex-col h-auto py-4 space-y-4 px-0 items-center justify-center" : "h-14 justify-between px-4 gap-3"
             )}>
                 <div className={cn(
@@ -405,7 +211,7 @@ export function Sidebar() {
                     isCollapsed ? "justify-center gap-0" : "justify-start gap-3"
                 )}>
                     <div className={cn(
-                "flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-all duration-300 rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none bg-emerald-100/90",
+                "flex items-center justify-center overflow-hidden shrink-0 shadow-sm transition-all duration-300 rounded-xl bg-gold-100 ring-1 ring-gold-300/60",
                         isCollapsed ? "h-7 w-7" : "h-8 w-8"
                     )}>
               <Image
@@ -438,7 +244,7 @@ export function Sidebar() {
 
         {/* Workspace Switcher */}
         <div className={cn(
-          'border-b border-white/[0.07] py-2',
+          'border-b border-white/[0.08] py-2',
           isCollapsed ? 'px-1.5' : 'px-3'
         )}>
           <WorkspaceSwitcher isCollapsed={isCollapsed} />
@@ -449,7 +255,7 @@ export function Sidebar() {
             "flex-1 overflow-y-auto overflow-x-hidden pb-3 pt-1 space-y-0 custom-scrollbar",
                 isCollapsed ? "px-2" : "px-3"
             )}>
-          {sidebarData.map((section) => {
+          {visibleSections.map((section) => {
             const Icon = section.icon;
             const isExpanded = expandedSections[section.name];
 
@@ -465,7 +271,7 @@ export function Sidebar() {
                                         activeSectionName === section.name && showSecondary ||
                                         section.items?.some(item => isNavItemActive(item.href))
                         ))
-                      ? "rounded-2xl bg-white/20 text-white shadow-md"
+                      ? "rounded-xl bg-white text-brand-900 shadow-md"
                                         : "rounded-xl text-white/90 hover:bg-white/10 hover:text-white"
                   )}
                 >
@@ -476,8 +282,8 @@ export function Sidebar() {
                                             (activeSectionName === section.name && showSecondary) ||
                                             section.items?.some(item => isNavItemActive(item.href))
                             ))
-                          ? "text-white"
-                                            : "text-white/85 group-hover:text-white"
+                          ? "text-brand-700"
+                                            : "text-white/75 group-hover:text-white"
                                     )} strokeWidth={2} />
                                     <span className={cn(
                         "transition-all duration-300 truncate",
@@ -533,7 +339,7 @@ export function Sidebar() {
                                                     isCollapsed ? "mx-auto my-0.5 h-8 w-8 justify-center p-0" : "my-0.5 flex cursor-pointer items-center justify-between px-3 py-1.5 text-[14px] transition-all duration-300",
                           isActive ? "rounded-2xl" : "rounded-xl",
                           isActive
-                            ? "bg-white/15 font-bold text-white shadow-sm"
+                            ? "bg-white/[0.12] font-bold text-white shadow-sm ring-1 ring-white/10"
                                                         : "font-semibold text-white/90 hover:bg-white/10 hover:text-white"
                         )}
                       >
@@ -543,7 +349,7 @@ export function Sidebar() {
                                                 )}>{item.name}</span>
                         {item.badge && (
                                                     <span className={cn(
-                              "text-[11px] uppercase tracking-wider bg-emerald-500/20 text-emerald-200 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
+                              "text-[11px] uppercase tracking-wider bg-gold-400 text-brand-950 px-1.5 py-0.5 rounded-sm font-semibold shrink-0 ml-2 transition-all duration-300",
                                                         isCollapsed ? "opacity-0 scale-0 invisible w-0" : "opacity-100 scale-100 visible w-auto"
                                                     )}>
                             {item.badge}
@@ -567,7 +373,7 @@ export function Sidebar() {
                       side="right"
                       sideOffset={4}
                       showArrow={false}
-                      className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
+                      className="rounded-lg border border-white/10 bg-brand-950 px-3 py-1.5 text-xs font-semibold text-white shadow-lg animate-in fade-in zoom-in-95 duration-500"
                     >
                       {section.name}
                     </TooltipContent>
@@ -577,11 +383,13 @@ export function Sidebar() {
             }
 
             // Single link items
-                    const isAnySubItemActive = sidebarData.some(s => 
+                    const isAnySubItemActive = visibleSections.some(s => 
                         s.items?.some(i => i.href === pathname)
             );
 
-                    const isActive = !section.external && (
+                    const isActive = section.hubId
+                        ? activeHubId === section.hubId
+                        : !section.external && (
                         section.href === '/dashboard'
                             ? (pathname === '/dashboard' && !isAnySubItemActive)
                             : pathname.startsWith(section.href!)
@@ -593,14 +401,14 @@ export function Sidebar() {
                 ? "mx-auto my-1.5 h-8 w-8 justify-center rounded-xl p-0"
                 : "my-1 w-full justify-between px-2 py-2 text-[14px] font-bold",
               isActive
-                ? "rounded-2xl bg-white/15 text-white shadow-sm"
+                ? "rounded-xl bg-white text-brand-900 shadow-md"
                 : "rounded-xl text-white/90 hover:bg-white/10 hover:text-white",
             );
 
             const linkContent = (
               <>
                             <div className={cn("flex items-center overflow-hidden", isCollapsed ? "gap-0" : "gap-2.5")}>
-                                <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isActive ? "text-white" : "text-white/85 group-hover:text-white")} strokeWidth={isActive ? 2.5 : 2} />
+                                <Icon className={cn("h-4 w-4 shrink-0 transition-all duration-300", isActive ? "text-brand-700" : "text-white/75 group-hover:text-white")} strokeWidth={isActive ? 2.5 : 2} />
                                 <span className={cn(
                       "transition-all duration-300 truncate",
                                     isCollapsed ? "opacity-0 invisible w-0 -translate-x-2" : "opacity-100 visible w-auto translate-x-0"
@@ -610,13 +418,13 @@ export function Sidebar() {
                 </div>
                             <ChevronRight className={cn(
                     "h-4 w-4 shrink-0 transition-all duration-300",
-                                (isCollapsed || !section.hasArrow) ? "opacity-0 invisible w-0" : (isActive ? "text-white/90 opacity-100" : "text-white/75 opacity-0 group-hover:opacity-100")
+                                (isCollapsed || !section.hasArrow) ? "opacity-0 invisible w-0" : (isActive ? "text-brand-500 opacity-100" : "text-white/75 opacity-0 group-hover:opacity-100")
                             )} />
               </>
             );
 
             const singleLinkItem = (
-                        <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.07] pb-2")}>
+                        <div key={section.name} className={cn("flex flex-col", section.hasBorderBottom && "mb-2 border-b border-white/[0.08] pb-2")}>
                 {section.external ? (
                   <a
                     id={section.id}
@@ -651,7 +459,7 @@ export function Sidebar() {
                     side="right"
                     sideOffset={4}
                     showArrow={false}
-                    className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
+                    className="rounded-lg border border-white/10 bg-brand-950 px-3 py-1.5 text-xs font-semibold text-white shadow-lg animate-in fade-in zoom-in-95 duration-500"
                   >
                     {section.name}
                   </TooltipContent>
@@ -662,7 +470,7 @@ export function Sidebar() {
         </div>
 
         {/* Bottom Actions */}
-            <div className={cn("mt-auto border-t border-white/[0.07] pt-2 pb-3 shrink-0", isCollapsed ? "px-2" : "px-3")}>
+            <div className={cn("mt-auto border-t border-white/[0.08] pt-2 pb-3 shrink-0", isCollapsed ? "px-2" : "px-3")}>
           {isCollapsed ? (
             <TooltipProvider delayDuration={100}>
               <Tooltip>
@@ -678,13 +486,27 @@ export function Sidebar() {
                   side="right"
                   sideOffset={4}
                   showArrow={false}
-                  className="rounded-md border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-white shadow-sm animate-in fade-in zoom-in-95 duration-500"
+                  className="rounded-lg border border-white/10 bg-brand-950 px-3 py-1.5 text-xs font-semibold text-white shadow-lg animate-in fade-in zoom-in-95 duration-500"
                 >
                   Sign out
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ) : (
+            <>
+            <Link
+              href="/dashboard/billing"
+              className="group mb-2 flex items-center gap-3 rounded-2xl border border-gold-300/25 bg-gradient-to-br from-gold-400/15 to-transparent px-3 py-2.5 transition-colors hover:border-gold-300/50"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gold-300 to-gold-500 text-brand-950 shadow-[inset_0_-2px_0_rgba(0,0,0,0.15)]">
+                <Sparkles className="h-4 w-4" strokeWidth={2.5} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-gold-300">Your plan</span>
+                <span className="block truncate text-[13px] font-bold text-white">{planName}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-white/50 transition-transform group-hover:translate-x-0.5" />
+            </Link>
             <button
               onClick={handleSignOut}
               className="group my-1 flex w-full cursor-pointer items-center rounded-xl px-2 py-2 text-[14px] font-bold text-rose-400 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
@@ -694,6 +516,7 @@ export function Sidebar() {
                             <span className="truncate transition-all duration-300">Sign out</span>
               </div>
             </button>
+            </>
           )}
         </div>
 
@@ -709,13 +532,13 @@ export function Sidebar() {
       {isCollapsed && showSecondary && activeSection && (
         <div
           className={cn(
-            "font-sans flex h-screen flex-col border-r border-white/[0.07] text-white transition-all duration-300 animate-in slide-in-from-left-4",
+            "font-sans flex h-screen flex-col border-r border-white/[0.08] text-white transition-all duration-300 animate-in slide-in-from-left-4",
             SIDEBAR_W_EXPANDED,
             SIDEBAR_SECONDARY_BG,
           )}
         >
           {/* Secondary Header */}
-          <div className="flex h-14 shrink-0 items-center border-b border-white/[0.07] px-6">
+          <div className="flex h-14 shrink-0 items-center border-b border-white/[0.08] px-6">
             <span className="text-xs font-bold uppercase tracking-widest text-white/70">
               {activeSection.name}
             </span>
@@ -747,12 +570,12 @@ export function Sidebar() {
                   className={cn(
                     "my-1 flex cursor-pointer items-center px-3 py-2 text-[13px] transition-all duration-200",
                     isActive
-                      ? "rounded-2xl bg-white/15 font-bold text-white shadow-sm"
+                      ? "rounded-xl bg-white font-bold text-brand-900 shadow-sm"
                                             : "rounded-xl font-medium text-white/85 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   <span className="truncate">{item.name}</span>
-                                    {isActive && <div className="ml-auto h-1 w-1 rounded-full bg-white/40" />}
+                                    {isActive && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-gold-400" />}
                 </Link>
               );
             })}

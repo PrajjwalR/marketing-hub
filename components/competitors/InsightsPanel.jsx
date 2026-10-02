@@ -42,13 +42,13 @@ export default function InsightsPanel({ competitor }) {
   const counterStrategy = getCounterStrategy(name, bestDays);
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
+    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center gap-2.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-[5px] bg-[#F3F4F6]">
+      <div className="px-6 py-4 border-b border-zinc-200 flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-2xl bg-[#F3F4F6]">
           <Lightbulb className="h-4 w-4 text-[#6B7280]" />
         </div>
-        <h3 className="text-[15px] font-bold text-[#111827]">Insights & Strategy</h3>
+        <h3 className="text-[15px] font-bold text-zinc-900">Insights & Strategy</h3>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#F3F4F6]">
@@ -59,8 +59,8 @@ export default function InsightsPanel({ competitor }) {
             <span className="text-[13px] font-bold text-[#374151]">Top Performing Post</span>
           </div>
           {topPost ? (
-            <div className="rounded-[6px] bg-emerald-50 border border-emerald-100 p-3">
-              <p className="text-[13px] font-semibold text-[#111827] leading-snug">{topPost.title}</p>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+              <p className="text-[13px] font-semibold text-zinc-900 leading-snug">{topPost.title}</p>
               <div className="mt-2 flex gap-3 text-[12px] text-zinc-600">
                 <span>👍 {topPost.likes.toLocaleString()}</span>
                 <span>💬 {topPost.comments.toLocaleString()}</span>
@@ -75,14 +75,14 @@ export default function InsightsPanel({ competitor }) {
         {/* Best Posting Days */}
         <div className="p-5">
           <div className="flex items-center gap-2 mb-3">
-            <CalendarDays className="h-4 w-4 text-[#2D66C3] shrink-0" />
+            <CalendarDays className="h-4 w-4 text-[var(--color-brand-700)] shrink-0" />
             <span className="text-[13px] font-bold text-[#374151]">Best Posting Days</span>
           </div>
           {bestDays.length > 0 ? (
             <div className="space-y-2">
               {bestDays.map((day, i) => (
                 <div key={day} className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EFF6FF] text-[11px] font-bold text-[#2D66C3] shrink-0">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#EFF6FF] text-[11px] font-bold text-[var(--color-brand-700)] shrink-0">
                     {i + 1}
                   </span>
                   <span className="text-[13px] font-semibold text-[#374151]">{day}</span>
@@ -106,7 +106,7 @@ export default function InsightsPanel({ competitor }) {
             <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
             <span className="text-[13px] font-bold text-[#374151]">Counter Strategy</span>
           </div>
-          <div className="rounded-[6px] bg-amber-50 border border-amber-100 p-3">
+          <div className="rounded-xl bg-amber-50 border border-amber-100 p-3">
             <p className="text-[13px] text-[#374151] leading-relaxed">{counterStrategy}</p>
           </div>
           <p className="text-[11px] text-zinc-400 mt-2">AI-generated suggestion based on mock data</p>

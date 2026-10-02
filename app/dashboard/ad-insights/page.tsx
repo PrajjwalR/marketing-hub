@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Megaphone, Loader2, ArrowDown, ArrowUp, Filter, Calculator, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppSelect } from '@/components/ui/app-select';
 
 type Account = {
   id: string;
@@ -296,7 +297,7 @@ export default function AdInsightsPage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full sm:justify-center">
             <Button
-              className="rounded-xl font-bold bg-[#205BC3] hover:bg-[#205BC3]/90"
+              className="rounded-xl font-bold bg-[var(--color-brand-800)] hover:bg-[var(--color-brand-800)]/90"
               onClick={() => setConnectOpen(true)}
             >
               Connect an ad account
@@ -309,7 +310,7 @@ export default function AdInsightsPage() {
             href="https://developers.facebook.com/docs/marketing-apis"
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-[#205BC3] font-semibold mt-6 hover:underline"
+            className="text-sm text-[var(--color-brand-800)] font-semibold mt-6 hover:underline"
           >
             Learn more about ad APIs
           </a>
@@ -338,36 +339,30 @@ export default function AdInsightsPage() {
               </div>
               <div className="flex flex-col gap-1 min-w-[200px]">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">Ad accounts & campaigns</label>
-                <select
+                <AppSelect
+                  aria-label="Ad account"
                   value={accountId}
-                  onChange={(e) => {
-                    setAccountId(e.target.value);
+                  onChange={(v) => {
+                    setAccountId(v);
                     setCampaignId('');
                   }}
-                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm font-medium w-full"
-                >
-                  <option value="">Viewing all accounts</option>
-                  {data.accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.display_name} ({a.platform})
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'Viewing all accounts' },
+                    ...data.accounts.map((a) => ({ value: a.id, label: `${a.display_name} (${a.platform})` })),
+                  ]}
+                />
               </div>
               <div className="flex flex-col gap-1 min-w-[200px]">
                 <label className="text-[10px] font-bold uppercase text-zinc-500">Campaign</label>
-                <select
+                <AppSelect
+                  aria-label="Campaign"
                   value={campaignId}
-                  onChange={(e) => setCampaignId(e.target.value)}
-                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm font-medium w-full"
-                >
-                  <option value="">All campaigns</option>
-                  {data.campaignOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCampaignId}
+                  options={[
+                    { value: '', label: 'All campaigns' },
+                    ...data.campaignOptions.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
+                />
               </div>
               <Button onClick={() => load()} className="h-10 rounded-xl font-bold gap-2">
                 <Filter className="h-4 w-4" />
@@ -377,13 +372,13 @@ export default function AdInsightsPage() {
             <div className="flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
               <span>
                 {accountId || campaignId ? 'Filtered view' : 'Viewing all'} ·{' '}
-                <button type="button" className="text-[#205BC3] font-bold hover:underline" onClick={() => { setAccountId(''); setCampaignId(''); }}>
+                <button type="button" className="text-[var(--color-brand-800)] font-bold hover:underline" onClick={() => { setAccountId(''); setCampaignId(''); }}>
                   Clear all
                 </button>
               </span>
               <button
                 type="button"
-                className="text-[#205BC3] font-bold hover:underline"
+                className="text-[var(--color-brand-800)] font-bold hover:underline"
                 onClick={() => setConnectOpen(true)}
               >
                 + Link another account
@@ -488,17 +483,18 @@ export default function AdInsightsPage() {
           <form onSubmit={submitConnect} className="space-y-4 pt-2">
             <div className="space-y-1">
               <label className="text-xs font-bold text-zinc-600">Platform</label>
-              <select
+              <AppSelect
+                aria-label="Platform"
                 value={connectPlatform}
-                onChange={(e) => setConnectPlatform(e.target.value)}
-                className="w-full h-10 rounded-xl border border-zinc-200 px-3 text-sm"
-              >
-                <option value="meta">Meta (Facebook / Instagram)</option>
-                <option value="google">Google Ads</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="tiktok">TikTok</option>
-                <option value="other">Other</option>
-              </select>
+                onChange={setConnectPlatform}
+                options={[
+                  { value: 'meta', label: 'Meta (Facebook / Instagram)' },
+                  { value: 'google', label: 'Google Ads' },
+                  { value: 'linkedin', label: 'LinkedIn' },
+                  { value: 'tiktok', label: 'TikTok' },
+                  { value: 'other', label: 'Other' },
+                ]}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-zinc-600">Display name</label>
