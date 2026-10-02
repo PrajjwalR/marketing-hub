@@ -12,10 +12,10 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
   if (!currentLesson) return notFound();
 
   return (
-    <div className="w-full bg-[#F4F5F7] min-h-screen pb-10">
+    <div className="w-full bg-canvas min-h-screen pb-10">
 
       {/* Top bar */}
-      <header className="sticky top-0 z-30 -mx-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-4 sm:-mx-4 sm:px-4">
+      <header className="sticky top-0 z-30 -mx-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-canvas px-3 py-4 sm:-mx-4 sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
               <Link
                 href={`/dashboard/academy/${course.id}`}
@@ -24,7 +24,7 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
                 <ChevronLeft className="h-5 w-5" />
               </Link>
               <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#205BC3]">{course.title}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-brand-800)]">{course.title}</p>
                   <h1 className="truncate text-lg font-bold text-[#111827]">
                       {currentLesson.title}
                   </h1>
@@ -58,7 +58,7 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
               <h2 className="mb-2 text-2xl font-extrabold text-[#111827]">
                 {currentLesson.title}
               </h2>
-              <div className="mb-4 h-1 w-12 rounded-full bg-[#205BC3]" />
+              <div className="mb-4 h-1 w-12 rounded-full bg-[var(--color-brand-800)]" />
               <p className="text-sm leading-relaxed text-zinc-600">
                 {currentLesson.description}
               </p>
@@ -85,15 +85,15 @@ export default async function LessonPage({ params }: { params: Promise<{ courseI
                           href={`/dashboard/academy/${course.id}/${lesson.id}`}
                           className={`flex gap-3 rounded-[5px] border p-3 transition-all ${
                             isActive 
-                              ? 'border-[#205BC3]/20 bg-[#205BC3]/10' 
+                              ? 'border-[var(--color-brand-800)]/20 bg-[var(--color-brand-800)]/10' 
                               : 'border-transparent hover:bg-zinc-50'
                           }`}
                         >
                           <PlayCircle
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${isActive ? 'text-[#205BC3]' : 'text-zinc-400'}`}
+                            className={`mt-0.5 h-4 w-4 shrink-0 ${isActive ? 'text-[var(--color-brand-800)]' : 'text-zinc-400'}`}
                           />
                           <div>
-                            <p className={`text-[13px] font-bold leading-snug ${isActive ? 'text-[#205BC3]' : 'text-zinc-700'}`}>
+                            <p className={`text-[13px] font-bold leading-snug ${isActive ? 'text-[var(--color-brand-800)]' : 'text-zinc-700'}`}>
                               {lIdx + 1}. {lesson.title}
                             </p>
                             {lesson.duration && (

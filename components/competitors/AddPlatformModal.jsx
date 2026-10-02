@@ -19,9 +19,9 @@ export default function AddPlatformModal({ companyName, platform, initialUrl = '
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] px-4">
-      <div className="w-full max-w-sm rounded-[8px] border border-[#E5E7EB] bg-white shadow-2xl animate-in zoom-in-95 duration-200 p-6">
+      <div className="w-full max-w-sm rounded-[8px] border border-zinc-200 bg-white shadow-2xl animate-in zoom-in-95 duration-200 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[16px] font-extrabold text-[#111827]">
+          <h3 className="text-[16px] font-extrabold text-zinc-900">
             {isEditing ? 'Edit' : 'Add'} {platform} Link
           </h3>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-800 transition-colors">
@@ -41,20 +41,20 @@ export default function AddPlatformModal({ companyName, platform, initialUrl = '
             placeholder={`https://${platform.toLowerCase()}.com/...`}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3]"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/30 focus:border-[var(--color-brand-700)]"
           />
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-[6px] border border-[#E5E7EB] px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+              className="rounded-xl border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] disabled:opacity-75 disabled:cursor-wait min-w-[90px] justify-center"
+              className="inline-flex items-center rounded-xl bg-[var(--color-brand-800)] px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-75 disabled:cursor-wait min-w-[90px] justify-center"
             >
               {isSubmitting ? (
                 <>

@@ -1,6 +1,7 @@
 'use client';
 
 import { Search, ArrowUpDown, RotateCcw } from 'lucide-react';
+import { AppSelect } from '@/components/ui/app-select';
 
 const PLATFORMS = ['All Platforms', 'YouTube', 'Facebook', 'Instagram', 'X', 'LinkedIn'];
 const CATEGORIES = ['All Categories', 'fashion', 'lifestyle', 'footwear', 'streetwear', 'beauty', 'wellness'];
@@ -28,7 +29,7 @@ export default function FilterBar({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-[5px] border border-[#E5E7EB] shadow-sm mb-4">
+    <div className="flex flex-wrap items-center gap-3">
       {/* Global Search */}
       <div className="relative flex-1 min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
@@ -37,54 +38,49 @@ export default function FilterBar({
           placeholder="Search competitors..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-[6px] border border-[#E5E7EB] bg-white pl-9 pr-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all"
+          className="w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/30 focus:border-[var(--color-brand-700)] transition-all"
         />
       </div>
 
       {/* Platform filter */}
-      <select
+      <AppSelect
+        aria-label="Platform"
         value={platform}
-        onChange={(e) => setPlatform(e.target.value)}
-        className="rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all cursor-pointer"
-      >
-        {PLATFORMS.map((p) => (
-          <option key={p} value={p}>{p}</option>
-        ))}
-      </select>
+        onChange={setPlatform}
+        className="w-auto min-w-[150px]"
+        options={PLATFORMS.map((p) => ({ value: p, label: p }))}
+      />
 
       {/* Category filter */}
-      <select
+      <AppSelect
+        aria-label="Category"
         value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="rounded-[6px] border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all cursor-pointer capitalize"
-      >
-        {CATEGORIES.map((c) => (
-          <option key={c} value={c} className="capitalize">{c}</option>
-        ))}
-      </select>
+        onChange={setCategory}
+        className="w-auto min-w-[150px] capitalize"
+        contentClassName="capitalize"
+        options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+      />
 
-      <div className="w-px h-8 bg-[#E5E7EB] mx-1 hidden sm:block" />
+      <div className="w-px h-8 bg-zinc-200 mx-1 hidden sm:block" />
 
       {/* Sort By */}
       <div className="flex items-center gap-2">
         <ArrowUpDown className="h-4 w-4 text-zinc-400" />
-        <select
+        <AppSelect
+          aria-label="Sort competitors by"
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="rounded-[6px] border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-sm font-semibold text-zinc-700 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all cursor-pointer"
-        >
-          <option value="" disabled>Sort Competitors by...</option>
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          onChange={setSortBy}
+          placeholder="Sort competitors by..."
+          className="w-auto min-w-[220px] font-semibold"
+          options={SORT_OPTIONS}
+        />
       </div>
 
       {/* Reset Filters */}
       {isFiltered && (
         <button
           onClick={handleReset}
-          className="ml-auto flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-[6px] transition-colors"
+          className="ml-auto flex items-center gap-1.5 px-3 py-2 text-[13px] font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 rounded-xl transition-colors"
           title="Reset all filters and sorting"
         >
           <RotateCcw className="h-4 w-4" />

@@ -44,11 +44,11 @@ export default function CompetitorProgressChart({ data }) {
   const benchPct = (industryBenchmark / max) * 100;
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-[#E5E7EB]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border-b border-zinc-200">
         <div>
-          <h3 className="text-[16px] font-extrabold text-[#111827]">Competitor Rankings</h3>
+          <h3 className="text-[16px] font-extrabold text-zinc-900">Competitor Rankings</h3>
           <p className="text-[13px] text-zinc-500 mt-0.5">See where you stand against each competitor</p>
         </div>
 
@@ -60,7 +60,7 @@ export default function CompetitorProgressChart({ data }) {
               onClick={() => setActiveMetric(m.key)}
               className={`px-3 py-1.5 text-[12px] font-bold rounded-full transition-all ${
                 activeMetric === m.key
-                  ? 'bg-[#2D66C3] text-white shadow-sm'
+                  ? 'bg-[var(--color-brand-700)] text-white shadow-sm'
                   : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
               }`}
             >
@@ -89,10 +89,10 @@ export default function CompetitorProgressChart({ data }) {
             className="absolute -top-0 flex flex-col items-center"
             style={{ left: `calc(${benchPct}% - 1px)` }}
           >
-            <span className="text-[10px] font-bold text-[#2D66C3] bg-[#EEF4FF] border border-[#2D66C3]/30 rounded px-1.5 py-0.5 whitespace-nowrap">
+            <span className="text-[10px] font-bold text-[var(--color-brand-700)] bg-[#EEF4FF] border border-[var(--color-brand-700)]/30 rounded px-1.5 py-0.5 whitespace-nowrap">
               Top
             </span>
-            <div className="w-px h-2 bg-[#2D66C3] mt-0.5" />
+            <div className="w-px h-2 bg-[var(--color-brand-700)] mt-0.5" />
           </div>
         </div>
 
@@ -119,11 +119,11 @@ export default function CompetitorProgressChart({ data }) {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className={`text-[13px] font-bold truncate ${isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>
+                    <p className={`text-[13px] font-bold truncate ${isOurs ? 'text-[#1d4e9f]' : 'text-zinc-900'}`}>
                       {company.name}
                     </p>
                     {isOurs && (
-                      <span className="text-[10px] font-bold text-[#2D66C3] uppercase tracking-wider">You</span>
+                      <span className="text-[10px] font-bold text-[var(--color-brand-700)] uppercase tracking-wider">You</span>
                     )}
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export default function CompetitorProgressChart({ data }) {
                     style={{ left: `${avgPct}%` }}
                   />
                   <div
-                    className="absolute top-0 bottom-0 w-px bg-[#2D66C3] z-10 opacity-40"
+                    className="absolute top-0 bottom-0 w-px bg-[var(--color-brand-700)] z-10 opacity-40"
                     style={{ left: `${benchPct}%` }}
                   />
 
@@ -145,7 +145,7 @@ export default function CompetitorProgressChart({ data }) {
                     <div
                       className={`h-full rounded-none transition-all duration-500 ${
                         isOurs
-                          ? 'bg-gradient-to-r from-[#2D66C3] to-[#4F86E8]'
+                          ? 'bg-gradient-to-r from-[var(--color-brand-700)] to-[#4F86E8]'
                           : isAhead
                           ? 'bg-gradient-to-r from-zinc-300 to-zinc-400'
                           : 'bg-gradient-to-r from-zinc-200 to-zinc-300'
@@ -177,11 +177,11 @@ export default function CompetitorProgressChart({ data }) {
             <span className="text-[12px] font-semibold text-zinc-500">Industry Average</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-px h-4 bg-[#2D66C3]" />
-            <span className="text-[12px] font-semibold text-[#2D66C3]">Industry Benchmark (Top)</span>
+            <div className="w-px h-4 bg-[var(--color-brand-700)]" />
+            <span className="text-[12px] font-semibold text-[var(--color-brand-700)]">Industry Benchmark (Top)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-5 h-2.5 rounded-full bg-gradient-to-r from-[#2D66C3] to-[#4F86E8]" />
+            <div className="w-5 h-2.5 rounded-full bg-gradient-to-r from-[var(--color-brand-700)] to-[#4F86E8]" />
             <span className="text-[12px] font-semibold text-[#1d4e9f]">You</span>
           </div>
         </div>

@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Inbox, Loader2, Radio, ArrowDown, ArrowUp, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppSelect } from '@/components/ui/app-select';
 
 type Report = {
   range: { start: string; end: string; compareStart: string; compareEnd: string };
@@ -237,37 +238,41 @@ export default function InboxActivityPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase text-zinc-500">Source</label>
-              <select
+              <AppSelect
+                aria-label="Source"
                 value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm font-medium min-w-[140px]"
-              >
-                <option value="">All platforms</option>
-                <option value="instagram">Instagram</option>
-                <option value="youtube">YouTube</option>
-                <option value="facebook">Facebook</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="tiktok">TikTok</option>
-                <option value="twitter">Twitter / X</option>
-                <option value="email">Email</option>
-                <option value="other">Other</option>
-              </select>
+                onChange={setPlatform}
+                className="min-w-[160px]"
+                options={[
+                  { value: '', label: 'All platforms' },
+                  { value: 'instagram', label: 'Instagram' },
+                  { value: 'youtube', label: 'YouTube' },
+                  { value: 'facebook', label: 'Facebook' },
+                  { value: 'linkedin', label: 'LinkedIn' },
+                  { value: 'tiktok', label: 'TikTok' },
+                  { value: 'twitter', label: 'Twitter / X' },
+                  { value: 'email', label: 'Email' },
+                  { value: 'other', label: 'Other' },
+                ]}
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase text-zinc-500">Message type</label>
-              <select
+              <AppSelect
+                aria-label="Message type"
                 value={messageType}
-                onChange={(e) => setMessageType(e.target.value)}
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm font-medium min-w-[140px]"
-              >
-                <option value="">All types</option>
-                <option value="dm">DM</option>
-                <option value="comment">Comment</option>
-                <option value="mention">Mention</option>
-                <option value="review">Review</option>
-                <option value="email">Email</option>
-                <option value="other">Other</option>
-              </select>
+                onChange={setMessageType}
+                className="min-w-[150px]"
+                options={[
+                  { value: '', label: 'All types' },
+                  { value: 'dm', label: 'DM' },
+                  { value: 'comment', label: 'Comment' },
+                  { value: 'mention', label: 'Mention' },
+                  { value: 'review', label: 'Review' },
+                  { value: 'email', label: 'Email' },
+                  { value: 'other', label: 'Other' },
+                ]}
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] font-bold uppercase text-zinc-500">Tag contains</label>

@@ -32,9 +32,12 @@ import {
     LogOut,
     Building2,
     Plus,
+    Settings as SettingsIcon,
+    UserRound,
     type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { PageHero } from '@/components/dashboard/page-hero';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,11 +205,11 @@ function ProfileSection({ firebaseUser, onSignOut, fetchedEmail, fetchedName, fe
     const initials = name ? name.substring(0,2).toUpperCase() : firebaseUser?.email?.substring(0,2).toUpperCase() || 'U';
 
     return (
-        <section className="space-y-4">
+        <section id="settings-profile" className="scroll-mt-6 space-y-4">
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-indigo-600" />
-                    <h2 className="text-xl font-bold text-zinc-900">Profile Information</h2>
+                    <h2 className="font-display text-2xl font-semibold text-zinc-900">Profile Information</h2>
                 </div>
                 {!isEditing ? (
                     <div className="flex items-center gap-3">
@@ -486,12 +489,12 @@ function BusinessProfileSection({
     };
 
     return (
-        <section className="space-y-4">
+        <section id="settings-business" className="scroll-mt-6 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-2">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-indigo-600 shrink-0" />
-                        <h2 className="text-xl font-bold text-zinc-900">Business profile</h2>
+                        <h2 className="font-display text-2xl font-semibold text-zinc-900">Business profile</h2>
                     </div>
                     <p className="text-sm text-zinc-500 max-w-2xl leading-relaxed">
                         Tell us what you sell and who you serve. We use this to tailor AI strategy and content prompts to your
@@ -727,11 +730,11 @@ function WorkspacesSection() {
   };
 
   return (
-    <section id="settings-workspaces" className="space-y-4">
+    <section id="settings-workspaces" className="scroll-mt-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Building2 className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-xl font-bold text-zinc-900">Accounts</h2>
+          <h2 className="font-display text-2xl font-semibold text-zinc-900">Accounts</h2>
         </div>
         {!showCreate && !editingId && (
           <Button size="sm" className="h-10 bg-indigo-600 hover:bg-indigo-700 font-medium" onClick={() => setShowCreate(true)}>
@@ -1076,13 +1079,43 @@ function SettingsForm() {
         }
     };
 
+    const connectedCount = connections.filter((c) => (c.status ?? 'connected') === 'connected').length;
+    const settingsNav = [
+        { href: '#settings-profile', label: 'Profile', icon: UserRound },
+        { href: '#settings-business', label: 'Business', icon: Sparkles },
+        { href: '#settings-workspaces', label: 'Accounts', icon: Building2 },
+        { href: '#settings-social', label: 'Social', icon: Link2 },
+    ];
+
     return (
         <div className="max-w-5xl mx-auto space-y-10 pb-20">
-            {/* Header */}
-            <div id="settings-header" className="space-y-1">
-                <h1 className="text-3xl font-black tracking-tight text-zinc-900 mt-2">Settings</h1>
-                <p className="text-zinc-500 font-medium">Manage your profile, social connections, and account security.</p>
-            </div>
+            <PageHero
+                titleId="settings-header"
+                title="Settings"
+                breadcrumb={['Admin Settings']}
+                icon={SettingsIcon}
+                description="Manage your profile, social connections and account security."
+                stats={[
+                    { label: 'Connected channels', value: isLoading ? '—' : connectedCount, icon: Link2 },
+                    { label: 'Workspace', value: activeWorkspace?.name || '—', icon: Building2 },
+                ]}
+                overlap={
+                    <nav className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {settingsNav.map((item) => (
+                            <a
+                                key={item.href}
+                                href={item.href}
+                                className="group flex items-center gap-2.5 rounded-xl border border-zinc-200/80 px-3 py-2.5 text-sm font-bold text-zinc-700 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-800"
+                            >
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-700 group-hover:bg-white">
+                                    <item.icon className="h-4 w-4" />
+                                </span>
+                                {item.label}
+                            </a>
+                        ))}
+                    </nav>
+                }
+            />
 
             {/* Profile Section */}
             <ProfileSection 
@@ -1102,11 +1135,11 @@ function SettingsForm() {
             <WorkspacesSection />
 
             {/* Social Integrations Section */}
-            <section id="settings-social" className="space-y-4">
+            <section id="settings-social" className="scroll-mt-6 space-y-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                         <Link2 className="h-5 w-5 text-indigo-600" />
-                        <h2 className="text-xl font-bold text-zinc-900">Social Media Connections</h2>
+                        <h2 className="font-display text-2xl font-semibold text-zinc-900">Social Media Connections</h2>
                     </div>
                     <div id="settings-support" className="flex items-center gap-2">
                         <Link href="/docs" target="_blank">
@@ -1264,8 +1297,8 @@ function SocialPlatformCard({ platform, Icon, color, bgColor, connections, custo
 
     return (
         <Card className={cn(
-            "border-zinc-200/60 shadow-sm bg-white group hover:shadow-md transition-all duration-300",
-            highlighted && "ring-2 ring-amber-300 border-amber-200"
+            "ae-tile ae-tile-interactive ae-contour group",
+            highlighted && "ring-2 ring-gold-400 border-gold-300"
         )}>
             <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-4">

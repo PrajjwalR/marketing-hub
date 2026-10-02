@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight, FolderOpen, LayoutTemplate, Lightbulb, Loader2, Sparkles, Tag, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState, PageHero, SectionHeader, heroButtonClass } from '@/components/dashboard/page-hero';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -148,125 +151,118 @@ export default function PrebuiltStrategyPromptsPage() {
     };
 
     return (
-        <div className="space-y-6 w-full max-w-7xl mx-auto">
-            <div className="bg-white p-6 rounded-[10px] border border-zinc-200 shadow-sm">
-                <div className="space-y-2 mb-6">
-                    <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 leading-tight">
-                        Prebuilt Strategy Prompts
-                    </h1>
-                    <p className="text-base leading-relaxed text-zinc-500 max-w-2xl">
-                        Click a template to generate a category-specific strategy (growth, marketing, knowledge, and engagement).
-                    </p>
-                </div>
+        <div className="w-full max-w-7xl mx-auto">
+            <PageHero
+                title="Prebuilt Strategy Prompts"
+                breadcrumb={['Strategy', 'Prebuilt Prompts']}
+                icon={Lightbulb}
+                description="Click a template to generate a category-specific strategy: growth, marketing, knowledge and engagement."
+                stats={[
+                    {
+                        label: 'Your category',
+                        icon: Tag,
+                        value: isDomainLoading ? (
+                            <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting…</span>
+                        ) : hasCategoryConfigured ? DOMAIN_LABELS[activeDomain] : 'Not set',
+                    },
+                    { label: 'Templates', value: templates.length, icon: LayoutTemplate },
+                    { label: 'Generated', value: strategies.length, icon: FolderOpen },
+                ]}
+                actions={
+                    !isDomainLoading && !hasCategoryConfigured ? (
+                        <Link href="/dashboard/settings" className={heroButtonClass('gold')}>
+                            Set your category <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    ) : undefined
+                }
+            />
 
-                <div className="text-sm text-zinc-500 font-medium">
-                    {isDomainLoading ? (
-                        <span className="inline-flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Detecting your category...
-                        </span>
-                    ) : !hasCategoryConfigured ? (
-                        <>
-                            Category not set in your profile. Set it in Settings to see your personalized templates.
-                        </>
-                    ) : (
-                        <>
-                            Showing templates for <span className="font-semibold text-zinc-800">{DOMAIN_LABELS[activeDomain]}</span>.
-                        </>
-                    )}
+            <SectionHeader label="Templates for you" title={hasCategoryConfigured ? `${DOMAIN_LABELS[activeDomain]} playbooks` : 'Playbooks'} />
+            {templates.length === 0 ? (
+                <EmptyState
+                    icon={LayoutTemplate}
+                    title={hasCategoryConfigured ? 'No templates available' : 'Set your business category'}
+                    description={hasCategoryConfigured ? undefined : 'Choose your industry in Settings to unlock personalized templates.'}
+                    action={
+                        !hasCategoryConfigured && (
+                            <Link href="/dashboard/settings">
+                                <Button variant="gold" size="lg">Open settings</Button>
+                            </Link>
+                        )
+                    }
+                />
+            ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+                    {templates.map((t) => (
+                        <StrategyTemplateCard
+                            key={t.id}
+                            template={t}
+                            className="w-full sm:w-full"
+                            onClick={() => {
+                                setPrefill(t.prefill);
+                                setModalOpen(true);
+                            }}
+                        />
+                    ))}
                 </div>
+            )}
+
+            <div className="ae-divider-label my-8">
+                <span className="text-[10px] text-zinc-400">◆</span>
+                Your prebuilt strategies
+                <span className="text-[10px] text-zinc-400">◆</span>
             </div>
 
-            <div className="bg-white p-6 rounded-[10px] border border-zinc-200 shadow-sm">
-                {templates.length === 0 ? (
-                    <div className="text-sm text-zinc-500">No templates available.</div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        {templates.map((t) => (
-                            <StrategyTemplateCard
-                                key={t.id}
-                                template={t}
-                                onClick={() => {
-                                    setPrefill(t.prefill);
-                                    setModalOpen(true);
-                                }}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            <div className="bg-white p-6 rounded-[10px] border border-zinc-200 shadow-sm">
-                <div className="space-y-1 mb-5">
-                    <h2 className="text-lg font-bold text-zinc-900">
-                        Your {DOMAIN_LABELS[activeDomain]} prebuilt strategies
-                    </h2>
-                    
+            {isStrategiesLoading ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {[1, 2].map((i) => (
+                        <StrategyCardSkeleton key={i} />
+                    ))}
                 </div>
-
-                {isStrategiesLoading ? (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        {[1, 2, 3, 4].map((i) => (
-                            <StrategyCardSkeleton key={i} />
-                        ))}
-                    </div>
-                ) : strategies.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center gap-6 py-16 bg-white rounded-[10px] border border-zinc-200 shadow-sm">
-                        <div className="rounded-full bg-indigo-100 p-4" />
-                        <div className="text-center space-y-2">
-                            <h3 className="text-xl font-semibold tracking-tight text-zinc-900">
-                                No prebuilt strategies yet
-                            </h3>
-                            <p className="text-base leading-relaxed text-zinc-500 max-w-sm">
-                                Pick a template above to generate your first domain-specific strategy.
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-3 rounded-1xl border border-zinc-200 bg-[#F5F0E8] p-3 sm:grid-cols-2">
-                        {strategies.map((s, index) => {
-                            const isNew = Date.now() - new Date(s.created_at).getTime() < 1000 * 60 * 60 * 24 * 7;
-                            const statusLabel = isNew ? 'NEW SERIES' : 'READY';
-                            return (
-                                <div
-                                    key={s.id}
-                                    className="group grid min-h-[92px] grid-cols-[44px_1fr_auto] border border-zinc-200 bg-white transition hover:border-[#E0B428] hover:shadow-[0_0_0_1px_rgba(224,180,40,0.25)]"
+            ) : strategies.length === 0 ? (
+                <EmptyState
+                    icon={Sparkles}
+                    title="No prebuilt strategies yet"
+                    description="Pick a template above to generate your first domain-specific strategy."
+                />
+            ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {strategies.map((s, index) => {
+                        const isNew = Date.now() - new Date(s.created_at).getTime() < 1000 * 60 * 60 * 24 * 7;
+                        return (
+                            <div key={s.id} className="ae-tile ae-tile-interactive ae-contour group flex items-center gap-4 p-4">
+                                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-800 font-display text-lg font-semibold text-gold-300">
+                                    {String(index + 1).padStart(2, '0')}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push(`/dashboard/prebuilt-strategy/${s.id}`)}
+                                    className="relative min-w-0 flex-1 text-left"
                                 >
-                                    <div className="flex items-center justify-center border-r border-zinc-200 bg-[#F5C842] px-1 text-xs font-black tabular-nums tracking-[0.08em] text-zinc-900">
-                                        {String(index + 1).padStart(2, '0')}
-                                    </div>
-
+                                    <span className="flex items-center gap-2">
+                                        <span className="truncate text-base font-extrabold text-zinc-900 group-hover:text-brand-800">{s.name}</span>
+                                        {isNew && <span className="shrink-0 rounded-md bg-gold-200 px-1.5 py-0.5 text-[10px] font-bold text-gold-900">New</span>}
+                                    </span>
+                                    <span className="mt-0.5 block truncate text-[13px] text-zinc-500">
+                                        {s.duration_days} days · {s.posts_count ?? 0} ideas · {DOMAIN_LABELS[activeDomain]}
+                                    </span>
+                                </button>
+                                <div className="relative flex shrink-0 items-center gap-1">
                                     <button
                                         type="button"
-                                        onClick={() => router.push(`/dashboard/prebuilt-strategy/${s.id}`)}
-                                        className="flex w-full flex-col items-start justify-center gap-1 px-5 py-4 text-left"
+                                        onClick={() => handleDelete(s.id)}
+                                        aria-label="Delete strategy"
+                                        className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600"
                                     >
-                                        <h3 className="text-xl font-semibold tracking-tight text-zinc-900 transition group-hover:text-zinc-950">
-                                            {s.name}
-                                        </h3>
-                                        <p className="line-clamp-2 text-sm text-zinc-600">
-                                            {s.duration_days} days · {(s.posts_count ?? 0)} ideas · Built for {DOMAIN_LABELS[activeDomain].toLowerCase()} growth
-                                        </p>
+                                        <Trash2 className="h-4 w-4" />
                                     </button>
-
-                                    <div className="flex min-w-[130px] flex-col items-end justify-center gap-2 px-4 py-4">
-                                        <span className="inline-flex rounded-sm border border-zinc-300 bg-zinc-50 px-2.5 py-1 text-[10px] font-bold tracking-[0.2em] text-zinc-600">
-                                            {statusLabel}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(s.id)}
-                                            className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 transition hover:text-red-600"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-brand-600 transition-transform group-hover:translate-x-1" />
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {hasMounted && (
                 <GenerateStrategyModal
@@ -284,4 +280,3 @@ export default function PrebuiltStrategyPromptsPage() {
         </div>
     );
 }
-

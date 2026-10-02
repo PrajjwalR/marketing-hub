@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, List as ListIcon, Building2, Users, MapPin, Landmark, BarChart2, Star, Brain, Lock, ArrowUpDown, Sparkles, DollarSign, Globe, Settings } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 
 const filters = [
     { icon: ListIcon, name: 'Lists' },
@@ -23,53 +24,54 @@ export default function CompaniesPage() {
     const [searchQuery, setSearchQuery] = useState('');
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Page Topbar */}
-            <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-2.5 flex-shrink-0 gap-4 flex-wrap">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-[17px] font-bold text-zinc-900">Find companies</h1>
-                    <Button variant="outline" className="h-7 px-2.5 text-xs font-medium gap-1.5 border-zinc-200">
-                        <ListIcon className="h-3.5 w-3.5 text-zinc-500" />
-                        Default view
-                        <ChevronDown className="h-3 w-3 text-zinc-500" />
-                    </Button>
-                    <Button variant="ghost" className="h-7 px-2.5 text-xs font-medium text-zinc-600 gap-1.5">
-                        Hide Filters
-                    </Button>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-zinc-400" />
-                        <input
-                            type="text"
-                            placeholder="Search companies"
-                            className="h-7 w-48 rounded-md border border-zinc-200 pl-8 pr-3 text-xs placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none bg-zinc-50"
-                        />
+        <div className="mx-auto flex h-full max-w-7xl flex-col">
+            <PageHero
+                title="Find companies"
+                breadcrumb={['CRM', 'Companies']}
+                icon={Building2}
+                description="Search, filter and save the companies you want to reach."
+                actions={
+                    <>
+                        <button className={heroButtonClass('ghost')}>
+                            <Sparkles className="h-4 w-4" /> Create workflow
+                        </button>
+                        <button className={heroButtonClass('gold')}>Save as new search</button>
+                    </>
+                }
+                overlap={
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="relative min-w-[200px] flex-1">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                            <input
+                                type="text"
+                                placeholder="Search companies"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                            />
+                        </div>
+                        <Button variant="outline" className="h-10 gap-1.5">
+                            <ListIcon className="h-4 w-4" /> Default view <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" className="h-10 gap-1.5">
+                            <ArrowUpDown className="h-4 w-4" /> Sort
+                        </Button>
+                        <Button variant="outline" size="icon" className="h-10 w-10">
+                            <Settings className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <Button variant="outline" className="h-7 px-2.5 text-xs font-medium gap-1.5 border-zinc-200">
-                        <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-                        Create workflow
-                        <ChevronDown className="h-3 w-3" />
-                    </Button>
-                    <Button variant="outline" className="h-7 px-2.5 text-xs font-medium border-zinc-200">Save as new search</Button>
-                    <Button variant="outline" className="h-7 px-2.5 text-xs font-medium gap-1.5 border-zinc-200">
-                        <ArrowUpDown className="h-3.5 w-3.5" /> Sort
-                    </Button>
-                    <Button variant="ghost" className="h-7 w-7 p-0 text-zinc-500">
-                        <Settings className="h-3.5 w-3.5" />
-                    </Button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Split Pane */}
-            <div className="flex flex-1 overflow-hidden min-h-0">
+            <div className="ae-tile flex min-h-[560px] flex-1 overflow-hidden">
                 {/* Left Filter Sidebar */}
                 <div className="w-[260px] flex-shrink-0 flex flex-col border-r border-zinc-200 bg-white overflow-hidden">
                     {/* Metrics */}
                     <div className="p-3 border-b border-zinc-100">
                         <div className="flex rounded-lg border border-zinc-200 overflow-hidden text-center divide-x divide-zinc-200">
-                            <div className="flex-1 py-2 bg-blue-50">
-                                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Total</div>
+                            <div className="flex-1 py-2 bg-brand-50">
+                                <div className="text-[10px] font-bold text-brand-700 uppercase tracking-wider">Total</div>
                                 <div className="text-sm font-bold text-zinc-900">32.4M</div>
                             </div>
                             <div className="flex-1 py-2">
@@ -86,7 +88,7 @@ export default function CompaniesPage() {
                     {/* Filters list */}
                     <div className="flex-1 overflow-y-auto">
                         {filters.map((filter, i) => (
-                            <button key={i} className="flex w-full items-center justify-between border-b border-zinc-100 px-4 py-2.5 hover:bg-zinc-50 transition-colors group">
+                            <button key={i} className="flex w-full items-center justify-between border-b border-zinc-100 px-4 py-2.5 hover:bg-brand-50/50 transition-colors group">
                                 <div className="flex items-center gap-2.5 text-zinc-700">
                                     <filter.icon className="h-4 w-4 text-zinc-400" />
                                     <span className="text-[13px] font-medium">{filter.name}</span>

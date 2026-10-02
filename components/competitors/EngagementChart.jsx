@@ -20,8 +20,8 @@ export default function EngagementChart({ data }) {
   }));
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-5">
-      <h3 className="text-[15px] font-bold text-[#111827] mb-1">Engagement Trend</h3>
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <h3 className="text-[15px] font-bold text-zinc-900 mb-1">Engagement Trend</h3>
       <p className="text-[13px] text-zinc-500 mb-5">Likes & Comments across last 7 posts</p>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={chartData} margin={{ top: 5, right: 16, left: -10, bottom: 5 }}>
@@ -53,9 +53,9 @@ export default function EngagementChart({ data }) {
           <Line
             type="monotone"
             dataKey="Likes"
-            stroke="#2D66C3"
+            stroke="#1c6848"
             strokeWidth={2}
-            dot={{ r: 4, fill: '#2D66C3', strokeWidth: 0 }}
+            dot={{ r: 4, fill: '#1c6848', strokeWidth: 0 }}
             activeDot={{ r: 6 }}
           />
           <Line

@@ -4,6 +4,7 @@ import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Database, Sparkles, Upload, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 
 const enrichments = [
     { name: 'LinkedIn Job Titles', records: '1,240', status: 'completed', date: 'Feb 24, 2025', icon: '💼' },
@@ -26,34 +27,36 @@ const statusColor: Record<string, string> = {
 
 export default function DataEnrichmentPage() {
     return (
-        <div className="p-6 space-y-6 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold text-zinc-900">Data Enrichment</h1>
-                    <p className="text-sm text-zinc-500 mt-0.5">Enrich your contacts and companies with accurate, up-to-date data</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" className="h-8 text-sm gap-2 border-zinc-200">
-                        <Upload className="h-4 w-4" /> Import CSV
-                    </Button>
-                    <Button className="h-8 bg-yellow-300 hover:bg-yellow-400 text-zinc-900 font-bold text-sm gap-2">
-                        <Sparkles className="h-4 w-4" /> Enrich with AI
-                    </Button>
-                </div>
-            </div>
+        <div className="space-y-6 animate-in fade-in duration-300">
+            <PageHero
+                title="Data Enrichment"
+                breadcrumb={['CRM', 'Data enrichment']}
+                icon={Sparkles}
+                description="Enrich your contacts and companies with accurate, up-to-date data."
+                actions={
+                    <>
+                        <button className={heroButtonClass('ghost')}>
+                            <Upload className="h-4 w-4" /> Import CSV
+                        </button>
+                        <button className={heroButtonClass('gold')}>
+                            <Sparkles className="h-4 w-4" /> Enrich with AI
+                        </button>
+                    </>
+                }
+            />
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {[
                     { label: 'Records Enriched', value: '6,160', change: '+340 this week', icon: Database },
                     { label: 'Fields Enriched', value: '18 of 24', change: '75% coverage', icon: CheckCircle2 },
                     { label: 'API Credits Used', value: '4,820', change: '1,180 remaining', icon: RefreshCw },
                 ].map((s, i) => (
-                    <div key={i} className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center gap-2 text-zinc-500 text-xs font-medium mb-2">
-                            <s.icon className="h-4 w-4" /> {s.label}
+                    <div key={i} className="ae-tile ae-contour p-5">
+                        <div className="relative mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-800 text-gold-300"><s.icon className="h-4 w-4" /></span> {s.label}
                         </div>
-                        <div className="text-2xl font-bold text-zinc-900">{s.value}</div>
+                        <div className="relative font-display text-3xl font-semibold text-zinc-900">{s.value}</div>
                         <div className="text-xs text-zinc-400 mt-1">{s.change}</div>
                     </div>
                 ))}
@@ -61,21 +64,21 @@ export default function DataEnrichmentPage() {
 
             {/* Enrichment Jobs Table */}
             <div>
-                <h2 className="text-sm font-bold text-zinc-800 mb-3">Recent Enrichment Jobs</h2>
-                <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+                <p className="ae-section-label mb-3">Recent enrichment jobs</p>
+                <div className="ae-tile">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-zinc-100 bg-zinc-50 text-left">
-                                <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase">Job Name</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase">Records</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase">Status</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase">Date</th>
-                                <th className="px-4 py-3 text-xs font-semibold text-zinc-500 uppercase">Actions</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Job Name</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Records</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Status</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Date</th>
+                                <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
                             {enrichments.map((e, i) => (
-                                <tr key={i} className="hover:bg-zinc-50 transition-colors">
+                                <tr key={i} className="hover:bg-brand-50/50 transition-colors">
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2.5">
                                             <span className="text-lg">{e.icon}</span>

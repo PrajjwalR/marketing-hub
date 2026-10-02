@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
 import "@/components/landing/hero-24-7.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,6 +8,12 @@ import { Providers } from "@/components/providers";
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -21,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${manrope.variable} ${fraunces.variable}`}>
       <head>
         <script
           defer
@@ -31,7 +37,7 @@ export default function RootLayout({
         ></script>
       </head>
       <body
-        className={`${manrope.variable} antialiased font-sans`}
+        className="antialiased font-sans"
       >
         <Providers>{children}</Providers>
         <Toaster position="top-right" richColors closeButton />

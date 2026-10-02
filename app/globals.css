@@ -47,6 +47,36 @@
   --animate-shimmer: shimmer 2s infinite;
 }
 
+/* ── Agent Elephant brand palette (forest green + warm gold) ── */
+@theme static {
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+
+  --color-brand-50: #eef6f2;
+  --color-brand-100: #d6ebe0;
+  --color-brand-200: #aed6c2;
+  --color-brand-300: #7dbb9d;
+  --color-brand-400: #4c9c77;
+  --color-brand-500: #2a805b;
+  --color-brand-600: #1c6848;
+  --color-brand-700: #17553c;
+  --color-brand-800: #144532;
+  --color-brand-900: #113a2b;
+  --color-brand-950: #0a241a;
+
+  --color-gold-50: #fffaeb;
+  --color-gold-100: #fef1c7;
+  --color-gold-200: #fde28a;
+  --color-gold-300: #fbcf4e;
+  --color-gold-400: #f9c02a;
+  --color-gold-500: #eda510;
+  --color-gold-600: #c98009;
+  --color-gold-700: #a05c0c;
+  --color-gold-800: #834911;
+  --color-gold-900: #6d3c12;
+
+  --color-canvas: #f5f4ef;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
@@ -248,6 +278,139 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+/*
+ * ── Logged-in app theme ──
+ * Scoped with :has(.ae-app) so the landing page keeps its own look, while
+ * Radix portals (dialogs, popovers, menus) rendered under <body> still inherit it.
+ * Tailwind v4 utilities read palette colors from CSS variables, so remapping
+ * indigo/violet/zinc here restyles every dashboard screen's hardcoded accents.
+ */
+html:has(.ae-app) {
+  --radius: 0.75rem;
+  --background: var(--color-canvas);
+  --foreground: #1a1f1c;
+  --card: #ffffff;
+  --card-foreground: #1a1f1c;
+  --popover: #ffffff;
+  --popover-foreground: #1a1f1c;
+  --primary: var(--color-brand-800);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-brand-50);
+  --secondary-foreground: var(--color-brand-800);
+  --muted: #eff1ee;
+  --muted-foreground: #6e766f;
+  --accent: var(--color-brand-50);
+  --accent-foreground: var(--color-brand-800);
+  --border: #e3e6e2;
+  --input: #dce0db;
+  --ring: var(--color-brand-400);
+  --chart-1: var(--color-brand-600);
+  --chart-2: var(--color-gold-400);
+  --chart-3: #0d9488;
+  --chart-4: var(--color-brand-300);
+  --chart-5: var(--color-gold-600);
+
+  /* Primary accent used across screens → brand green */
+  --color-indigo-50: var(--color-brand-50);
+  --color-indigo-100: var(--color-brand-100);
+  --color-indigo-200: var(--color-brand-200);
+  --color-indigo-300: var(--color-brand-300);
+  --color-indigo-400: var(--color-brand-400);
+  --color-indigo-500: var(--color-brand-500);
+  --color-indigo-600: var(--color-brand-600);
+  --color-indigo-700: var(--color-brand-700);
+  --color-indigo-800: var(--color-brand-800);
+  --color-indigo-900: var(--color-brand-900);
+  --color-indigo-950: var(--color-brand-950);
+
+  /* Secondary accent → deep teal, so indigo→violet gradients keep some movement */
+  --color-violet-50: #f0fdfa;
+  --color-violet-100: #ccfbf1;
+  --color-violet-200: #99f6e4;
+  --color-violet-300: #5eead4;
+  --color-violet-400: #2dd4bf;
+  --color-violet-500: #14b8a6;
+  --color-violet-600: #0d9488;
+  --color-violet-700: #0f766e;
+  --color-violet-800: #115e59;
+  --color-violet-900: #134e4a;
+  --color-violet-950: #042f2e;
+
+  /* Neutrals with a faint green undertone to sit with the brand */
+  --color-zinc-50: #f7f8f6;
+  --color-zinc-100: #eff1ee;
+  --color-zinc-200: #e3e6e2;
+  --color-zinc-300: #cdd2cc;
+  --color-zinc-400: #9ca39c;
+  --color-zinc-500: #6e766f;
+  --color-zinc-600: #535a54;
+  --color-zinc-700: #3f4641;
+  --color-zinc-800: #282e2a;
+  --color-zinc-900: #1a1f1c;
+  --color-zinc-950: #0e1210;
+}
+
+html:has(.ae-app) ::selection {
+  background: var(--color-gold-200);
+  color: var(--color-brand-950);
+}
+
+/* Editorial serif page titles, à la 1 Finance */
+.ae-main h1 {
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+}
+
+@layer components {
+  /* "MY PRODUCTS" style section label */
+  .ae-section-label {
+    @apply text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500;
+  }
+
+  /* ──◆ EXPLORE MORE ◆── divider */
+  .ae-divider-label {
+    @apply flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-500;
+  }
+
+  .ae-divider-label::before,
+  .ae-divider-label::after {
+    content: "";
+    @apply h-px flex-1 bg-zinc-300;
+  }
+
+  /* White tile card used throughout the app */
+  .ae-tile {
+    @apply relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(16,32,24,0.04)] transition-all duration-300;
+  }
+
+  .ae-tile-interactive {
+    @apply hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-[0_12px_28px_-12px_rgba(17,58,43,0.22)];
+  }
+
+  /* Faint topographic contour lines in a card corner (Moneyview tiles) */
+  .ae-contour::before {
+    content: "";
+    @apply pointer-events-none absolute -right-6 -top-10 h-40 w-56 opacity-70;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke='%23d6ebe0' stroke-width='1.2'%3E%3Cpath d='M10 150C40 90 90 70 140 80s70-20 80-60'/%3E%3Cpath d='M30 160C60 105 100 92 145 98s68-18 75-50'/%3E%3Cpath d='M50 160C78 120 110 110 150 115s62-14 70-38'/%3E%3Cpath d='M0 128C30 70 80 48 132 58s76-24 88-58'/%3E%3Cpath d='M0 100C24 52 70 28 124 36s82-26 96-36'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
+  .ae-contour-dark::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 160' fill='none' stroke='%23ffffff' stroke-opacity='.08' stroke-width='1.2'%3E%3Cpath d='M10 150C40 90 90 70 140 80s70-20 80-60'/%3E%3Cpath d='M30 160C60 105 100 92 145 98s68-18 75-50'/%3E%3Cpath d='M50 160C78 120 110 110 150 115s62-14 70-38'/%3E%3Cpath d='M0 128C30 70 80 48 132 58s76-24 88-58'/%3E%3Cpath d='M0 100C24 52 70 28 124 36s82-26 96-36'/%3E%3C/svg%3E");
+  }
+
+  /* Glass-dome glow used on hero highlights */
+  .ae-hero {
+    @apply relative overflow-hidden bg-brand-900 text-white;
+    background-image:
+      radial-gradient(ellipse 60% 80% at 85% 0%, rgba(249, 192, 42, 0.16), transparent 60%),
+      radial-gradient(ellipse 50% 70% at 0% 100%, rgba(125, 187, 157, 0.18), transparent 60%);
+  }
 }
 
 @layer base {

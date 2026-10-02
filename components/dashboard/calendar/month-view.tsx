@@ -1,132 +1,127 @@
 'use client';
 
-import { useCalendar } from './calendar-context';
-import { format, startOfMonth, startOfWeek, addDays, isSameMonth, isSameDay, parseISO } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
+import { addDays, format, isSameDay, isSameMonth, parseISO, startOfMonth, startOfWeek } from 'date-fns';
 import { Plus } from 'lucide-react';
-import { PlatformPreviewCard } from './platform-preview';
-import { EventApprovalBadge } from './event-approval-badge';
+import { cn } from '@/lib/utils';
+import { useCalendar } from './calendar-context';
+import { FestivalTag, PastelPostCard, isFestival, isNote, statusOf } from './calendar-ui';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MAX_VISIBLE = 2;
+
 export function MonthView() {
-    const { currentDate, setCurrentDate, events, openCreateDialog, openEditDialog, socialConnections } = useCalendar();
+    const { currentDate, setCurrentDate, setDisplayMode, events, openCreateDialog, openEditDialog, socialConnections } = useCalendar();
 
-    const monthStart = startOfMonth(currentDate);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 }); // Sunday start
+    const gridStart = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
+    const days = useMemo(() => Array.from({ length: 42 }).map((_, i) => addDays(gridStart, i)), [gridStart.getTime()]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Generate 42 days (6 weeks) for the calendar grid
-    const calendarDays = Array.from({ length: 42 }).map((_, i) => addDays(startDate, i));
+    const eventsByDay = useMemo(() => {
+        const map = new Map<string, typeof events>();
+        for (const e of events) {
+            if (isNote(e)) continue;
+            const key = format(parseISO(e.scheduled_at), 'yyyy-MM-dd');
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(e);
+        }
+        for (const arr of map.values()) arr.sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime());
+        return map;
+    }, [events]);
 
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const monthPosts = days
+        .filter((d) => isSameMonth(d, currentDate))
+        .flatMap((d) => (eventsByDay.get(format(d, 'yyyy-MM-dd')) || []).filter((e) => !isFestival(e)));
+    const monthPublished = monthPosts.filter((e) => statusOf(e) === 'published').length;
+
+    const openDay = (day: Date) => {
+        setCurrentDate(day);
+        setDisplayMode('list');
+    };
 
     return (
-        // Match Week view behavior: keep page header fixed by scrolling inside month grid.
-        <div className="flex flex-col text-zinc-900 w-full">
-            <div className="grid grid-cols-7 auto-rows-min gap-2 bg-zinc-50 p-2">
-                    
-                    {/* Days of Week Headers */}
-                    {daysOfWeek.map(day => (
+        <div className="w-full text-zinc-900">
+            <div className="mb-3 flex flex-wrap items-center gap-2 px-1 text-xs font-semibold">
+                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-zinc-700">{monthPosts.length} posts in {format(currentDate, 'MMMM')}</span>
+                <span className="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700">{monthPublished} published</span>
+                <span className="rounded-full bg-gold-50 px-2.5 py-1 text-gold-800">{monthPosts.length - monthPublished} upcoming</span>
+            </div>
+
+            {/* Weekday header pills */}
+            <div className="grid grid-cols-7 gap-2.5">
+                {WEEKDAYS.map((d) => (
+                    <div key={d} className="rounded-xl bg-zinc-100 py-3 text-center text-sm font-medium text-zinc-700">
+                        {d}
+                    </div>
+                ))}
+            </div>
+
+            {/* Separate rounded day cells */}
+            <div className="mt-2.5 grid grid-cols-7 gap-2.5">
+                {days.map((day) => {
+                    const key = format(day, 'yyyy-MM-dd');
+                    const inMonth = isSameMonth(day, currentDate);
+                    const today = isSameDay(day, new Date());
+                    const dayEvents = eventsByDay.get(key) || [];
+                    const festivals = dayEvents.filter(isFestival);
+                    const posts = dayEvents.filter((e) => !isFestival(e));
+                    const hidden = Math.max(0, posts.length - MAX_VISIBLE);
+                    const createAt = new Date(day);
+                    createAt.setHours(9, 0, 0, 0);
+
+                    return (
                         <div
-                            key={day}
-                            className="z-30 px-3 py-2 bg-white border-2 border-zinc-200 flex justify-center items-center flex-col h-14 rounded-xl sticky top-0 font-bold text-sm text-zinc-500 shadow-sm"
+                            key={key}
+                            onClick={() => openCreateDialog(createAt)}
+                            className={cn(
+                                'group/cell relative flex min-h-[150px] cursor-pointer flex-col gap-1.5 rounded-2xl border p-2.5 transition-colors',
+                                inMonth ? 'border-zinc-200 bg-white hover:border-zinc-300' : 'border-zinc-100 bg-zinc-50/60',
+                                today && 'border-brand-300 ring-2 ring-brand-100'
+                            )}
                         >
-                            {day}
-                        </div>
-                    ))}
-
-                    {/* Calendar Days */}
-                    {calendarDays.map((day, index) => {
-                        const isCurrentMonth = isSameMonth(day, currentDate);
-                        const isToday = isSameDay(day, new Date());
-                        
-                        const dayEvents = events
-                            .filter(e => (e.type || '').toLowerCase() !== 'note' && isSameDay(parseISO(e.scheduled_at), day))
-                            .sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime());
-
-                        const festivals = dayEvents.filter(e => e.type === 'festival');
-                        const isFestival = festivals.length > 0;
-                        return (
-                            <div 
-                                key={day.toString()}
-                                onClick={() => {
-                                    setCurrentDate(day);
-                                    openCreateDialog(day);
-                                }}
-                                className={cn(
-                                    "flex flex-col rounded-xl min-h-[120px] p-2 cursor-pointer group border-2 transition-all relative",
-                                    isFestival
-                                        ? "bg-gradient-to-br from-amber-50/80 to-orange-50/60 border-amber-200 hover:border-amber-300"
-                                        : isCurrentMonth
-                                            ? "bg-white border-transparent hover:border-amber-400"
-                                            : "bg-zinc-100 opacity-60 border-transparent"
-                                )}
-                            >
-                                <div className={cn(
-                                    "text-base font-medium pt-1 px-1",
-                                    isFestival ? "text-amber-700 font-semibold" : isToday ? "text-amber-700 font-bold" : "text-zinc-500"
-                                )}>
+                            <div className="flex items-center justify-between">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openDay(day);
+                                    }}
+                                    title="Open day"
+                                    className={cn(
+                                        'flex h-8 min-w-8 items-center justify-center rounded-full px-1.5 font-display text-xl font-semibold tabular-nums transition-colors',
+                                        today ? 'bg-brand-800 text-white' : inMonth ? 'text-zinc-800 hover:bg-zinc-100' : 'text-zinc-300'
+                                    )}
+                                >
                                     {format(day, 'd')}
-                                    {isFestival && <span className="ml-1 text-[10px] opacity-70">🪔</span>}
-                                </div>
-                                
-                                {/* Month cards: show full platform preview; day cell grows to fit all cards */}
-                                <div className="flex flex-col gap-2 mt-2 z-10 w-full relative">
-                                    {festivals.map(fest => (
-                                        <div key={fest.id} className="w-full text-center px-1.5 py-1 rounded-md bg-amber-100 text-amber-800 text-[10px] font-semibold mb-0.5 truncate border border-amber-200" title={fest.description || fest.title}>
-                                            🪔 {fest.title}
-                                        </div>
-                                    ))}
-                                    {dayEvents.filter(e => e.type !== 'festival').map(event => {
-                                        const when = parseISO(event.scheduled_at);
-                                        const whenLabel = format(when, 'h:mm a');
-                                        const media = event.media_url?.split(',')[0]?.trim();
-                                        const account = event.account_id
-                                            ? socialConnections.find((c) => c.id === event.account_id)
-                                            : undefined;
-                                        const platformKey = ((account?.platform || event.platform) || '').toLowerCase();
-                                        const isCrm = event.type === 'crm_birthday' || event.type === 'crm_loyalty';
-
-                                        return (
-                                            <div
-                                                key={event.id}
-                                                onClick={(e) => { e.stopPropagation(); openEditDialog(event); }}
-                                                className={cn(
-                                                    'relative w-full rounded-xl border-2 bg-white shadow-sm hover:shadow-md transition-all overflow-hidden',
-                                                    isCrm
-                                                        ? 'border-rose-200 ring-1 ring-rose-100/90 hover:border-rose-300'
-                                                        : 'border-zinc-200 hover:border-amber-300'
-                                                )}
-                                            >
-                                                <EventApprovalBadge
-                                                    event={event}
-                                                    compact
-                                                    className="absolute right-1.5 top-1.5 z-20 shadow-sm"
-                                                />
-                                                <PlatformPreviewCard
-                                                    platformKey={platformKey}
-                                                    whenLabel={whenLabel}
-                                                    accountName={account?.profile_name || undefined}
-                                                    accountImage={account?.profile_image || null}
-                                                    title={event.title}
-                                                    description={event.description}
-                                                    media={media}
-                                                    density="compact"
-                                                    onUpload={() => openEditDialog(event)}
-                                                    mediaLayout="auto"
-                                                    isRecurring={!!event.is_recurring}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 rounded-xl z-20 pointer-events-none">
-                                    <div className="h-12 w-12 rounded-xl bg-amber-400 text-zinc-900 flex items-center justify-center font-bold text-xl shadow-md">
-                                        <Plus className="h-6 w-6" />
-                                    </div>
-                                </div>
+                                </button>
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 opacity-0 transition-opacity group-hover/cell:opacity-100" aria-hidden>
+                                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                                </span>
                             </div>
-                        );
-                    })}
-                </div>
+
+                            {festivals.map((f) => (
+                                <FestivalTag key={f.id} title={f.title} description={f.description} size="sm" />
+                            ))}
+
+                            {/* Posts sit toward the bottom of the cell, like the reference */}
+                            <div className="mt-auto flex flex-col gap-1.5">
+                                {posts.slice(0, MAX_VISIBLE).map((event) => (
+                                    <PastelPostCard key={event.id} event={event} connections={socialConnections} onOpen={() => openEditDialog(event)} />
+                                ))}
+                                {hidden > 0 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            openDay(day);
+                                        }}
+                                        className="w-fit rounded-md px-1.5 py-0.5 text-[11px] font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                                    >
+                                        +{hidden} more
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

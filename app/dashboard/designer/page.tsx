@@ -11,6 +11,7 @@ import {
   Clock, 
   Loader2,
   LayoutGrid,
+  Palette,
   Search,
   AlertCircle
 } from 'lucide-react';
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { PageHero, SectionHeader, heroButtonClass } from '@/components/dashboard/page-hero';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,35 +123,34 @@ export default function DesignerWorkspace() {
   );
 
   return (
-    <div className="flex-1 space-y-8 p-8 pt-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-900 flex items-center gap-3 lowercase">
-            <LayoutGrid className="w-8 h-8 text-indigo-600" />
-            Designer Workspace
-          </h1>
-          <p className="text-zinc-500 font-medium">
-            Manage your past designs or start something fresh from scratch.
-          </p>
-        </div>
-        <Button 
-          onClick={() => router.push('/dashboard/designer/new')}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          New Design
-        </Button>
-      </div>
-
-      <div className="relative group max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 transition-colors group-focus-within:text-indigo-600" />
-        <Input 
-          placeholder="Search your designs..." 
-          className="pl-10 h-11 bg-white border-zinc-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+    <div className="mx-auto max-w-7xl flex-1 space-y-8 md:pt-6">
+      <PageHero
+        title="Designer Workspace"
+        breadcrumb={['Content Creation', 'Designer']}
+        icon={Palette}
+        description="Manage your past designs or start something fresh from scratch."
+        stats={[
+          { label: 'Designs', value: loading ? '—' : designs.length, icon: LayoutGrid },
+          { label: 'Templates', value: loading ? '—' : templates.length, icon: ImageIcon },
+        ]}
+        actions={
+          <button onClick={() => router.push('/dashboard/designer/new')} className={heroButtonClass('gold')}>
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            New design
+          </button>
+        }
+        overlap={
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Search your designs..."
+              className="h-11 rounded-xl pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -161,12 +162,12 @@ export default function DesignerWorkspace() {
         <>
           {templates.length > 0 && (
             <div className="space-y-4 mb-12">
-              <h2 className="text-xl font-bold text-zinc-900 border-b border-zinc-100 pb-2">Start from a Template</h2>
+              <SectionHeader label="Templates" title="Start from a template" className="mb-0" />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {templates.map((template) => (
                   <Card 
                     key={template.id} 
-                    className="group overflow-hidden rounded-2xl border border-zinc-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 bg-white cursor-pointer"
+                    className="ae-tile ae-tile-interactive group cursor-pointer gap-0 py-0"
                     onClick={() => {
                         // Templates open directly into the editor. You could also pass template=id later if API supports
                         toast.error("Please load templates from the Designer sidebar to apply them correctly");
@@ -205,15 +206,15 @@ export default function DesignerWorkspace() {
           )}
 
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-zinc-900 border-b border-zinc-100 pb-2">Your Designs</h2>
+            <SectionHeader label="Your work" title="Your designs" className="mb-0" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {/* Create New Card */}
           <button 
             onClick={() => router.push('/dashboard/designer/new')}
-            className="group flex flex-col items-center justify-center gap-4 h-[320px] rounded-3xl border-2 border-dashed border-zinc-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all duration-300"
+            className="group flex h-full min-h-[280px] flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-gold-300 bg-gold-50/60 transition-all duration-300 hover:border-gold-500 hover:bg-gold-50"
           >
-            <div className="w-14 h-14 rounded-2xl bg-zinc-50 flex items-center justify-center group-hover:bg-indigo-100 group-hover:scale-110 transition-all">
-              <Plus className="w-8 h-8 text-zinc-400 group-hover:text-indigo-600" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gold-400 shadow-md transition-all group-hover:scale-110">
+              <Plus className="h-7 w-7 text-brand-950" />
             </div>
             <div className="text-center">
               <span className="block text-sm font-bold text-zinc-900">Create from Scratch</span>
@@ -223,9 +224,9 @@ export default function DesignerWorkspace() {
 
           {/* Design Cards */}
           {filteredDesigns.map((design) => (
-            <Card key={design.id} className="group overflow-hidden rounded-3xl border border-zinc-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 bg-white">
+            <Card key={design.id} className="ae-tile ae-tile-interactive group gap-0 py-0">
               <div 
-                className="aspect-[4/3] bg-zinc-100 relative cursor-pointer overflow-hidden border-b border-zinc-100"
+                className="relative m-2 mb-0 aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-zinc-100"
                 onClick={() => router.push(`/dashboard/designer/${design.id}`)}
               >
                 {design.preview_url ? (
@@ -281,7 +282,7 @@ export default function DesignerWorkspace() {
                   </DropdownMenu>
                 </div>
               </CardContent>
-              <CardFooter className="px-4 py-2 bg-zinc-50/50 border-t border-zinc-50">
+              <CardFooter className="border-t border-dashed border-zinc-200 px-4 py-2">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
                   {design.width}x{design.height} px
                 </span>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Sparkles, ChevronDown, Bell, Calendar, MapPin, UserCheck, Plus, Trash2, Ghost, Clock, Info, Edit2, TrendingUp, Dumbbell, Gem, ShoppingBag, CheckCircle2, Building2 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 import { Switch } from "@/components/ui/switch";
 import {
     Sheet,
@@ -182,7 +183,7 @@ export default function EventsPage() {
         const MyIcon = myConfig?.Icon;
 
         return (
-            <div className="bg-white border border-zinc-200 rounded-3xl p-6 flex flex-col justify-between hover:border-[#f2d412]/50 hover:shadow-xl hover:shadow-[#f2d412]/5 transition-all duration-300 relative group border-b-4 uppercase tracking-tight">
+            <div className="bg-white border border-zinc-200 rounded-3xl p-6 flex flex-col justify-between hover:border-gold-400/50 hover:shadow-xl hover:shadow-[#f2d412]/5 transition-all duration-300 relative group border-b-4 uppercase tracking-tight">
                 <div>
                    <div className="flex justify-between items-start mb-4">
                         <div className="flex flex-col gap-1.5">
@@ -208,7 +209,7 @@ export default function EventsPage() {
                         )}
                     </div>
                     <div className="flex items-center gap-4 pl-2">
-                        <div className="flex flex-col items-end text-right"><span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-1.5">Enable</span><Switch checked={isEnabled} onCheckedChange={() => onToggle(isAutomation ? { ...item, name: item.event_name } : item, !isEnabled)} className="data-[state=checked]:bg-[#f2d412] scale-90" /></div>
+                        <div className="flex flex-col items-end text-right"><span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest mb-1.5">Enable</span><Switch checked={isEnabled} onCheckedChange={() => onToggle(isAutomation ? { ...item, name: item.event_name } : item, !isEnabled)} className="data-[state=checked]:bg-gold-400 scale-90" /></div>
                         <div className="flex gap-2">
                             <button onClick={() => openSheet(item, true)} className={cn("h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-50 transition-all", isEnabled ? "text-zinc-900 shadow-sm border border-zinc-100" : "text-zinc-200 opacity-50")} disabled={!isEnabled}><Edit2 className="h-4 w-4" /></button>
                             {isAutomation && (<button onClick={() => handleDelete(item.id)} className="h-10 w-10 flex items-center justify-center rounded-2xl bg-rose-50 text-rose-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>)}
@@ -235,11 +236,11 @@ export default function EventsPage() {
     const CurrentVerticalIcon = myCurrentConfig?.Icon;
 
     return (
-        <div className="flex flex-col min-h-full bg-zinc-50/50">
+        <div className="mx-auto flex min-h-full max-w-7xl flex-col">
             <Sheet open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <SheetContent side="right" className="sm:max-w-md p-0 flex flex-col bg-white">
                     <SheetHeader className="p-6 border-b border-zinc-200 text-left">
-                        <SheetTitle className="text-lg font-black flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#f2d412]" />Settings: Customized Focus</SheetTitle>
+                        <SheetTitle className="text-lg font-black flex items-center gap-2"><Sparkles className="h-5 w-5 text-gold-500" />Settings: Customized Focus</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto p-6 space-y-10">
                         {userVertical && myCurrentConfig && (
@@ -257,24 +258,53 @@ export default function EventsPage() {
                         <div className="space-y-2"><label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Automation Message</label><textarea className="w-full h-40 border border-zinc-200 rounded-xl p-4 text-sm font-medium focus:ring-0 italic" value={config.message} onChange={e => setConfig({...config, message: e.target.value})} /></div>
                     </div>
                     <SheetFooter className="p-6 bg-zinc-50 border-t border-zinc-200">
-                        <Button className="w-full h-11 bg-[#f2d412] text-zinc-900 font-bold rounded-full shadow-lg" onClick={handleCreateOrUpdate}>Update Strategy</Button>
+                        <Button className="w-full h-11 bg-gold-400 text-zinc-900 font-bold rounded-full shadow-lg" onClick={handleCreateOrUpdate}>Update Strategy</Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
 
-            <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-4 shadow-sm z-10 font-bold">
-                <div className="flex items-center gap-3"><div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center"><Bell className="h-5 w-5 text-orange-600" /></div><div><h1 className="text-lg font-black text-zinc-900 tracking-tight leading-none mb-1 uppercase">CRM Campaigns</h1><p className="text-[11px] text-zinc-400 font-bold uppercase tracking-widest leading-none">Automated Roadmap Intelligence</p></div></div>
-                <div className="flex items-center gap-4 flex-1 max-w-xl mx-8 relative"><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" /><input type="text" placeholder="Search events..." className="w-full h-11 bg-zinc-50 border border-zinc-200 rounded-full pl-11 shadow-inner text-[13px] font-bold" value={search} onChange={e => setSearch(e.target.value)} /></div>
-                <Button onClick={() => openSheet({name: 'New Event'}, false)} className="h-10 bg-[#f2d412] text-zinc-900 font-bold px-6 rounded-full shadow-lg gap-2 active:scale-95 border-b-2 border-orange-200 uppercase tracking-widest"><Plus className="h-4 w-4" /> Custom</Button>
-            </div>
+            <PageHero
+                title="CRM Campaigns"
+                breadcrumb={['CRM', 'Events & Notifications']}
+                icon={Bell}
+                description="Automated roadmap intelligence: festivals, birthdays and campaign moments, ready to schedule."
+                stats={[{ label: 'Automations', value: campaigns.length, icon: Bell }]}
+                actions={
+                    <button onClick={() => openSheet({ name: 'New Event' }, false)} className={heroButtonClass('gold')}>
+                        <Plus className="h-4 w-4" strokeWidth={2.5} /> Custom event
+                    </button>
+                }
+                overlap={
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex w-fit flex-wrap rounded-full bg-brand-800 p-1">
+                            {['notifications', 'library', 'calendar'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab as any)}
+                                    className={cn(
+                                        "rounded-full px-4 py-2 text-sm font-bold capitalize transition-all",
+                                        activeTab === tab ? "bg-white text-brand-900 shadow-sm" : "text-white/75 hover:text-white"
+                                    )}
+                                >
+                                    {tab === 'notifications' ? `Automations (${campaigns.length})` : tab.replace('_', ' ')}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="relative w-full lg:max-w-sm">
+                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                            <input
+                                type="text"
+                                placeholder="Search events..."
+                                className="h-11 w-full rounded-xl border border-zinc-200 bg-white pl-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-200"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                }
+            />
 
-            <div className="flex border-b border-zinc-200 bg-white px-6 space-x-12 uppercase">
-                {['notifications', 'library', 'calendar'].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab as any)} className={cn("py-4 text-[13px] font-black transition-all border-b-2 tracking-widest", activeTab === tab ? "text-zinc-900 border-[#f2d412]" : "text-zinc-400 border-transparent hover:text-zinc-600")}>{tab === 'notifications' ? `Automations (${campaigns.length})` : tab.replace('_', ' ')}</button>
-                ))}
-            </div>
-
-            <div className="flex-1 p-8 overflow-y-auto font-medium">
+            <div className="flex-1 font-medium">
                 {activeTab === 'notifications' ? (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{isLoading ? (<div className="col-span-full py-20 text-center text-zinc-400 font-black italic uppercase">Synchronizing Roadmap...</div>) : filterList(campaigns).length === 0 ? (<div className="col-span-full py-40 text-center opacity-30"><Ghost className="h-16 w-16 mx-auto mb-4" /><p className="text-sm font-black uppercase tracking-widest">No Active Workflows</p></div>) : filterList(campaigns).map((camp, i) => (<UnifiedCard key={i} item={camp} isAutomation />))}</div>
                 ) : activeTab === 'library' ? (

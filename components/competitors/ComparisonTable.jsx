@@ -67,18 +67,18 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
   ];
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-x-auto shadow-sm w-full">
+    <div className="rounded-2xl border border-zinc-200 bg-white overflow-x-auto shadow-sm w-full">
       <table className={`${isSingleCompanyView ? 'w-auto min-w-[560px]' : 'w-full'} text-left border-collapse`}>
         <thead>
           <tr>
-            <th className="p-4 bg-zinc-50 border-b border-r border-[#E5E7EB] w-48 text-[13px] font-bold text-zinc-500 uppercase tracking-widest sticky left-0 z-10">
+            <th className="p-4 bg-zinc-50 border-b border-r border-zinc-200 w-48 text-[13px] font-bold text-zinc-500 uppercase tracking-widest sticky left-0 z-10">
               Metrics
             </th>
             {data.map((company, i) => (
               <th
                 key={company.id}
-                className={`group relative ${companyColPadding} border-b border-[#E5E7EB] ${companyColMinWidth} text-center ${
-                  company.isOurs ? 'bg-[#EEF4FF] border-b-[#2D66C3]/20 shadow-[inset_0_2px_0_#2D66C3]' : 'bg-white'
+                className={`group relative ${companyColPadding} border-b border-zinc-200 ${companyColMinWidth} text-center ${
+                  company.isOurs ? 'bg-brand-50 border-b-[var(--color-brand-700)]/20 shadow-[inset_0_2px_0_var(--color-brand-600)]' : 'bg-white'
                 } ${i < data.length - 1 ? 'border-r' : ''}`}
               >
                 {!company.isOurs && onRemoveCompany && (
@@ -103,11 +103,11 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                     )}
                   </div>
                   <div className="flex flex-col items-center">
-                    <span className={`${companyHeaderTextSize} font-extrabold ${company.isOurs ? 'text-[#1d4e9f]' : 'text-[#111827]'}`}>
+                    <span className={`${companyHeaderTextSize} font-extrabold ${company.isOurs ? 'text-[#1d4e9f]' : 'text-zinc-900'}`}>
                       {company.name}
                     </span>
                     {company.isOurs && (
-                      <span className={`mt-1.5 rounded-full bg-[#2D66C3] px-2 py-0.5 ${companyBadgeTextSize} font-bold text-white uppercase tracking-wider`}>
+                      <span className={`mt-1.5 rounded-full bg-[var(--color-brand-700)] px-2 py-0.5 ${companyBadgeTextSize} font-bold text-white uppercase tracking-wider`}>
                         You
                       </span>
                     )}
@@ -120,13 +120,13 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
         <tbody className="text-[14px]">
           {metrics.slice(1).map((metric) => (
             <tr key={metric.key} className="transition-colors hover:bg-zinc-50/50">
-              <td className="p-4 bg-zinc-50/80 border-b border-r border-[#E5E7EB] font-bold text-[#374151] sticky left-0 z-10 align-top">
+              <td className="p-4 bg-zinc-50/80 border-b border-r border-zinc-200 font-bold text-[#374151] sticky left-0 z-10 align-top">
                 {metric.label}
               </td>
               {data.map((company, colIndex) => {
                 const isOurs = company.isOurs;
-                const cellClass = `${cellPadding} border-b border-[#E5E7EB] align-top ${
-                  isOurs ? 'bg-[#EEF4FF]/50' : 'bg-white'
+                const cellClass = `${cellPadding} border-b border-zinc-200 align-top ${
+                  isOurs ? 'bg-brand-50/50' : 'bg-white'
                 } ${colIndex < data.length - 1 ? 'border-r' : ''}`;
 
                 return (
@@ -150,7 +150,7 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                                      onClick={() => onRefreshPlatform(company, plat, acc.handle)}
                                      disabled={isRefreshing}
                                      title={`Refresh ${plat} stats`}
-                                     className={`opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[#2D66C3] ${isRefreshing ? 'opacity-100 text-[#2D66C3]' : ''}`}
+                                     className={`opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[var(--color-brand-700)] ${isRefreshing ? 'opacity-100 text-[var(--color-brand-700)]' : ''}`}
                                    >
                                      <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                                    </button>
@@ -159,7 +159,7 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                                    <button 
                                      onClick={() => onEditPlatform(company, plat, acc.handle)}
                                      title={`Edit ${plat} URL`}
-                                     className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[#2D66C3]"
+                                     className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-zinc-400 hover:text-[var(--color-brand-700)]"
                                    >
                                      <Pencil className="w-3 h-3" />
                                    </button>
@@ -185,7 +185,7 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                                    className="group relative flex items-center justify-center h-5 w-12 rounded hover:bg-zinc-200 transition-colors shrink-0"
                                  >
                                    <span className="text-zinc-300 font-medium group-hover:hidden">-</span>
-                                   <Plus className="hidden group-hover:block h-3.5 w-3.5 text-[#2D66C3]" />
+                                   <Plus className="hidden group-hover:block h-3.5 w-3.5 text-[var(--color-brand-700)]" />
                                  </button>
                                ) : (
                                  <span className="text-zinc-300 font-medium">-</span>
@@ -197,11 +197,11 @@ export default function ComparisonTable({ data, activePlatformFilter = 'All Plat
                       
                       {/* Aggregate Summary (Only show if multiple accounts exist for this metric conceptually across the table) */}
                       {visiblePlatforms.length > 1 && (
-                         <div className={`flex items-center justify-between text-[13px] w-full px-1 pt-1.5 mt-1 border-t ${isOurs ? 'border-[#2D66C3]/20' : 'border-[#E5E7EB]/70'} min-h-[28px]`}>
-                           <span className={`font-bold text-[11px] uppercase ${isOurs ? 'text-[#2D66C3]' : 'text-zinc-600'}`}>
+                         <div className={`flex items-center justify-between text-[13px] w-full px-1 pt-1.5 mt-1 border-t ${isOurs ? 'border-[var(--color-brand-700)]/20' : 'border-zinc-200/70'} min-h-[28px]`}>
+                           <span className={`font-bold text-[11px] uppercase ${isOurs ? 'text-[var(--color-brand-700)]' : 'text-zinc-600'}`}>
                              {metric.type === 'percent' ? 'Avg' : 'Total'}
                            </span>
-                           <span className={`font-extrabold ${isOurs ? 'text-[#2D66C3]' : 'text-zinc-900'}`}>
+                           <span className={`font-extrabold ${isOurs ? 'text-[var(--color-brand-700)]' : 'text-zinc-900'}`}>
                              {formatStat(getAggregate(company, metric.key, metric.type), metric.type === 'percent')}
                            </span>
                          </div>

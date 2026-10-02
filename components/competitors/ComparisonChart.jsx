@@ -45,10 +45,10 @@ export default function ComparisonChart({ data }) {
   }
 
   return (
-    <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-[16px] font-extrabold text-[#111827]">Engagement Trajectory</h3>
+          <h3 className="text-[16px] font-extrabold text-zinc-900">Engagement Trajectory</h3>
           <p className="text-[13px] text-zinc-500 mt-0.5">Comparing total engagement across visible platforms over the last 7 days</p>
         </div>
       </div>

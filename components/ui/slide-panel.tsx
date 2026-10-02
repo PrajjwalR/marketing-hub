@@ -88,9 +88,10 @@ export function SlidePanel({
                 aria-modal="true"
                 aria-label={title}
                 className={cn(
-                    'fixed right-0 top-0 bottom-0 z-50 flex flex-col bg-white text-zinc-900 shadow-2xl border-l border-zinc-200 w-full transition-transform duration-300 ease-in-out scheme-light',
+                    'fixed right-0 top-0 bottom-0 z-50 flex flex-col bg-white text-zinc-900 shadow-2xl border-l border-zinc-200 w-full transition-[transform,visibility] duration-300 ease-in-out scheme-light',
                     sizeClass[size],
-                    open ? 'translate-x-0' : 'translate-x-full',
+                    // `invisible` too: an ancestor transform can make `fixed` relative to the content column, leaving a sliver on screen.
+                    open ? 'visible translate-x-0' : 'invisible translate-x-full',
                     className
                 )}
             >

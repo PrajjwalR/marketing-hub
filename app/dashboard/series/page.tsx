@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutGrid, Loader2 } from "lucide-react";
+import { Clapperboard, Layers, LayoutGrid, Loader2, Play, Plus } from "lucide-react";
+import { EmptyState, PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SeriesCard } from '@/components/dashboard/series-card';
@@ -79,48 +80,52 @@ export default function SeriesPage() {
         }
     };
 
+    const activeCount = series.filter((s) => s.status !== 'paused').length;
+    const newSeriesButton = (
+        <Link href="/dashboard/create" className={heroButtonClass('gold')}>
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
+            New series
+        </Link>
+    );
+
     if (isLoading) {
         return (
-            <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-                <p className="text-zinc-500 font-medium">Fetching your series...</p>
+            <div className="mx-auto w-full max-w-7xl">
+                <PageHero title="Your Series" breadcrumb={['Content Creation', 'Series']} icon={Layers} description="Manage and monitor your automated video series." />
+                <div className="ae-tile flex h-[40vh] flex-col items-center justify-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-brand-600" />
+                    <p className="font-medium text-zinc-500">Fetching your series...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <h1 className="text-xl font-bold tracking-tight text-zinc-900">Your Series</h1>
-                    <p className="text-[13px] text-zinc-500 font-medium">Manage and monitor your automated video series.</p>
-                </div>
-                <Link href="/dashboard/create">
-                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-6 shadow-lg shadow-indigo-200 transition-all active:scale-95 gap-2 rounded-xl">
-                        <Plus className="h-5 w-5" />
-                        New Series
-                    </Button>
-                </Link>
-            </div>
+        <div className="mx-auto w-full max-w-7xl">
+            <PageHero
+                title="Your Series"
+                breadcrumb={['Content Creation', 'Series']}
+                icon={Layers}
+                description="Manage and monitor your automated video series."
+                actions={newSeriesButton}
+                stats={[
+                    { label: 'Series', value: series.length, icon: Layers },
+                    { label: 'Active', value: activeCount, icon: Play },
+                    { label: 'Videos made', value: videoCount, icon: Clapperboard },
+                ]}
+            />
 
             {series.length === 0 ? (
-                <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-zinc-200 bg-white/50 space-y-4 text-center p-8">
-                    <div className="h-16 w-16 rounded-2xl bg-zinc-50 flex items-center justify-center border border-zinc-100">
-                        <LayoutGrid className="h-8 w-8 text-zinc-300" />
-                    </div>
-                    <div className="space-y-1 max-w-sm">
-                        <h3 className="text-lg font-bold text-zinc-900">No series created yet</h3>
-                        <p className="text-sm text-zinc-500 leading-relaxed">
-                            Start your content journey by creating your first automated video series.
-                            It only takes a few minutes to setup!
-                        </p>
-                    </div>
-                    <Link href="/dashboard/create">
-                        <Button className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-8 rounded-xl shadow-md transition-all active:scale-95">
-                            Create Now
-                        </Button>
-                    </Link>
-                </div>
+                <EmptyState
+                    icon={LayoutGrid}
+                    title="No series created yet"
+                    description="Start your content journey by creating your first automated video series. It only takes a few minutes to set up!"
+                    action={
+                        <Link href="/dashboard/create">
+                            <Button variant="gold" size="lg">Create now</Button>
+                        </Link>
+                    }
+                />
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {series.map((item) => (
