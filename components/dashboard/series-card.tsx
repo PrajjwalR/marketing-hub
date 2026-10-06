@@ -37,10 +37,10 @@ export function SeriesCard({
     const thumbnail = style?.image || "/placeholder-video.png";
 
     return (
-        <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-zinc-200/60 bg-white">
+        <Card className="ae-tile ae-tile-interactive group relative gap-0 overflow-hidden p-0">
             {/* Thumbnail Area */}
             {/* ... same as before ... */}
-            <div className="aspect-[16/9] relative overflow-hidden bg-zinc-100">
+            <div className="relative m-2 mb-0 aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 to-gold-50">
                 <Image
                     src={thumbnail}
                     alt={series.series_name}
@@ -72,8 +72,8 @@ export function SeriesCard({
                 {/* Platform Icons Overlay */}
                 <div className="absolute bottom-3 left-3 flex gap-1">
                     {series.platforms?.map((platform: string) => (
-                        <div key={platform} className="p-1 rounded-md bg-white/20 backdrop-blur-sm border border-white/30">
-                            <div className="text-[8px] font-bold text-white uppercase px-0.5">{platform}</div>
+                        <div key={platform} className="rounded-md bg-brand-900/70 px-1 py-0.5 backdrop-blur-sm">
+                            <div className="px-0.5 text-[9px] font-bold uppercase text-gold-200">{platform}</div>
                         </div>
                     ))}
                 </div>
@@ -83,7 +83,7 @@ export function SeriesCard({
             <div className="p-4 space-y-4">
                 <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1 min-w-0">
-                        <h3 className="font-bold text-zinc-900 truncate pr-2" title={series.series_name}>
+                        <h3 className="truncate pr-2 text-[15px] font-extrabold text-zinc-900" title={series.series_name}>
                             {series.series_name}
                         </h3>
                         <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] font-medium">
@@ -119,7 +119,7 @@ export function SeriesCard({
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-10 border-zinc-200 text-zinc-600 font-bold text-[11px] gap-2 rounded-xl flex-1 active:scale-95 transition-all"
+                            className="h-10 flex-1 gap-2 rounded-xl border-brand-100 bg-brand-50 text-[12px] font-bold text-brand-800 transition-all hover:bg-brand-100 active:scale-95"
                             onClick={() => onViewVideos?.(series.id)}
                         >
                             <Video className="h-4 w-4" />
@@ -128,10 +128,10 @@ export function SeriesCard({
                         <Button
                             variant="default"
                             size="sm"
-                            className="h-10 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[11px] gap-2 rounded-xl flex-1 shadow-md active:scale-95 transition-all"
+                            className="h-10 flex-1 gap-2 rounded-xl bg-gold-400 text-[12px] font-bold text-brand-950 shadow-sm transition-all hover:bg-gold-300 active:scale-95"
                             onClick={() => onGenerateNow?.(series.id)}
                         >
-                            <Zap className="h-4 w-4 fill-white" />
+                            <Zap className="h-4 w-4 fill-brand-950" />
                             Generate
                         </Button>
                     </div>

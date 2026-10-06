@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 import { Card } from '@/components/ui/card';
-import { Trash2, ImagePlus, MoreVertical, FolderOpen } from 'lucide-react';
+import { ArrowRight, Trash2, ImagePlus, MoreVertical, FolderOpen } from 'lucide-react';
 import { format } from 'date-fns';
 import {
     AlertDialog,
@@ -110,10 +110,10 @@ export function StrategyCard({
 
     return (
         <>
-            <Card className="group overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md p-0">
+            <Card className="ae-tile ae-tile-interactive group gap-0 overflow-hidden p-0">
                 {/* Thumbnail - 16:9 aspect ratio for consistent alignment */}
                 <Link href={`/dashboard/strategy/${id}`} className="block relative group/thumb">
-                    <div className="relative aspect-video w-full overflow-hidden bg-zinc-100">
+                    <div className="relative m-2 mb-0 aspect-video overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 via-zinc-50 to-gold-50">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -151,14 +151,14 @@ export function StrategyCard({
                                 className="absolute inset-0 h-full w-full object-cover"
                             />
                         ) : (
-                            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-zinc-400">
+                            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-brand-400">
                                 <ImagePlus className="h-8 w-8" strokeWidth={1.5} />
                                 <span className="text-sm font-medium">No image</span>
                                 <span className="text-xs">Click to upload</span>
                             </div>
                         )}
                         {/* Post count badge - YouTube-style duration overlay */}
-                        <span className="absolute bottom-1.5 right-1.5 rounded bg-black/75 px-1.5 py-0.5 text-xs font-medium text-white">
+                        <span className="absolute bottom-2 right-2 rounded-lg bg-brand-900/85 px-2 py-0.5 text-[11px] font-bold text-gold-200 backdrop-blur">
                             {postsCount} posts
                         </span>
                         {isUploading && (
@@ -170,14 +170,14 @@ export function StrategyCard({
                 </Link>
 
                 {/* Details block - YouTube-style layout */}
-                <div className="flex gap-3 px-3 pt-2 pb-3">
+                <div className="flex gap-3 px-4 pt-3 pb-3">
                     {/* Avatar */}
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100">
-                        <FolderOpen className="h-4 w-4 text-zinc-600" />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-800">
+                        <FolderOpen className="h-4 w-4 text-gold-300" />
                     </div>
                     <div className="min-w-0 flex-1">
                         <Link href={`/dashboard/strategy/${id}`} className="block">
-                            <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-zinc-900 group-hover:text-zinc-700">
+                            <h3 className="line-clamp-2 text-[15px] font-extrabold leading-snug text-zinc-900 group-hover:text-brand-800">
                                 {name}
                             </h3>
                         </Link>
@@ -219,14 +219,14 @@ export function StrategyCard({
                 </div>
 
                 {/* Open button */}
-                <div className="px-3 pb-3">
+                <div className="px-4 pb-4">
                     <Link href={`/dashboard/strategy/${id}`}>
                         <Button
                             size="sm"
-                            className="w-full rounded-full bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-medium text-[15px] gap-1.5"
+                            className="w-full h-10 justify-between rounded-xl bg-brand-50 px-4 text-brand-800 font-bold text-sm hover:bg-brand-800 hover:text-white"
                         >
-                            <FolderOpen className="h-3.5 w-3.5" />
-                            Open Strategy
+                            Open strategy
+                            <ArrowRight className="h-4 w-4" />
                         </Button>
                     </Link>
                 </div>

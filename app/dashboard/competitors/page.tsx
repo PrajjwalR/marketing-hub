@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, BarChart2, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
+import { Plus, BarChart2, Building2, CheckCircle2, Loader2, RefreshCw, RotateCcw, Swords } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState, PageHero, SectionHeader, heroButtonClass } from '@/components/dashboard/page-hero';
 import ComparisonTable from '@/components/competitors/ComparisonTable';
 import ComparisonChart from '@/components/competitors/ComparisonChart';
 import ContentPillarsTable from '@/components/competitors/ContentPillarsTable';
@@ -350,63 +352,56 @@ export default function CompetitorsPage() {
 
   return (
     <div className="w-full pb-10">
-      <header className="font-sans sticky top-0 z-30 -mx-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-3.5 sm:-mx-4 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none bg-[#FFF0EE]">
-            <BarChart2 className="h-5 w-5 text-[#e85d4a]" />
+      <PageHero
+        titleId="competitors-header"
+        title="Competitor Analysis"
+        breadcrumb={['Competitors']}
+        icon={Swords}
+        description="Compare your performance head-to-head across every platform account."
+        stats={[
+          { label: 'Companies tracked', value: processedData.length, icon: Building2 },
+          { label: 'Status', value: isSyncing ? 'Syncing live data…' : 'Up to date', icon: isSyncing ? RefreshCw : CheckCircle2 },
+        ]}
+        actions={
+          <>
+            <button onClick={handleClearData} className={heroButtonClass('ghost')} title="Clear cached data and start fresh">
+              <RotateCcw className="h-4 w-4" />
+              Reset data
+            </button>
+            <button onClick={() => setShowModal(true)} className={heroButtonClass('gold')}>
+              <Plus className="h-4 w-4" strokeWidth={2.5} />
+              Add company
+            </button>
+          </>
+        }
+        overlap={
+          <div id="competitors-filters">
+            <FilterBar
+              search={search} setSearch={setSearch}
+              platform={platform} setPlatform={setPlatform}
+              category={category} setCategory={setCategory}
+              sortBy={sortBy} setSortBy={setSortBy}
+            />
           </div>
-          <div className="min-w-0 flex items-center gap-3">
-            <div>
-              <h1 id="competitors-header" className="text-lg font-bold text-[#111827]">Competitor Analysis</h1>
-              <p className="text-[13px] text-zinc-500 leading-none mt-0.5">Compare your performance head-to-head across all platform accounts</p>
-            </div>
-            {isSyncing && (
-                <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 bg-blue-50 text-blue-600 rounded-md text-[11px] font-semibold border border-blue-100">
-                  <RefreshCw className="h-3 w-3 animate-spin" />
-                  Syncing Live Data...
-                </div>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={handleClearData}
-          className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#E5E7EB] px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
-          title="Clear cached data and start fresh"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Reset Data
-        </button>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          Add Company
-        </button>
-      </header>
+        }
+      />
 
-      <div className="space-y-6">
-        <div id="competitors-filters">
-          <FilterBar
-            search={search} setSearch={setSearch}
-            platform={platform} setPlatform={setPlatform}
-            category={category} setCategory={setCategory}
-            sortBy={sortBy} setSortBy={setSortBy}
-          />
-        </div>
-
+      <div className="space-y-8">
         <div>
-          <div className="mb-3 flex items-center justify-between px-1">
-            <h2 className="text-[16px] font-extrabold text-[#111827]">Metrics Comparison</h2>
-            {processedData.length > 0 && (
-              <span className="text-[13px] text-zinc-500 font-medium tracking-wide">
-                {processedData.some((c: any) => c.isOurs)
-                  ? `Comparing You vs ${Math.max(0, processedData.length - 1)} Competitor${processedData.length - 1 !== 1 ? 's' : ''}`
-                  : `Comparing ${processedData.length} Company${processedData.length !== 1 ? 'ies' : ''}`}
-              </span>
-            )}
-          </div>
-          
+          <SectionHeader
+            label="Head to head"
+            title="Metrics comparison"
+            right={
+              processedData.length > 0 && (
+                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">
+                  {processedData.some((c: any) => c.isOurs)
+                    ? `You vs ${Math.max(0, processedData.length - 1)} competitor${processedData.length - 1 !== 1 ? 's' : ''}`
+                    : `${processedData.length} compan${processedData.length !== 1 ? 'ies' : 'y'}`}
+                </span>
+              )
+            }
+          />
+
           {processedData.length > 0 ? (
             <div id="competitors-table">
               <ComparisonTable 
@@ -420,16 +415,17 @@ export default function CompetitorsPage() {
               />
             </div>
           ) : (
-            <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-12 text-center">
-              <p className="text-[14px] text-zinc-500 font-medium">No tracked companies yet.</p>
-              <button
-                onClick={() => setShowModal(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm"
-              >
-                <Plus className="h-4 w-4" />
-                Add your first company
-              </button>
-            </div>
+            <EmptyState
+              icon={Swords}
+              title="No tracked companies yet"
+              description="Add a competitor to compare followers, engagement and content pillars side by side."
+              action={
+                <Button variant="gold" size="lg" onClick={() => setShowModal(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add your first company
+                </Button>
+              }
+            />
           )}
         </div>
 

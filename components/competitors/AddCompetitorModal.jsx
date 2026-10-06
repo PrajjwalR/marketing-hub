@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { AppSelect } from '@/components/ui/app-select';
 
 const PLATFORMS = ['YouTube', 'Facebook', 'Instagram', 'X'];
 const SUGGESTED_TAGS = ['fashion', 'lifestyle', 'footwear', 'streetwear', 'beauty', 'wellness', 'food', 'tech', 'fitness'];
@@ -92,13 +93,13 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
       onClick={handleOverlayClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] px-4"
     >
-      <div className="w-full max-w-md rounded-[8px] border border-[#E5E7EB] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-md rounded-[8px] border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
-          <h2 className="text-[16px] font-extrabold text-[#111827]">Add Competitor</h2>
+        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
+          <h2 className="text-[16px] font-extrabold text-zinc-900">Add Competitor</h2>
           <button
             onClick={onClose}
-            className="rounded-[6px] p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
+            className="rounded-xl p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -115,7 +116,7 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
               placeholder="e.g. NovaBrand Co."
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all"
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/30 focus:border-[var(--color-brand-700)] transition-all"
             />
           </div>
 
@@ -126,26 +127,26 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
               <button
                 type="button"
                 onClick={() => setForm(f => ({ ...f, accounts: [...f.accounts, { platform: 'Instagram', url: '' }] }))}
-                className="text-[12px] font-bold text-[#205BC3] hover:text-[#1a4fa8] hover:underline"
+                className="text-[12px] font-bold text-[var(--color-brand-800)] hover:text-[#1a4fa8] hover:underline"
               >
                 + Add another platform
               </button>
             </div>
             
-            <div className="space-y-2 border border-[#E5E7EB] rounded-[8px] p-2 bg-zinc-50 border-dashed">
+            <div className="space-y-2 border border-zinc-200 rounded-[8px] p-2 bg-zinc-50 border-dashed">
               {form.accounts.map((acc, idx) => (
                 <div key={idx} className="flex gap-2 relative">
-                  <select
+                  <AppSelect
+                    aria-label="Platform"
                     value={acc.platform}
-                    onChange={(e) => {
+                    onChange={(value) => {
                       const newAccs = [...form.accounts];
-                      newAccs[idx].platform = e.target.value;
+                      newAccs[idx].platform = value;
                       setForm({ ...form, accounts: newAccs });
                     }}
-                    className="w-[120px] shrink-0 rounded-[6px] border border-[#E5E7EB] px-2 py-2 text-[13px] text-zinc-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3]"
-                  >
-                    {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                    className="w-[130px] shrink-0 text-[13px]"
+                    options={PLATFORMS.map((p) => ({ value: p, label: p }))}
+                  />
                   <input
                     type="url"
                     required
@@ -156,7 +157,7 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
                       newAccs[idx].url = e.target.value;
                       setForm({ ...form, accounts: newAccs });
                     }}
-                    className="flex-1 rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-[13px] text-zinc-800 bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] group-first:pr-8"
+                    className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-[13px] text-zinc-800 bg-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/30 focus:border-[var(--color-brand-700)] group-first:pr-8"
                   />
                   {form.accounts.length > 1 && (
                     <button
@@ -182,7 +183,7 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
             {form.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {form.tags.map((tag) => (
-                  <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-[#2D66C3] px-2.5 py-0.5 text-[12px] font-semibold capitalize">
+                  <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] text-[var(--color-brand-700)] px-2.5 py-0.5 text-[12px] font-semibold capitalize">
                     {tag}
                     <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500 transition-colors">
                       <X className="h-3 w-3" />
@@ -197,7 +198,7 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
               value={form.tagInput}
               onChange={(e) => setForm((f) => ({ ...f, tagInput: e.target.value }))}
               onKeyDown={handleTagKeyDown}
-              className="w-full rounded-[6px] border border-[#E5E7EB] px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#2D66C3]/30 focus:border-[#2D66C3] transition-all"
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-700)]/30 focus:border-[var(--color-brand-700)] transition-all"
             />
             <div className="flex flex-wrap gap-1 mt-1.5">
               {SUGGESTED_TAGS.filter((t) => !form.tags.includes(t)).slice(0, 6).map((tag) => (
@@ -218,14 +219,14 @@ export default function AddCompetitorModal({ onClose, onAdd }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-[6px] border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-[6px] bg-[#205BC3] px-4 py-2 text-sm font-bold text-white hover:bg-[#1a4fa8] transition-colors shadow-sm disabled:opacity-75 disabled:cursor-wait min-w-[140px]"
+              className="inline-flex items-center justify-center rounded-xl bg-[var(--color-brand-800)] px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 transition-colors shadow-sm disabled:opacity-75 disabled:cursor-wait min-w-[140px]"
             >
               {isSubmitting ? (
                 <>

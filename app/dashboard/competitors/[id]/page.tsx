@@ -14,8 +14,8 @@ const PLATFORM_COLORS: Record<string, { bg: string; text: string; border: string
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex flex-col rounded-[5px] border border-[#E5E7EB] bg-white p-5">
-      <div className="text-2xl font-extrabold text-[#111827]">{value}</div>
+    <div className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-5">
+      <div className="text-2xl font-extrabold text-zinc-900">{value}</div>
       <div className="mt-1 text-[13px] text-zinc-500 font-medium">{label}</div>
     </div>
   );
@@ -81,9 +81,9 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <BarChart2 className="h-12 w-12 text-zinc-300 mb-4" />
-        <h2 className="text-lg font-bold text-[#111827]">Competitor not found</h2>
+        <h2 className="text-lg font-bold text-zinc-900">Competitor not found</h2>
         <p className="text-sm text-zinc-500 mt-1 mb-5">This competitor doesn't exist or was removed.</p>
-        <Link href="/dashboard/competitors" className="text-[#2D66C3] font-semibold text-sm hover:underline">
+        <Link href="/dashboard/competitors" className="text-[var(--color-brand-700)] font-semibold text-sm hover:underline">
           ← Back to Competitor Analysis
         </Link>
       </div>
@@ -98,7 +98,7 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="w-full space-y-4">
       {/* Sticky header */}
-      <header className="font-sans sticky top-0 z-30 -mx-3 mb-2 flex flex-wrap items-center gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-3.5 sm:-mx-4 sm:px-4">
+      <header className="font-sans sticky top-0 z-30 -mx-3 mb-2 flex flex-wrap items-center gap-4 border-b border-zinc-200/90 bg-canvas px-3 py-3.5 sm:-mx-4 sm:px-4">
         <Link
           href="/dashboard/competitors"
           className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-zinc-500 hover:text-zinc-800 transition-colors shrink-0"
@@ -115,7 +115,7 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-[16px] font-bold text-[#111827] truncate">{name}</h1>
+              <h1 className="text-[16px] font-bold text-zinc-900 truncate">{name}</h1>
               {category.map((tag: string) => (
                 <span key={tag} className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 capitalize">
                   {tag}
@@ -138,26 +138,26 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
       {recentContent.length > 0 ? (
         <EngagementChart data={recentContent} />
       ) : (
-        <div className="rounded-[5px] border border-[#E5E7EB] bg-white p-10 text-center text-sm text-zinc-500">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-500">
           No recent content data available for this competitor yet.
         </div>
       )}
 
       {/* Recent Content Table */}
-      <div className="rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E7EB]">
-          <h3 className="text-[15px] font-bold text-[#111827]">Recent Content</h3>
+      <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200">
+          <h3 className="text-[15px] font-bold text-zinc-900">Recent Content</h3>
           <div className="flex items-center gap-2">
             <span className="text-[12px] text-zinc-500 font-medium">Sort by:</span>
             <button
               onClick={() => setSortKey('date')}
-              className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${sortKey === 'date' ? 'bg-[#EFF6FF] text-[#2D66C3]' : 'text-zinc-500 hover:text-zinc-700'}`}
+              className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${sortKey === 'date' ? 'bg-[#EFF6FF] text-[var(--color-brand-700)]' : 'text-zinc-500 hover:text-zinc-700'}`}
             >
               Date
             </button>
             <button
               onClick={() => setSortKey('likes')}
-              className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${sortKey === 'likes' ? 'bg-[#EFF6FF] text-[#2D66C3]' : 'text-zinc-500 hover:text-zinc-700'}`}
+              className={`px-3 py-1 rounded-full text-[12px] font-semibold transition-colors ${sortKey === 'likes' ? 'bg-[#EFF6FF] text-[var(--color-brand-700)]' : 'text-zinc-500 hover:text-zinc-700'}`}
             >
               Likes
             </button>
@@ -191,8 +191,8 @@ export default function CompetitorDetailPage({ params }: { params: Promise<{ id:
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-zinc-500 whitespace-nowrap">{new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                    <td className="px-5 py-3.5 font-semibold text-[#111827]">{post.likes.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 font-semibold text-[#111827]">{post.comments.toLocaleString()}</td>
+                    <td className="px-5 py-3.5 font-semibold text-zinc-900">{post.likes.toLocaleString()}</td>
+                    <td className="px-5 py-3.5 font-semibold text-zinc-900">{post.comments.toLocaleString()}</td>
                     <td className="px-5 py-3.5">
                       <span className={`font-bold ${post.engagementRate >= 4 ? 'text-emerald-600' : post.engagementRate >= 2.5 ? 'text-yellow-600' : 'text-red-500'}`}>
                         {post.engagementRate}%

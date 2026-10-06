@@ -9,6 +9,8 @@ import {
   Check, Globe
 } from 'lucide-react';
 import { XIcon } from '@/components/dashboard/social-brand-icons';
+import { EmptyState, PageHero } from '@/components/dashboard/page-hero';
+import { AppSelect } from '@/components/ui/app-select';
 
 // Rename Lucide's X (close icon) to XClose to avoid collision with XIcon
 import { X as XClose } from 'lucide-react';
@@ -170,7 +172,7 @@ function AccountSelector({
       <button
         id="auto-reply-account-selector"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3.5 py-2 shadow-sm hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all cursor-pointer min-w-[220px]"
+        className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-xl px-3.5 py-2 shadow-sm hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all cursor-pointer min-w-[220px]"
       >
         {/* Platform icon */}
         <div className={`flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${platformGradient(selected?.platform || 'instagram')} shadow-sm`}>
@@ -218,7 +220,7 @@ function AccountSelector({
                         onClick={() => { onSelect(conn.id); setOpen(false); }}
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-purple-50 border border-purple-100'
+                            ? 'bg-brand-50 border border-brand-100'
                             : 'hover:bg-gray-50'
                         }`}
                       >
@@ -242,7 +244,7 @@ function AccountSelector({
                         </div>
 
                         {isSelected && (
-                          <Check className="h-4 w-4 text-purple-600 shrink-0" />
+                          <Check className="h-4 w-4 text-brand-600 shrink-0" />
                         )}
                       </button>
                     );
@@ -299,80 +301,76 @@ export default function AutoReplyPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-500 border-t-transparent" />
+      <div className="max-w-6xl mx-auto">
+        <PageHero title="Auto Reply" breadcrumb={['Auto Reply']} icon={Bot} description="Automatically reply to comments on Instagram & X." />
+        <div className="ae-tile flex min-h-[300px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 shadow-lg">
-            <Bot className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Auto Reply</h1>
-            <p className="text-sm text-gray-500">Automatically reply to comments on Instagram &amp; X</p>
-          </div>
-        </div>
-
-        {/* Account Selector - Only for settings and logs */}
-        {activeTab !== 'templates' && connections.length > 0 && (
-          <AccountSelector
-            connections={connections}
-            selectedId={selectedConnection}
-            onSelect={setSelectedConnection}
-          />
-        )}
-      </div>
+    <div className="max-w-6xl mx-auto">
+      <PageHero
+        title="Auto Reply"
+        breadcrumb={['Auto Reply']}
+        icon={Bot}
+        description="Automatically reply to comments on Instagram & X, using templates you control."
+        stats={[{ label: 'Connected accounts', value: connections.length, icon: Bot }]}
+        actions={
+          activeTab !== 'templates' && connections.length > 0 ? (
+            <div className="rounded-xl bg-white p-1">
+              <AccountSelector
+                connections={connections}
+                selectedId={selectedConnection}
+                onSelect={setSelectedConnection}
+              />
+            </div>
+          ) : undefined
+        }
+        overlap={
+          connections.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="ae-section-label">Manage</p>
+              {/* Moneyview-style segmented toggle */}
+              <div className="flex rounded-full bg-brand-800 p-1">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      id={`auto-reply-tab-${tab.key}`}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
+                        isActive ? 'bg-white text-brand-900 shadow-sm' : 'text-white/75 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
 
       {connections.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
-          <div className="flex justify-center mb-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100">
-              <Bot className="h-8 w-8 text-purple-500" />
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Supported Accounts Connected</h3>
-          <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
-            Connect an Instagram Business or X (Twitter) account in Settings to get started with auto-replies.
-          </p>
-          <a
-            href="/dashboard/settings"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium shadow-md hover:shadow-lg transition-all"
-          >
-            Go to Settings
-          </a>
-        </div>
+        <EmptyState
+          icon={Bot}
+          title="No supported accounts connected"
+          description="Connect an Instagram Business or X (Twitter) account in Settings to get started with auto-replies."
+          action={
+            <a href="/dashboard/settings" className="inline-flex h-11 items-center gap-2 rounded-xl bg-gold-400 px-6 text-sm font-bold text-brand-950 shadow-sm transition-colors hover:bg-gold-300">
+              Go to Settings
+            </a>
+          }
+        />
       ) : (
-        <>
-          {/* Tabs */}
-          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm w-fit">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  id={`auto-reply-tab-${tab.key}`}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tab Content */}
+        <div className="space-y-6">
           {activeTab === 'templates' && (
             <TemplatesTab connections={connections} />
           )}
@@ -382,7 +380,7 @@ export default function AutoReplyPage() {
           {activeTab === 'logs' && (
             <LogsTab connectionId={selectedConnection} />
           )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -427,8 +425,8 @@ function TemplatesTab({ connections }: { connections: SocialConnection[] }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-8 flex justify-center shadow-sm">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent" />
+      <div className="ae-tile p-8 flex justify-center ">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand-500 border-t-transparent" />
       </div>
     );
   }
@@ -445,7 +443,7 @@ function TemplatesTab({ connections }: { connections: SocialConnection[] }) {
         <button
           id="auto-reply-create-template-btn"
           onClick={() => { setEditTemplate(null); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-800 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           Create Template
@@ -453,7 +451,7 @@ function TemplatesTab({ connections }: { connections: SocialConnection[] }) {
       </div>
 
       {templates.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+        <div className="ae-tile ae-contour border-dashed p-10 text-center">
           <MessageSquareReply className="h-10 w-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-gray-700 mb-1">No templates yet</h3>
           <p className="text-xs text-gray-400 mb-4">Create your first reply template to get started</p>
@@ -482,7 +480,7 @@ function TemplatesTab({ connections }: { connections: SocialConnection[] }) {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-zinc-900">{t.name}</span>
                         {t.is_fallback && <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] font-bold uppercase rounded border border-amber-200">Fallback</span>}
-                        {t.ai_enabled && <span className="px-1.5 py-0.5 bg-purple-50 text-purple-700 text-[9px] font-bold uppercase rounded border border-purple-200 flex items-center gap-0.5"><Sparkles className="h-2.5 w-2.5"/> AI</span>}
+                        {t.ai_enabled && <span className="px-1.5 py-0.5 bg-brand-50 text-brand-700 text-[9px] font-bold uppercase rounded border border-brand-200 flex items-center gap-0.5"><Sparkles className="h-2.5 w-2.5"/> AI</span>}
                       </div>
                       {/* keywords */}
                       {t.keywords && t.keywords.length > 0 && (
@@ -513,7 +511,7 @@ function TemplatesTab({ connections }: { connections: SocialConnection[] }) {
                   </td>
                   <td className="px-6 py-4 align-top max-w-[200px]">
                       {t.reply_text && <p className="text-xs text-zinc-500 line-clamp-2">💬 {t.reply_text}</p>}
-                      {t.ai_guidelines && <p className="text-[11px] text-purple-500 mt-1 line-clamp-1">🧠 {t.ai_guidelines}</p>}
+                      {t.ai_guidelines && <p className="text-[11px] text-brand-500 mt-1 line-clamp-1">🧠 {t.ai_guidelines}</p>}
                   </td>
                   <td className="px-6 py-4 align-top text-right" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
@@ -683,7 +681,7 @@ function TemplateModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Positive Feedback Reply"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
             />
           </div>
 
@@ -703,7 +701,7 @@ function TemplateModal({
                   if (e.key === 'Enter') { e.preventDefault(); addKeyword(); }
                 }}
                 placeholder="Type keyword and press Enter"
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
                 disabled={isFallback}
               />
               <button
@@ -719,7 +717,7 @@ function TemplateModal({
                 {keywords.map((kw) => (
                   <span
                     key={kw}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-lg border border-purple-100"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 text-brand-700 text-xs font-medium rounded-lg border border-brand-100"
                   >
                     {kw}
                     <button onClick={() => removeKeyword(kw)} className="hover:text-red-500 transition-colors cursor-pointer">
@@ -742,22 +740,22 @@ function TemplateModal({
               onChange={(e) => setReplyText(e.target.value)}
               rows={3}
               placeholder={aiEnabled ? "e.g. Thank you! We're glad you liked it 🙌" : "The exact reply that will be posted"}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none"
             />
           </div>
 
           {/* AI Toggle */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+          <div className="bg-gradient-to-r from-brand-50 to-gold-50 rounded-xl p-4 border border-brand-100">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-600" />
+                <Sparkles className="h-4 w-4 text-brand-600" />
                 <span className="text-sm font-semibold text-gray-900">AI-Powered Replies</span>
               </div>
               <button
                 id="template-ai-toggle"
                 onClick={() => setAiEnabled(!aiEnabled)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                  aiEnabled ? 'bg-purple-600' : 'bg-gray-300'
+                  aiEnabled ? 'bg-brand-600' : 'bg-gray-300'
                 }`}
               >
                 <span
@@ -776,7 +774,7 @@ function TemplateModal({
                   onChange={(e) => setAiGuidelines(e.target.value)}
                   rows={2}
                   placeholder="e.g. Keep it casual, mention our new product launch, always invite them to DM us"
-                  className="w-full px-3 py-2 rounded-lg border border-purple-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all resize-none"
+                  className="w-full px-3 py-2 rounded-lg border border-brand-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all resize-none"
                 />
               </div>
             )}
@@ -793,7 +791,7 @@ function TemplateModal({
                 max={100}
                 value={priority}
                 onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
               />
               <p className="text-[11px] text-gray-400 mt-1">Higher = checked first</p>
             </div>
@@ -831,7 +829,7 @@ function TemplateModal({
             id="template-save-btn"
             onClick={handleSave}
             disabled={saving || !name.trim()}
-            className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+            className="px-5 py-2 rounded-xl bg-brand-800 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
           >
             {saving ? 'Saving...' : template ? 'Update Template' : 'Create Template'}
           </button>
@@ -938,8 +936,8 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-8 flex justify-center shadow-sm">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent" />
+      <div className="ae-tile p-8 flex justify-center ">
+        <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand-500 border-t-transparent" />
       </div>
     );
   }
@@ -951,7 +949,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Replies Today', value: stats.repliesToday, icon: MessageCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Total Replies', value: stats.totalReplies, icon: BarChart3, color: 'text-purple-600', bg: 'bg-purple-50' },
+            { label: 'Total Replies', value: stats.totalReplies, icon: BarChart3, color: 'text-brand-600', bg: 'bg-brand-50' },
             { label: 'Skipped', value: stats.totalSkipped, icon: Ban, color: 'text-gray-600', bg: 'bg-gray-50' },
             { label: 'Errors Today', value: stats.errorsToday, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
           ].map((stat) => {
@@ -972,12 +970,12 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
       )}
 
       {/* Account Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="ae-tile  overflow-hidden">
         {/* Account Header */}
         <div className={`px-6 py-4 border-b border-gray-100 ${
           conn?.platform === 'x' || conn?.platform === 'twitter'
             ? 'bg-gradient-to-r from-zinc-50 via-zinc-50 to-gray-50'
-            : 'bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50'
+            : 'bg-gradient-to-r from-brand-50 via-gold-50 to-orange-50'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1030,7 +1028,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
               </div>
               <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-brand-500 to-gold-500 transition-all duration-500"
                   style={{ width: `${Math.min((stats.repliesToday / maxReplies) * 100, 100)}%` }}
                 />
               </div>
@@ -1047,7 +1045,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
                   onClick={() => setPollingInterval(val)}
                   className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                     pollingInterval === val
-                      ? 'bg-purple-600 text-white shadow-md'
+                      ? 'bg-brand-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -1067,7 +1065,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
               max={100}
               value={maxReplies}
               onChange={(e) => setMaxReplies(parseInt(e.target.value))}
-              className="w-full accent-purple-600"
+              className="w-full accent-brand-600"
             />
             <p className="text-xs text-gray-400 text-center mt-1 font-mono">{maxReplies} replies/day</p>
           </div>
@@ -1083,7 +1081,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
                 max={30}
                 value={minDelay}
                 onChange={(e) => setMinDelay(parseInt(e.target.value) || 2)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
               />
             </div>
             <div>
@@ -1095,7 +1093,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
                 max={60}
                 value={maxDelay}
                 onChange={(e) => setMaxDelay(parseInt(e.target.value) || 12)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
               />
             </div>
           </div>
@@ -1109,7 +1107,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
             <button
               onClick={() => setMonitorAll(!monitorAll)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                monitorAll ? 'bg-purple-600' : 'bg-gray-300'
+                monitorAll ? 'bg-brand-600' : 'bg-gray-300'
               }`}
             >
               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
@@ -1170,7 +1168,7 @@ function SettingsTab({ connectionId, connections }: { connectionId: string; conn
             id="auto-reply-save-settings-btn"
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.01] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 rounded-xl bg-brand-800 text-white text-sm font-medium shadow-md hover:shadow-lg hover:scale-[1.01] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : 'Save Settings'}
           </button>
@@ -1226,27 +1224,29 @@ function LogsTab({ connectionId }: { connectionId: string }) {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center gap-2">
-        <select
+        <AppSelect
           id="logs-action-filter"
+          aria-label="Filter by action"
           value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
-          className="appearance-none bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-medium text-gray-700 pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400 cursor-pointer"
-        >
-          <option value="">All Actions</option>
-          <option value="reply_sent">Replied</option>
-          <option value="comment_skipped">Skipped</option>
-          <option value="error">Errors</option>
-          <option value="rate_limited">Rate Limited</option>
-          <option value="polling_run">Polling Runs</option>
-        </select>
+          onChange={setActionFilter}
+          className="w-auto min-w-[170px]"
+          options={[
+            { value: '', label: 'All Actions' },
+            { value: 'reply_sent', label: 'Replied' },
+            { value: 'comment_skipped', label: 'Skipped' },
+            { value: 'error', label: 'Errors' },
+            { value: 'rate_limited', label: 'Rate Limited' },
+            { value: 'polling_run', label: 'Polling Runs' },
+          ]}
+        />
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 flex justify-center shadow-sm">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-500 border-t-transparent" />
+        <div className="ae-tile p-8 flex justify-center ">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-brand-500 border-t-transparent" />
         </div>
       ) : logs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+        <div className="ae-tile ae-contour border-dashed p-10 text-center">
           <Activity className="h-10 w-10 text-gray-300 mx-auto mb-3" />
           <h3 className="text-sm font-semibold text-gray-700 mb-1">No activity yet</h3>
           <p className="text-xs text-gray-400">Logs will appear here once auto-reply starts running</p>
@@ -1277,7 +1277,7 @@ function LogsTab({ connectionId }: { connectionId: string }) {
                     <div className="flex flex-col gap-1.5 items-start">
                       {actionBadge(log.action)}
                       {log.ai_used && (
-                        <span className="flex items-center gap-0.5 text-[10px] font-bold text-purple-600">
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold text-brand-600">
                           <Sparkles className="h-3 w-3" /> AI Used
                         </span>
                       )}
@@ -1288,7 +1288,7 @@ function LogsTab({ connectionId }: { connectionId: string }) {
                       {log.template_name && <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">Template: {log.template_name}</p>}
                       {log.comment_text && (
                         <p className="text-[13px] text-zinc-700 leading-snug">
-                          <span className="font-semibold text-purple-600/70 mr-1">@{log.metadata?.commenter_username || 'user'}:</span> 
+                          <span className="font-semibold text-brand-600/70 mr-1">@{log.metadata?.commenter_username || 'user'}:</span> 
                           {log.comment_text}
                         </p>
                       )}
@@ -1334,7 +1334,7 @@ function LogModal({ log, onClose }: { log: LogEntry; onClose: () => void }) {
           {log.metadata?.commenter_username && (
              <div>
                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">Commenter</p>
-               <p className="text-sm font-medium text-purple-600 bg-purple-50 px-2.5 py-1 inline-flex rounded-lg border border-purple-100">@{log.metadata.commenter_username}</p>
+               <p className="text-sm font-medium text-brand-600 bg-brand-50 px-2.5 py-1 inline-flex rounded-lg border border-brand-100">@{log.metadata.commenter_username}</p>
              </div>
           )}
           {log.comment_text && (
@@ -1364,7 +1364,7 @@ function LogModal({ log, onClose }: { log: LogEntry; onClose: () => void }) {
                {log.ai_used && (
                  <div className="flex flex-col items-center">
                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 text-center">AI Generation</p>
-                   <span className="flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-md border border-purple-200">
+                   <span className="flex items-center gap-1 bg-brand-100 text-brand-700 text-xs font-bold px-2 py-0.5 rounded-md border border-brand-200">
                      <Sparkles className="h-3 w-3" /> Yes
                    </span>
                  </div>

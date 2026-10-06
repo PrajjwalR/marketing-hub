@@ -3,6 +3,8 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
+    Clapperboard,
+    FolderPlus,
     Loader2, Video as VideoIcon, Calendar, Film, PlayCircle, Clock, Download, 
     MoreVertical, Trash2, ExternalLink, Copy, Folder, File, Upload, Plus, 
     ChevronRight, Image as ImageIcon, Music, FileText, Search, LayoutGrid, 
@@ -13,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageHero, heroButtonClass } from '@/components/dashboard/page-hero';
 import {
     Dialog,
     DialogContent,
@@ -265,73 +268,33 @@ function MediaLibrary() {
     };
 
     return (
-        <div className="flex h-[85vh] -mx-4 -mt-4 border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm font-sans tracking-snug">
-            {/* Sidebar (Navigation Pane) */}
-            <div className="w-64 bg-[#f3f3f3] border-r border-zinc-200 flex flex-col shrink-0">
-                <div className="p-4 py-3 border-b border-zinc-200">
-                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Navigation</span>
-                </div>
-                <div className="flex-1 overflow-y-auto py-2">
-                    <div className="space-y-0.5 px-2">
-                        <button 
-                            onClick={() => goUp(-1)}
-                            className={cn(
-                                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                                currentFolder === null ? "bg-indigo-100 text-indigo-900 font-medium" : "text-zinc-700 hover:bg-black/5"
-                            )}
-                        >
-                            <Home className={cn("w-4 h-4", currentFolder === null ? "text-indigo-600" : "text-zinc-500")} />
-                            Home
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-700 hover:bg-black/5 transition-colors">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            Quick Access
-                        </button>
-                        <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-zinc-700 hover:bg-black/5 transition-colors">
-                            <Clock3 className="w-4 h-4 text-zinc-400" />
-                            Recent
-                        </button>
-                    </div>
-
-                    <div className="mt-6">
-                        <div className="px-5 mb-1 flex items-center gap-2">
-                            <ChevronRight className="w-3 h-3 text-zinc-400" />
-                            <span className="text-xs font-semibold text-zinc-500">This PC / Workspace</span>
-                        </div>
-                        <div className="space-y-0.5 px-2">
-                            <button className="w-full pl-8 pr-3 py-1.5 flex items-center gap-2 rounded-md text-sm text-zinc-700 hover:bg-black/5">
-                                <HardDrive className="w-4 h-4 text-zinc-400" />
-                                Cloud Drive (C:)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div className="p-4 border-t border-zinc-200 text-xs text-zinc-500 flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Storage: 2.1 GB used
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-white">
-                
-                {/* Ribbon / Toolbar */}
-                <div className="bg-[#f9f9f9] border-b border-zinc-200 flex items-center justify-between p-2 px-4 shrink-0">
-                    <div className="flex items-center gap-1">
+        <div className="mx-auto w-full max-w-7xl font-sans">
+            <PageHero
+                title="Gallery"
+                breadcrumb={['Content Creation', 'Gallery']}
+                icon={Clapperboard}
+                description="Every video, image and file you have created or uploaded, organised in folders."
+                stats={[
+                    { label: 'Folders', value: folders.length, icon: Folder },
+                    { label: 'Videos', value: videos.length, icon: VideoIcon },
+                    { label: 'Files', value: media.length, icon: ImageIcon },
+                ]}
+                actions={
+                    <>
                         <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
                             <DialogTrigger asChild>
-                                <Button variant="ghost" className="h-9 px-3 gap-2 text-sm text-zinc-700 hover:bg-black/5">
-                                    <Folder className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+                                <button className={heroButtonClass('ghost')}>
+                                    <FolderPlus className="h-4 w-4" />
                                     New folder
-                                </Button>
+                                </button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
                                 <DialogHeader>
                                     <DialogTitle>Create New Folder</DialogTitle>
                                 </DialogHeader>
                                 <div className="py-4">
-                                    <Input 
-                                        placeholder="Folder name" 
+                                    <Input
+                                        placeholder="Folder name"
                                         value={newFolderName}
                                         onChange={(e) => setNewFolderName(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
@@ -345,76 +308,61 @@ function MediaLibrary() {
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
-
-                        <div className="w-px h-5 bg-zinc-300 mx-1"></div>
-
                         <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e.target.files)} className="hidden" multiple />
-                        <Button 
-                            variant="ghost" 
-                            className="h-9 px-3 gap-2 text-sm text-zinc-700 hover:bg-black/5"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                        >
-                            {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-indigo-600" /> : <Upload className="w-4 h-4 text-blue-500" />}
+                        <button className={heroButtonClass('gold')} onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                            {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                             Upload
-                        </Button>
-                    </div>
+                        </button>
+                    </>
+                }
+            />
 
-                    <div className="flex items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn("h-8 w-8", viewMode === 'list' && "bg-black/5")}
-                            onClick={() => setViewMode('list')}
-                            title="List View"
-                        >
-                            <List className="w-4 h-4 text-zinc-600" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn("h-8 w-8", viewMode === 'grid' && "bg-black/5")}
-                            onClick={() => setViewMode('grid')}
-                            title="Grid View"
-                        >
-                            <LayoutGrid className="w-4 h-4 text-zinc-600" />
-                        </Button>
-                    </div>
-                </div>
+            <div className="ae-tile flex h-[72vh] min-h-[480px] flex-col">
+                {/* Toolbar: path, search, view toggle */}
+                <div className="flex flex-wrap items-center gap-2.5 border-b border-zinc-100 p-3 sm:p-4">
+                    <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" onClick={goUpOneLevel} disabled={breadcrumbs.length === 0} title="Up one level">
+                        <ArrowUp className="h-4 w-4" />
+                    </Button>
 
-                {/* Address Bar & Search */}
-                <div className="p-2 border-b border-zinc-200 flex items-center gap-3 shrink-0">
-                    <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-sm text-zinc-500 hover:bg-black/5 disabled:opacity-50" onClick={goUpOneLevel} disabled={breadcrumbs.length === 0}>
-                            <ArrowUp className="w-4 h-4" />
-                        </Button>
-                    </div>
-
-                    {/* Path Bar */}
-                    <div className="flex-1 flex items-center gap-1 px-3 py-1.5 border border-zinc-300 rounded-md bg-white shadow-inner focus-within:ring-1 focus-within:ring-indigo-500 focus-within:border-indigo-500 text-sm overflow-x-auto no-scrollbar">
-                        <Folder className="w-4 h-4 text-amber-500 fill-amber-500/20 shrink-0" />
-                        <button onClick={() => goUp(-1)} className="hover:underline flex items-center gap-1 shrink-0 ml-1">
+                    <div className="no-scrollbar flex h-10 min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl bg-zinc-50 px-3 text-sm ring-1 ring-zinc-200">
+                        <Folder className="h-4 w-4 shrink-0 fill-gold-200 text-gold-600" />
+                        <button onClick={() => goUp(-1)} className={cn('ml-1 shrink-0 font-semibold hover:text-brand-700', currentFolder === null ? 'text-brand-800' : 'text-zinc-600')}>
                             Home
                         </button>
                         {breadcrumbs.map((crumb, idx) => (
-                            <div key={crumb.id} className="flex items-center shrink-0">
-                                <ChevronRight className="w-3.5 h-3.5 text-zinc-400 mx-0.5" />
-                                <button onClick={() => goUp(idx)} className="hover:underline">
+                            <div key={crumb.id} className="flex shrink-0 items-center">
+                                <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-zinc-400" />
+                                <button onClick={() => goUp(idx)} className={cn('font-semibold hover:text-brand-700', idx === breadcrumbs.length - 1 ? 'text-brand-800' : 'text-zinc-600')}>
                                     {crumb.name}
                                 </button>
                             </div>
                         ))}
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="w-64 relative">
-                        <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                        <Input 
-                            placeholder={`Search ${currentFolder ? currentFolder.name : 'Home'}`} 
-                            className="h-8 pl-8 rounded-md border-zinc-300 text-sm focus-visible:ring-1 focus-visible:ring-indigo-500"
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                        <Input
+                            placeholder={`Search ${currentFolder ? currentFolder.name : 'Home'}`}
+                            className="h-10 rounded-xl pl-9"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                    </div>
+
+                    <div className="flex rounded-full bg-brand-800 p-1">
+                        {([['grid', LayoutGrid], ['list', List]] as const).map(([mode, Icon]) => (
+                            <button
+                                key={mode}
+                                onClick={() => setViewMode(mode)}
+                                title={mode === 'grid' ? 'Grid view' : 'List view'}
+                                className={cn(
+                                    'flex h-8 w-9 items-center justify-center rounded-full transition-all',
+                                    viewMode === mode ? 'bg-white text-brand-900 shadow-sm' : 'text-white/75 hover:text-white'
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -434,9 +382,9 @@ function MediaLibrary() {
                             <p className="text-zinc-500 text-sm">Working on it...</p>
                         </div>
                     ) : (filteredFolders.length === 0 && filteredMedia.length === 0 && filteredVideos.length === 0) ? (
-                        <div className="flex h-full flex-col items-center justify-center text-center opacity-60">
-                            <Folder className="h-16 w-16 text-zinc-300 fill-zinc-200 mb-3" />
-                            <p className="text-zinc-600 font-medium">This folder is empty.</p>
+                        <div className="flex h-full flex-col items-center justify-center text-center">
+                            <span className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gold-100"><Folder className="h-9 w-9 fill-gold-200 text-gold-600" /></span>
+                            <p className="font-display text-xl font-semibold text-zinc-900">This folder is empty</p><p className="mt-1 text-sm text-zinc-500">Upload files or drop them here.</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -445,13 +393,13 @@ function MediaLibrary() {
                                 <>
                                     {filteredFolders.length > 0 && (
                                         <div>
-                                            {searchQuery === '' && <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Folders</h3>}
+                                            {searchQuery === '' && <h3 className="ae-section-label mb-3">Folders</h3>}
                                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                                                 {filteredFolders.map(folder => (
                                                     <div 
                                                         key={folder.id} 
                                                         onClick={() => goToFolder(folder)}
-                                                        className="group flex flex-col items-center p-3 rounded-md hover:bg-zinc-100 border border-transparent hover:border-zinc-200 transition-colors cursor-pointer text-center relative"
+                                                        className="group relative flex cursor-pointer flex-col items-center rounded-2xl border border-zinc-200/80 bg-white p-3 text-center transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
                                                     >
                                                         <Folder className="w-16 h-16 text-amber-400 fill-amber-400/30 mb-2" strokeWidth={1.5} />
                                                         <span className="text-sm text-zinc-800 font-medium truncate w-full px-1">{folder.name}</span>
@@ -478,7 +426,7 @@ function MediaLibrary() {
 
                                     {filteredMedia.length > 0 && (
                                         <div className={cn(filteredFolders.length > 0 && "mt-6")}>
-                                            {searchQuery === '' && <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Files</h3>}
+                                            {searchQuery === '' && <h3 className="ae-section-label mb-3">Files</h3>}
                                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                                                 {filteredMedia.map(asset => (
                                                     <div key={asset.id} className="group border border-zinc-200 rounded-md overflow-hidden bg-white hover:border-indigo-300 hover:shadow-sm transition-all relative cursor-pointer" onClick={() => setPreviewMedia(asset)}>
@@ -539,7 +487,7 @@ function MediaLibrary() {
                                     {/* Legacy Generated Videos View (Tiles) */}
                                     {filteredVideos.length > 0 && currentFolder === null && (
                                         <div className={cn((filteredFolders.length > 0 || filteredMedia.length > 0) && "mt-8")}>
-                                            {searchQuery === '' && <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Generated Videos</h3>}
+                                            {searchQuery === '' && <h3 className="ae-section-label mb-3">Generated Videos</h3>}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                                 {filteredVideos.map((video) => (
                                                     <VideoExplorerItem key={video.id} video={video} onDelete={handleDeleteVideo} />
@@ -631,7 +579,7 @@ function MediaLibrary() {
                 </div>
                 
                 {/* Status Bar */}
-                <div className="bg-[#f0f0f0] border-t border-zinc-200 p-1 px-4 flex items-center justify-between text-[11px] text-zinc-500 shrink-0">
+                <div className="flex shrink-0 items-center justify-between rounded-b-2xl border-t border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-medium text-zinc-500">
                     <div className="flex gap-4">
                         <span>{filteredFolders.length + filteredMedia.length + filteredVideos.length} items</span>
                         {isUploading && <span className="flex items-center gap-1 text-indigo-600"><Loader2 className="w-3 h-3 animate-spin" /> Uploading...</span>}
@@ -685,7 +633,7 @@ function VideoExplorerItem({ video, onDelete }: { video: any; onDelete: (id: str
     const isReady = video.status === 'ready';
 
     return (
-        <div className="group border border-zinc-200 rounded-md overflow-hidden bg-white hover:border-indigo-300 hover:shadow-sm transition-all">
+        <div className="ae-tile ae-tile-interactive group">
             <div className="aspect-video relative bg-zinc-100">
                  {/* eslint-disable-next-line @next/next/no-img-element */}
                  <img src={thumbnail} alt="thumb" className="h-full w-full object-cover opacity-80" />

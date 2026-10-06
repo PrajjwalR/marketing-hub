@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Rocket, FileText, Palette, Megaphone, ShoppingBag, Sparkles } from 'lucide-react';
+import { ArrowRight, Calendar, Rocket, FileText, Palette, Megaphone, ShoppingBag, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface StrategyTemplatePrefill {
@@ -159,38 +159,37 @@ export const STRATEGY_TEMPLATES: StrategyTemplate[] = [
 interface StrategyTemplateCardProps {
     template: StrategyTemplate;
     onClick: () => void;
+    className?: string;
 }
 
-export function StrategyTemplateCard({ template, onClick }: StrategyTemplateCardProps) {
+export function StrategyTemplateCard({ template, onClick, className }: StrategyTemplateCardProps) {
     const Icon = template.icon;
-    const { badge, gradient, inspiredBy } = getCardMeta(template);
+    const { badge, inspiredBy } = getCardMeta(template);
 
     return (
         <button
             type="button"
             onClick={onClick}
             className={cn(
-                'group flex flex-col items-start text-left rounded-2xl border min-w-[180px] sm:min-w-[200px]',
-                'border-zinc-200 bg-white shadow-sm transition-all duration-300 overflow-hidden',
-                'hover:shadow-lg hover:-translate-y-0.5 hover:border-zinc-300'
+                'ae-tile ae-tile-interactive ae-contour group flex min-h-[176px] w-[200px] shrink-0 flex-col items-start p-4 text-left sm:w-[214px]',
+                className
             )}
         >
-            <div className={cn('w-full p-4 border-b border-zinc-100', gradient)}>
-                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold bg-white/90 text-zinc-700 border border-zinc-200">
-                    {badge}
+            <div className="relative flex w-full items-start justify-between gap-2">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#fff7dc_0%,#f9c02a_45%,#c98009_100%)] shadow-[inset_0_-3px_0_rgba(109,60,18,0.35),inset_0_2px_0_rgba(255,255,255,0.6)]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-800 text-gold-200">
+                        <Icon className="h-4 w-4" />
+                    </span>
                 </span>
-                <div className="mt-3 flex items-center gap-2">
-                    <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg shadow-sm bg-white', template.iconBg)}>
-                        <Icon className="h-4.5 w-4.5" />
-                    </div>
-                    <h3 className="text-xl font-semibold tracking-tight text-zinc-900 leading-tight">{template.title}</h3>
-                </div>
+                <span className="rounded-md bg-gold-100 px-2 py-0.5 text-[10px] font-bold text-gold-800">{badge}</span>
             </div>
-            <div className="w-full p-4">
-                <p className="text-sm text-zinc-600 leading-relaxed">{template.subtitle}</p>
-                <p className="text-xs text-zinc-500 mt-2">
-                    Inspired by: <span className="font-semibold text-zinc-700">{inspiredBy}</span>
-                </p>
+            <h3 className="relative mt-auto pt-4 text-base font-extrabold leading-snug text-zinc-900">{template.title}</h3>
+            <p className="relative mt-0.5 text-[13px] text-zinc-500">{template.subtitle}</p>
+            <div className="relative mt-3 flex w-full items-center justify-between border-t border-dashed border-zinc-200 pt-2.5">
+                <span className="truncate text-[11px] text-zinc-500">
+                    by <span className="font-semibold text-zinc-700">{inspiredBy}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-brand-600 transition-transform group-hover:translate-x-1" />
             </div>
         </button>
     );

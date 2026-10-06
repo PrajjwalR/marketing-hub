@@ -18,8 +18,8 @@ export function Stepper({ currentStep, totalSteps }: StepperProps) {
                     <div
                         key={i}
                         className={cn(
-                            "h-1.5 flex-1 rounded-full transition-all duration-500 ease-in-out",
-                            isActive ? "bg-indigo-600" : "bg-zinc-200"
+                            "h-2 flex-1 rounded-full transition-all duration-500 ease-in-out",
+                            isActive ? "bg-gradient-to-r from-gold-400 to-gold-500" : "bg-zinc-200"
                         )}
                         aria-hidden="true"
                     />

@@ -2,7 +2,8 @@
 
 import { academyData } from "@/lib/academy";
 import Link from "next/link";
-import { BookOpen, ListTree, PlayCircle, Gem } from "lucide-react";
+import { BookOpen, GraduationCap, ListTree, PlayCircle, Gem } from "lucide-react";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 import { useState, useEffect } from "react";
 import { useAuth } from '@/lib/auth-context';
 import type { User } from 'firebase/auth';
@@ -86,131 +87,99 @@ export default function AcademyPage() {
   );
 
   return (
-    <div className="w-full bg-[#F4F5F7] min-h-screen pb-10">
-      <header className="font-sans sticky top-0 z-30 -mx-3 mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/90 bg-[#F4F5F7] px-3 py-3.5 sm:-mx-4 sm:px-4">
-          <div id="dashboard-welcome" className="flex min-w-0 items-center gap-3">
-              <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-tl-lg rounded-br-lg rounded-tr-none rounded-bl-none bg-[#D1FAE5] text-sm font-bold text-[#047857]"
-                  title={displayName}
-              >
-                  {getInitialsFromDisplayName(displayName)}
-              </div>
-              <div className="min-w-0">
-                  <h1 className="truncate text-lg font-bold text-[#111827]">
-                      Welcome, {displayName}!
-                  </h1>
-              </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-              <Button
-                  variant="outline"
-                  className="h-9 gap-1.5 rounded-[6px] border-transparent bg-[#6F5ED3] px-4 font-semibold text-sm text-white shadow-sm hover:bg-[#7d6ed2] hover:text-white"
-              >
-                  <Gem className="h-3.5 w-3.5" />
-                  Trial more features
-              </Button>
-              <Button className="h-9 rounded-[6px] border-0 bg-[#205BC3] px-4 font-semibold text-sm text-white shadow-sm hover:bg-[#7098dd]  hover:text-white">
-                  Start my subscription
-              </Button>
-          </div>
-      </header>
-
-      <div className="w-full">
-        {/* Header Stats */}
-        <div className="mb-6 rounded-[5px] border border-[#E5E7EB] bg-white overflow-hidden">
-            <div className="h-2 w-full bg-[#205BC3]" />
-            <div className="p-6">
-                <h2 className="text-2xl font-extrabold text-[#111827]">
-                    Learn, grow & master marketing.
-                </h2>
-                <p className="text-base text-zinc-600 mt-1">
-                    Deep-dive courses on AI-powered marketing strategies, built for modern growth teams.
-                </p>
+    <div className="mx-auto w-full max-w-7xl pb-10 md:pt-6">
+      <PageHero
+        titleId="dashboard-welcome"
+        title="Learn, grow & master marketing."
+        breadcrumb={['Academy']}
+        icon={GraduationCap}
+        description={<>Welcome, {displayName}! Deep-dive courses on AI-powered marketing strategies, built for modern growth teams.</>}
+        stats={[
+          { label: 'Courses', value: academyData.length, icon: BookOpen },
+          { label: 'Lessons', value: totalLessons, icon: PlayCircle },
+        ]}
+        actions={
+          <>
+            <Link href="/dashboard/billing" className={heroButtonClass('ghost')}>
+              <Gem className="h-4 w-4" />
+              Trial more features
+            </Link>
+            <Link href="/dashboard/billing" className={heroButtonClass('gold')}>
+              Start my subscription
+            </Link>
+          </>
+        }
+        overlap={
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="ae-section-label">Filter by level</p>
+            <div className="flex flex-wrap rounded-full bg-brand-800 p-1">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setActiveFilter(f)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all ${
+                    activeFilter === f ? 'bg-white text-brand-900 shadow-sm' : 'text-white/75 hover:text-white'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
-        </div>
+          </div>
+        }
+      />
 
-        {/* Filter bar */}
-        <div className="mb-6 flex flex-wrap items-center gap-2">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-bold transition-all ${
-                activeFilter === f 
-                  ? "bg-[#205BC3] border-[#205BC3] text-white" 
-                  : "bg-white border-[#E5E7EB] text-zinc-600 hover:bg-zinc-50"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((course) => {
+          const levelStyle = LEVEL_STYLES[course.level ?? ""] ?? LEVEL_STYLES.Beginner;
+          const totalCourseLessons = course.modules.reduce((a, m) => a + m.lessons.length, 0);
+          const firstLesson = course.modules[0]?.lessons[0];
 
-        {/* Grid */}
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((course) => {
-            const levelStyle = LEVEL_STYLES[course.level ?? ""] ?? LEVEL_STYLES.Beginner;
-            const totalCourseLessons = course.modules.reduce((a, m) => a + m.lessons.length, 0);
-            const firstLesson = course.modules[0]?.lessons[0];
+          return (
+            <div key={course.id} className="ae-tile ae-tile-interactive flex flex-col">
+              {/* Thumbnail: green dome with gold coin, like the Mcoins screens */}
+              <div className="ae-hero ae-contour ae-contour-dark relative m-2 mb-0 flex h-40 items-center justify-center rounded-xl">
+                <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,#fff7dc_0%,#f9c02a_45%,#c98009_100%)] shadow-[inset_0_-4px_0_rgba(109,60,18,0.35),inset_0_3px_0_rgba(255,255,255,0.6),0_14px_30px_-12px_rgba(0,0,0,0.5)]">
+                  <GraduationCap className="h-7 w-7 text-brand-950" />
+                </span>
+                <span className={`absolute left-3 top-3 rounded-md border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${levelStyle.badge}`}>
+                  {levelStyle.label}
+                </span>
+              </div>
 
-            return (
-              <div
-                key={course.id}
-                className="flex flex-col overflow-hidden rounded-[5px] border border-[#E5E7EB] bg-white transition-all hover:border-[#D1D5DB] hover:shadow-sm"
-              >
-                {/* Thumbnail */}
-                <div className="relative h-40 w-full shrink-0 bg-zinc-100 flex items-center justify-center overflow-hidden border-b border-[#E5E7EB]">
-                  <span className="text-5xl opacity-40 select-none">🎓</span>
-                  <span className={`absolute left-3 top-3 rounded-[4px] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider border ${levelStyle.badge}`}>
-                    {levelStyle.label}
-                  </span>
+              <div className="flex flex-1 flex-col p-5">
+                <span className="ae-section-label mb-1 text-brand-700">{course.modules[0]?.title}</span>
+                <h2 className="mb-2 text-lg font-extrabold leading-tight text-zinc-900">{course.title}</h2>
+                <p className="flex-1 text-[13px] leading-snug text-zinc-500">{course.description}</p>
+
+                <div className="mt-4 flex items-center gap-4 border-t border-dashed border-zinc-200 pt-4">
+                  <div className="flex items-center gap-1.5 text-[12px] font-bold text-zinc-600">
+                    <BookOpen className="h-4 w-4 text-brand-600" />
+                    {totalCourseLessons} Lessons
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px] font-bold text-zinc-600">
+                    <ListTree className="h-4 w-4 text-brand-600" />
+                    {course.modules.length} Modules
+                  </div>
                 </div>
 
-                {/* Body */}
-                <div className="flex flex-1 flex-col p-5">
-                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#205BC3] mb-1">
-                    {course.modules[0]?.title}
-                  </span>
-                  <h2 className="text-lg font-extrabold text-[#111827] leading-tight mb-2">
-                    {course.title}
-                  </h2>
-                  <p className="flex-1 text-[13px] text-zinc-600 leading-snug">
-                    {course.description}
-                  </p>
-
-                  {/* Meta */}
-                  <div className="mt-4 flex items-center gap-4 border-t border-[#E5E7EB] pt-4">
-                    <div className="flex items-center gap-1.5 text-[12px] font-bold text-zinc-600">
-                      <BookOpen className="h-4 w-4 text-[#6B7280]" />
-                      {totalCourseLessons} Lessons
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[12px] font-bold text-zinc-600">
-                      <ListTree className="h-4 w-4 text-[#6B7280]" />
-                      {course.modules.length} Modules
-                    </div>
-                  </div>
-
-                  {/* CTA */}
-                  <div className="mt-4 flex items-center gap-3">
-                    {firstLesson && (
-                      <Link href={`/dashboard/academy/${course.id}/${firstLesson.id}`} className="flex-1">
-                        <button className="w-full flex items-center justify-center gap-2 rounded-[5px] bg-[#205BC3] px-4 py-2 text-white text-sm font-bold transition-all hover:bg-[#1a4b9c]">
-                          <PlayCircle className="h-4 w-4" />
-                          Start Course
-                        </button>
-                      </Link>
-                    )}
-                    <Link href={`/dashboard/academy/${course.id}`} className="flex-1">
-                      <button className="w-full rounded-[5px] border border-[#E5E7EB] px-4 py-2 text-sm font-bold text-zinc-700 transition-all hover:bg-zinc-50">
-                        Details
-                      </button>
+                <div className="mt-4 flex items-center gap-3">
+                  {firstLesson && (
+                    <Link href={`/dashboard/academy/${course.id}/${firstLesson.id}`} className="flex-1">
+                      <Button variant="gold" className="w-full">
+                        <PlayCircle className="h-4 w-4" />
+                        Start course
+                      </Button>
                     </Link>
-                  </div>
+                  )}
+                  <Link href={`/dashboard/academy/${course.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full">Details</Button>
+                  </Link>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

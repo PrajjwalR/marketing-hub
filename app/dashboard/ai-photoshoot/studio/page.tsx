@@ -141,8 +141,8 @@ export default function AiPhotoshootStudioPage() {
   }, [resetSession]);
 
   return (
-    <div className="relative min-h-screen bg-zinc-50">
-      <div className="ai-photoshoot-bg-ambient" />
+    <div className="relative min-h-screen">
+
       <Header showBack={screen === "chat"} onBack={handleBackToSelection} />
       <StudioHowItWorks
         phase={screen === "selection" ? "select-model" : "configure-generate"}

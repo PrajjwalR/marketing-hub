@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getAuth } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { Image as ImageIcon, Film, Loader2, Link2, X } from 'lucide-react';
+import { Image as ImageIcon, Film, Loader2, Link2, PenSquare, X } from 'lucide-react';
+import { PageHero } from '@/components/dashboard/page-hero';
 import { PostersWorkbench } from '@/components/posters/posters-workbench';
 import { cn } from '@/lib/utils';
 import {
@@ -236,59 +237,68 @@ function PostersPageInner() {
     };
 
     return (
-        <div className="space-y-3 w-full max-w-7xl mx-auto">
-            <div className="bg-white p-4 rounded-[10px] border border-zinc-200 shadow-sm">
-                <div className="space-y-2">
-                    <div className="space-y-0.5">
-                        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 leading-tight">
-                            Posters
-                        </h1>
-                        <p className="text-base leading-relaxed text-zinc-500 max-w-2xl">
-                            Describe what you want to generate. We’ll turn it into a powerful prompt and produce the final
-                            content.
-                        </p>
+        <div className="w-full max-w-7xl mx-auto">
+            <PageHero
+                titleId="posters-header"
+                title="Create Content"
+                breadcrumb={['Content Creation', 'Create Content']}
+                icon={PenSquare}
+                description="Describe what you want to generate. We'll turn it into a powerful prompt and produce the final content."
+                actions={
+                    <div id="posters-tabs" className="flex rounded-full bg-white/10 p-1 ring-1 ring-white/15">
+                        {([
+                            ['image', ImageIcon, 'Image'],
+                            ['video', Film, 'Video'],
+                        ] as const).map(([tab, Icon, label]) => (
+                            <button
+                                key={tab}
+                                type="button"
+                                onClick={() => setActiveTab(tab)}
+                                className={cn(
+                                    'flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold transition-all',
+                                    activeTab === tab ? 'bg-gold-400 text-brand-950 shadow-sm' : 'text-white/80 hover:text-white'
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                                {label}
+                            </button>
+                        ))}
                     </div>
-
-                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-3 space-y-3">
+                }
+                overlap={
+                    <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Link2 className="h-4 w-4 text-indigo-600 shrink-0" />
-                            <p className="text-sm font-semibold text-zinc-800">Link to a strategy post (optional)</p>
+                            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                                <Link2 className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-sm font-bold text-zinc-900">Link to a strategy post <span className="font-medium text-zinc-400">(optional)</span></p>
+                                <p className="text-xs text-zinc-500">
+                                    When linked, <strong className="font-semibold text-zinc-700">AI Help</strong> suggestions stay on brand for that campaign day.
+                                </p>
+                            </div>
                             {(strategyId || postId) && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 text-zinc-500 hover:text-zinc-900 ml-auto"
-                                    onClick={clearLink}
-                                >
-                                    <X className="h-4 w-4 mr-1" />
+                                <Button type="button" variant="ghost" size="sm" className="ml-auto h-8 text-zinc-500 hover:text-zinc-900" onClick={clearLink}>
+                                    <X className="mr-1 h-4 w-4" />
                                     Clear
                                 </Button>
                             )}
                         </div>
-                        <p className="text-xs text-zinc-500 leading-snug">
-                            When linked, <strong className="font-medium text-zinc-700">AI Help</strong> suggestions stay on
-                            brand for that campaign day. Open from the strategy board, or pick here if you came from the
-                            sidebar.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-zinc-600">Strategy</Label>
+                                <Label className="ae-section-label">Strategy</Label>
                                 {strategiesLoading ? (
-                                    <div className="flex items-center gap-2 h-10 text-sm text-zinc-500">
+                                    <div className="flex h-10 items-center gap-2 text-sm text-zinc-500">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         Loading strategies…
                                     </div>
                                 ) : strategies.length === 0 ? (
-                                    <p className="text-xs text-zinc-500 py-2">
+                                    <p className="py-2 text-xs text-zinc-500">
                                         No strategies yet. Create one in Strategy Planner, then return here.
                                     </p>
                                 ) : (
-                                    <Select
-                                        value={strategyId || '__none__'}
-                                        onValueChange={handleStrategyChange}
-                                    >
-                                        <SelectTrigger className="w-full bg-white border-zinc-200 h-10 text-left">
+                                    <Select value={strategyId || '__none__'} onValueChange={handleStrategyChange}>
+                                        <SelectTrigger className="h-10 w-full text-left">
                                             <SelectValue placeholder="Choose strategy" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -304,19 +314,19 @@ function PostersPageInner() {
                                 )}
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-zinc-600">Post (day)</Label>
+                                <Label className="ae-section-label">Post (day)</Label>
                                 {!strategyId ? (
-                                    <p className="text-xs text-zinc-500 py-2">Select a strategy first.</p>
+                                    <p className="py-2 text-xs text-zinc-500">Select a strategy first.</p>
                                 ) : postsLoading ? (
-                                    <div className="flex items-center gap-2 h-10 text-sm text-zinc-500">
+                                    <div className="flex h-10 items-center gap-2 text-sm text-zinc-500">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         Loading posts…
                                     </div>
                                 ) : postsForPicker.length === 0 ? (
-                                    <p className="text-xs text-amber-600 py-2">No posts in this strategy.</p>
+                                    <p className="py-2 text-xs text-gold-700">No posts in this strategy.</p>
                                 ) : (
                                     <Select value={postId || '__none__'} onValueChange={handlePostChange}>
-                                        <SelectTrigger className="w-full bg-white border-zinc-200 h-10 text-left">
+                                        <SelectTrigger className="h-10 w-full text-left">
                                             <SelectValue placeholder="Choose scheduled post" />
                                         </SelectTrigger>
                                         <SelectContent className="max-h-[280px]">
@@ -331,53 +341,30 @@ function PostersPageInner() {
                                 )}
                             </div>
                         </div>
+                        {strategyId && (
+                            <div className="flex min-h-6 items-center gap-2 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">
+                                {postId ? (
+                                    contextLoading ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Loading strategy context for AI Help…</span>
+                                        </>
+                                    ) : contextError ? (
+                                        <span className="text-gold-800">{contextError} AI Help will use generic prompts.</span>
+                                    ) : strategyContext ? (
+                                        <span>
+                                            Linked to <span className="font-bold">{strategyContext.strategyName}</span> — Day{' '}
+                                            {strategyContext.post.day} ({strategyContext.post.platform})
+                                        </span>
+                                    ) : null
+                                ) : (
+                                    <span>Pick a post to enable strategy-aware AI Help.</span>
+                                )}
+                            </div>
+                        )}
                     </div>
-
-                    <div className="flex items-center gap-2 text-sm text-zinc-600 min-h-6">
-                        {strategyId && postId ? (
-                            contextLoading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-                                    <span>Loading strategy context for AI Help…</span>
-                                </>
-                            ) : contextError ? (
-                                <span className="text-amber-600">{contextError} AI Help will use generic prompts.</span>
-                            ) : strategyContext ? (
-                                <span className="text-zinc-700">
-                                    Linked to <span className="font-medium">{strategyContext.strategyName}</span> — Day{' '}
-                                    {strategyContext.post.day} ({strategyContext.post.platform})
-                                </span>
-                            ) : null
-                        ) : strategyId && !postId ? (
-                            <span className="text-zinc-500">Pick a post to enable strategy-aware AI Help.</span>
-                        ) : null}
-                    </div>
-                    <div className="flex gap-2 p-1 rounded-lg bg-zinc-100 w-fit">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('image')}
-                            className={cn(
-                                'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                                activeTab === 'image' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-                            )}
-                        >
-                            <ImageIcon className="h-4 w-4" />
-                            Image
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('video')}
-                            className={cn(
-                                'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-                                activeTab === 'video' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-600 hover:text-zinc-900'
-                            )}
-                        >
-                            <Film className="h-4 w-4" />
-                            Video
-                        </button>
-                    </div>
-                </div>
-            </div>
+                }
+            />
 
             {activeTab === 'image' ? (
                 <PostersWorkbench

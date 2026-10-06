@@ -1,4 +1,6 @@
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { Sparkles, ArrowLeft, Home, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { HubTabs, useCurrentHub } from '@/components/dashboard/hub-nav';
 
 interface HeaderProps {
   showBack: boolean;
@@ -6,37 +8,45 @@ interface HeaderProps {
 }
 
 export default function Header({ showBack, onBack }: HeaderProps) {
+  const hub = useCurrentHub();
+  const showSubTabs = !!hub && hub.apps.length >= 2;
   return (
-    <header className="sticky top-0 z-50 px-4 sm:px-6 py-3 bg-white/80 backdrop-blur-xl border-b border-zinc-200">
-      <div className="max-w-[80rem] mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <header className="ae-hero ae-contour ae-contour-dark relative z-20 -mx-4 px-5 py-6 sm:-mx-5 sm:px-8 md:mx-0 md:rounded-[24px]">
+      {showSubTabs ? <HubTabs className="mb-4" /> : (
+      <nav aria-label="Breadcrumb" className="relative mb-4 flex items-center gap-1.5 text-xs font-semibold text-white/55">
+        <Link href="/dashboard" className="flex items-center gap-1 hover:text-white">
+          <Home className="h-3.5 w-3.5" />
+          Home
+        </Link>
+        <ChevronRight className="h-3 w-3 text-white/35" />
+        <span>AI Photoshoot</span>
+        <ChevronRight className="h-3 w-3 text-white/35" />
+        <span className="text-gold-300">Studio</span>
+      </nav>
+      )}
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
           {showBack && (
             <button
               id="btn-back"
               onClick={onBack}
-              className="flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 hover:bg-zinc-200 transition-all duration-300 hover:scale-105"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 text-white transition-colors hover:bg-white/10"
               aria-label="Back to model selection"
             >
-              <ArrowLeft size={18} className="text-zinc-600" />
+              <ArrowLeft size={18} />
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-gold shadow-lg shadow-brand-gold/20">
-              <Sparkles size={20} className="text-zinc-900" />
-            </div>
-            <div>
-              <h1 className="font-display text-lg font-bold tracking-tight text-zinc-900">
-                AI Studio
-              </h1>
-              <p className="text-[11px] font-medium tracking-[0.15em] uppercase text-zinc-500">
-                Virtual Photoshoot
-              </p>
-            </div>
+          <span className="hidden h-14 w-14 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_30%_25%,#fff7dc_0%,#f9c02a_45%,#c98009_100%)] text-brand-950 shadow-[inset_0_-3px_0_rgba(109,60,18,0.35),inset_0_2px_0_rgba(255,255,255,0.6)] sm:flex">
+            <Sparkles size={24} />
+          </span>
+          <div>
+            <h1 className="text-[28px] leading-tight text-white sm:text-4xl">AI Studio</h1>
+            <p className="mt-1 text-sm text-white/70">Virtual photoshoot: studio-grade product shots on real models.</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-medium text-zinc-500">AI Ready</span>
+        <div className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 sm:flex">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-gold-400" />
+          <span className="text-xs font-bold text-white">AI Ready</span>
         </div>
       </div>
     </header>

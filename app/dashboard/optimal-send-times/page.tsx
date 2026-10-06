@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Clock3, Loader2, Info } from 'lucide-react';
+import { AppSelect } from '@/components/ui/app-select';
 
 type Recommendation = {
   weekday: number;
@@ -109,17 +110,13 @@ export default function OptimalSendTimesPage() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-bold text-zinc-500">Platform</label>
-            <select
+            <AppSelect
+              aria-label="Platform"
               value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm font-semibold text-zinc-700 bg-white min-w-[160px]"
-            >
-              {PLATFORMS.map((p) => (
-                <option key={p.value || 'all'} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+              onChange={setPlatform}
+              className="min-w-[170px] font-semibold"
+              options={PLATFORMS.map((p) => ({ value: p.value, label: p.label }))}
+            />
           </div>
           <Button variant="outline" className="h-10 rounded-xl font-bold" onClick={() => load()}>
             Apply

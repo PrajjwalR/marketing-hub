@@ -5,6 +5,8 @@ import { Search, ChevronDown, Plus, Upload, Filter, User, Mail, MapPin, Cake, Ph
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
+import { AppSelect } from "@/components/ui/app-select";
 import * as XLSX from "xlsx";
 import {
     Sheet,
@@ -374,7 +376,7 @@ export default function ContactsPage() {
     };
 
     return (
-        <div className="flex flex-col min-h-full bg-zinc-50/50">
+        <div className="mx-auto flex min-h-full max-w-7xl flex-col">
             {/* Add New Contact Sidebar */}
             <Sheet open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
                 <SheetContent side="right" className="sm:max-w-md p-0 gap-0 border-l border-zinc-200 flex flex-col bg-white">
@@ -408,16 +410,13 @@ export default function ContactsPage() {
                             <div className="grid grid-cols-1 gap-6 pt-2">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Location</label>
-                                    <div className="relative">
-                                        <select className="w-full h-11 bg-white border border-zinc-200 rounded-xl px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f2d412]/50 appearance-none shadow-sm"
-                                            value={newContact.location} onChange={e => setNewContact({...newContact, location: e.target.value})}>
-                                            <option>Hyderabad</option>
-                                            <option>Bangalore</option>
-                                            <option>Mumbai</option>
-                                            <option>Delhi</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
-                                    </div>
+                                    <AppSelect
+                                        aria-label="Location"
+                                        value={newContact.location}
+                                        onChange={(location) => setNewContact({ ...newContact, location })}
+                                        className="h-11 px-4"
+                                        options={['Hyderabad', 'Bangalore', 'Mumbai', 'Delhi'].map((city) => ({ value: city, label: city }))}
+                                    />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-zinc-700 uppercase tracking-widest">Birthday</label>
@@ -441,7 +440,7 @@ export default function ContactsPage() {
                     <SheetFooter className="shrink-0 bg-zinc-50 p-6 border-t border-zinc-200">
                        <div className="flex w-full gap-3">
                             <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="flex-1 h-11 text-sm font-bold border-zinc-200 rounded-full">Cancel</Button>
-                            <Button className="flex-1 h-11 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold rounded-full shadow-md transition-all" onClick={handleAddManual}>
+                            <Button className="flex-1 h-11 bg-gold-400 hover:bg-gold-300 text-zinc-900 font-bold rounded-full shadow-md transition-all" onClick={handleAddManual}>
                                 {editingContactId ? 'Update Contact' : 'Save Contact'}
                             </Button>
                        </div>
@@ -513,91 +512,68 @@ export default function ContactsPage() {
                 </SheetContent>
             </Sheet>
 
-            {/* Top Bar */}
-            <div className="bg-white border-b border-zinc-200 px-6 py-4 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                        <User className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-zinc-900">Contacts</h1>
-                        <p className="text-xs text-zinc-500">Manage {contacts.length} customers</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    {selectedIds.length > 0 && (
-                        <Button
-                            variant="outline"
-                            className="h-9 px-5 text-xs font-bold gap-2 border-red-200 text-red-600 hover:bg-red-50 rounded-full transition-all"
-                            onClick={handleDeleteSelected}
-                        >
-                            <Trash2 className="h-3.5 w-3.5" /> Delete Selected ({selectedIds.length})
-                        </Button>
-                    )}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-2">
-                                <Button
+            <PageHero
+                className="mb-6"
+                title="Contacts"
+                breadcrumb={['CRM', 'Contacts']}
+                icon={User}
+                description={`Manage ${contacts.length} customers, their birthdays and loyalty reminders.`}
+                stats={[
+                    { label: 'Customers', value: contacts.length, icon: User },
+                    { label: 'Selected', value: selectedIds.length, icon: CheckCircle2 },
+                ]}
+                actions={
+                    <>
+                        {selectedIds.length > 0 && (
+                            <button className={cn(heroButtonClass('ghost'), 'border-red-300/40 text-red-200 hover:bg-red-500/15')} onClick={handleDeleteSelected}>
+                                <Trash2 className="h-4 w-4" /> Delete ({selectedIds.length})
+                            </button>
+                        )}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
                                     type="button"
-                                    variant="outline"
-                                    className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all"
+                                    className={heroButtonClass('ghost')}
                                     disabled={isSyncingCalendar}
                                     onClick={() => void handleSyncToCalendar()}
                                 >
-                                    {isSyncingCalendar ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <CalendarClock className="h-3.5 w-3.5" />
-                                    )}
+                                    {isSyncingCalendar ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
                                     Sync to calendar
-                                </Button>
-                                <button
-                                    type="button"
-                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 cursor-help"
-                                    aria-label="About syncing to calendar"
-                                >
-                                    <Info className="h-4 w-4" aria-hidden />
+                                    <Info className="h-3.5 w-3.5 text-white/50" aria-hidden />
                                 </button>
-                            </span>
-                        </TooltipTrigger>
-                        <TooltipContent
-                            side="bottom"
-                            align="end"
-                            sideOffset={6}
-                            className="max-w-[min(100vw-2rem,20rem)] px-3 py-2.5 text-left text-xs leading-relaxed font-normal"
-                        >
-                            <span className="font-semibold block mb-1.5">Sync to calendar</span>
-                            <p className="opacity-95">
-                                Adds CRM reminders to your <strong>Postings Calendar</strong> for{" "}
-                                <strong>today</strong> (your local date): birthday lines for contacts whose birthday
-                                is today, and on the <strong>1st, 14th, and 28th</strong> of each month a loyalty-style
-                                reminder (reward points, thank-you). These are planning rows—they don&apos;t
-                                auto-post to social unless you act on them. A daily job also runs in the background.
-                            </p>
-                        </TooltipContent>
-                    </Tooltip>
-                    <Button 
-                        variant="outline" 
-                        className="h-9 px-5 text-xs font-bold gap-2 border-zinc-200 hover:bg-zinc-50 rounded-full transition-all" 
-                        onClick={() => setIsImportModalOpen(true)}
-                    >
-                        <Upload className="h-3.5 w-3.5" /> Import File
-                    </Button>
-                    <Button 
-                        className="h-9 bg-[#f2d412] hover:bg-[#f2c112] text-zinc-900 font-bold text-xs px-6 rounded-full gap-2 shadow-md transition-all" 
-                        onClick={() => setIsAddModalOpen(true)}
-                    >
-                        <Plus className="h-4 w-4" /> Add Contact
-                    </Button>
-                </div>
-            </div>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="bottom"
+                                align="end"
+                                sideOffset={6}
+                                className="max-w-[min(100vw-2rem,20rem)] px-3 py-2.5 text-left text-xs leading-relaxed font-normal"
+                            >
+                                <span className="font-semibold block mb-1.5">Sync to calendar</span>
+                                <p className="opacity-95">
+                                    Adds CRM reminders to your <strong>Postings Calendar</strong> for{" "}
+                                    <strong>today</strong> (your local date): birthday lines for contacts whose birthday
+                                    is today, and on the <strong>1st, 14th, and 28th</strong> of each month a loyalty-style
+                                    reminder (reward points, thank-you). These are planning rows—they don&apos;t
+                                    auto-post to social unless you act on them. A daily job also runs in the background.
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <button className={heroButtonClass('ghost')} onClick={() => setIsImportModalOpen(true)}>
+                            <Upload className="h-4 w-4" /> Import file
+                        </button>
+                        <button className={heroButtonClass('gold')} onClick={() => setIsAddModalOpen(true)}>
+                            <Plus className="h-4 w-4" strokeWidth={2.5} /> Add contact
+                        </button>
+                    </>
+                }
+            />
 
             {/* Contacts Table */}
-            <div className="flex-1 overflow-auto p-6">
-                <div className="bg-white rounded-xl border border-zinc-200 shadow-sm overflow-hidden">
+            <div className="flex-1 overflow-auto">
+                <div className="ae-tile overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-zinc-50/50 border-b border-zinc-200">
+                            <tr className="border-b border-zinc-100 bg-zinc-50/70">
                                 <th className="px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider w-8">
                                     <input
                                         type="checkbox"
@@ -628,7 +604,7 @@ export default function ContactsPage() {
                             {isLoading ? (
                                 <tr><td colSpan={10} className="text-center py-10 text-sm text-zinc-400">Loading contacts...</td></tr>
                             ) : filteredContacts.map((contact) => (
-                                <tr key={contact.id} className="hover:bg-zinc-50 transition-colors group">
+                                <tr key={contact.id} className="hover:bg-brand-50/50 transition-colors group">
                                     <td className="px-6 py-4">
                                         <input
                                             type="checkbox"

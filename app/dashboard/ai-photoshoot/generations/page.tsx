@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { Loader2, Sparkles, Camera, Film, Download, Trash2, MoreVertical } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { PageHero, heroButtonClass } from "@/components/dashboard/page-hero";
 import {
   PhotoshootGenerationCard,
   PHOTOSHOOT_GENERATIONS_GRID_CLASS,
@@ -140,32 +141,27 @@ export default function AiPhotoshootGenerationsPage() {
   );
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-[#F5F0E8] pb-16">
-      <div className="relative z-10 mx-auto max-w-[1400px] px-4 pt-8 sm:px-6 lg:px-8">
-        {/* Header row */}
-        <div className="mb-8 flex flex-col gap-6 border-b border-zinc-200/80 pb-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-              AI Photoshoot
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">
-              Recently generated
-            </h1>
-            <p className="mt-3 text-base italic leading-relaxed text-[#EA580C] sm:text-lg">
-              {catchyPhrase}
-            </p>
-          </div>
-          <Link
-            href={STUDIO_HREF}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-full border border-[#E0B428] bg-[#F5C842] px-6 text-sm font-bold text-zinc-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-[#E0B428] lg:self-auto"
-          >
-            <Sparkles className="h-4 w-4" />
-            Generate more
-          </Link>
-        </div>
+    <div className="relative pb-16">
+      <div className="relative z-10 mx-auto max-w-[1400px]">
+        <PageHero
+          title="Recently generated"
+          breadcrumb={['AI Photoshoot', 'My generations']}
+          icon={Camera}
+          description={<span className="italic text-gold-200">{catchyPhrase}</span>}
+          stats={[
+            { label: 'Photo sessions', value: photoSessions.length, icon: Camera },
+            { label: 'Video sessions', value: videoSessions.length, icon: Film },
+          ]}
+          actions={
+            <Link href={STUDIO_HREF} className={heroButtonClass('gold')}>
+              <Sparkles className="h-4 w-4" />
+              Generate more
+            </Link>
+          }
+        />
 
         {/* ─── Photos / Videos tab toggle ───────────────────────────── */}
-        <div className="mb-6 flex items-center gap-1 rounded-full bg-white/70 border border-zinc-200/90 p-1 w-fit backdrop-blur-sm shadow-sm">
+        <div className="mb-6 flex w-fit items-center gap-1 rounded-full bg-brand-800 p-1">
           <TabButton
             id="tab-photos"
             active={activeTab === "photos"}
@@ -186,7 +182,7 @@ export default function AiPhotoshootGenerationsPage() {
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-zinc-500">
-            <Loader2 className="h-8 w-8 animate-spin text-[#F97316]" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
             <span className="text-sm font-medium">Loading your generations…</span>
           </div>
         )}
@@ -198,7 +194,7 @@ export default function AiPhotoshootGenerationsPage() {
         )}
 
         {!loading && !error && activeSessions.length === 0 && (
-          <div className="rounded-3xl border border-zinc-200 bg-white p-12 text-center shadow-sm">
+          <div className="ae-tile ae-contour p-12 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100">
               {activeTab === "photos" ? (
                 <Camera className="h-7 w-7 text-zinc-400" />
@@ -218,7 +214,7 @@ export default function AiPhotoshootGenerationsPage() {
             </p>
             <Link
               href={STUDIO_HREF}
-              className="mt-8 inline-flex h-11 items-center justify-center rounded-full border border-[#E0B428] bg-[#F5C842] px-8 text-sm font-bold text-zinc-900 transition hover:bg-[#E0B428]"
+              className="mt-8 inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-gold-500)] bg-[var(--color-gold-400)] px-8 text-sm font-bold text-zinc-900 transition hover:bg-[var(--color-gold-500)]"
             >
               Open Studio
             </Link>
@@ -366,8 +362,8 @@ function TabButton({
       onClick={onClick}
       className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all duration-300 ${
         active
-          ? "bg-zinc-900 text-white shadow-md"
-          : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/80"
+          ? "bg-white text-brand-900 shadow-sm"
+          : "text-white/75 hover:text-white"
       }`}
     >
       {icon}
@@ -376,8 +372,8 @@ function TabButton({
         <span
           className={`ml-0.5 rounded-full px-1.5 py-[1px] text-[10px] font-bold tabular-nums ${
             active
-              ? "bg-white/20 text-white"
-              : "bg-zinc-200/80 text-zinc-500"
+              ? "bg-gold-400 text-brand-950"
+              : "bg-white/15 text-white/80"
           }`}
         >
           {count}
@@ -395,7 +391,7 @@ function VideoSessionCard({ session: s }: { session: SessionSummary }) {
   return (
     <Link
       href={`/dashboard/ai-photoshoot/generations/${s.id}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#E0B428] hover:shadow-md hover:ring-1 hover:ring-[#F5C842]/80"
+      className="group flex flex-col overflow-hidden rounded-xl border border-zinc-200/90 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-gold-500)] hover:shadow-md hover:ring-1 hover:ring-[var(--color-gold-400)]/80"
     >
       {/* Video thumbnail / player preview */}
       <div className="relative aspect-[9/16] max-h-56 w-full overflow-hidden bg-zinc-900">
@@ -456,7 +452,7 @@ function VideoSessionCard({ session: s }: { session: SessionSummary }) {
 
       {/* Info */}
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="truncate text-[9px] font-bold uppercase tracking-[0.12em] text-[#EA580C]">
+        <p className="truncate text-[9px] font-bold uppercase tracking-[0.12em] text-gold-700">
           AI VIDEO
         </p>
         <p className="line-clamp-1 text-xs font-bold leading-snug text-zinc-900">
