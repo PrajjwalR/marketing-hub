@@ -38,12 +38,10 @@ export async function GET(req: Request) {
 
         const scopes = [
             'public_profile',
-            'pages_show_list',        // Required to get Facebook Pages and linked IG accounts
-            'business_management',    // Required for Business Suite / Business-owned Pages
-            'instagram_basic',        // Basic Instagram access
-            'instagram_content_publish', // Publish media to Instagram
-            'instagram_manage_comments', // Manage comments
-            'instagram_manage_insights', // Read insights
+            'pages_show_list',
+            'business_management',
+            'instagram_basic',
+            'instagram_content_publish',
         ];
 
         const stateData = JSON.stringify({ userId, integrationId });
