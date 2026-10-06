@@ -38,8 +38,8 @@ export async function GET(req: Request) {
         const baseUrl = `${protocol}://${host}`;
         const redirectUri = `${baseUrl}/api/settings/social/callback/facebook`;
 
-        // Requesting pages read and manage posts scopes
-        const scopes = ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_posts'];
+        // Requesting pages read, manage posts, and business management scopes
+        const scopes = ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_posts', 'business_management'];
 
         const stateData = JSON.stringify({ userId, integrationId });
 

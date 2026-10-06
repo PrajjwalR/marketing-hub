@@ -73,8 +73,8 @@ export async function GET(req: Request) {
         const profileData = await profileRes.json();
         const rootInternalId = profileData.id;
 
-        // 4. Fetch User Pages. (Users log in with their personal accounts, but post to pages)
-        const pagesRes = await fetch(`https://graph.facebook.com/${rootInternalId}/accounts?access_token=${userAccessToken}`);
+        // 4. Fetch User Pages (works for both personal and business-owned pages)
+        const pagesRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${userAccessToken}`);
         if (!pagesRes.ok) {
              console.error("Facebook pages fetch failed");
              return NextResponse.redirect(new URL('/dashboard/settings?error=pages_fetch_failed', req.url));
