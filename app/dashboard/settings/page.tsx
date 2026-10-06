@@ -935,8 +935,16 @@ function SettingsForm() {
                 toast.error("No Instagram Business account found linked to your Facebook Pages. Please ensure you have a professional account linked.", {
                     duration: 6000,
                 });
+            } else if (error === 'no_facebook_pages_found') {
+                toast.error("No Facebook Pages found for your account. Ensure you are an Admin of a Facebook Page.", {
+                    duration: 6000,
+                });
+            } else if (error === 'token_exchange_failed') {
+                toast.error("Facebook token exchange failed. Check App Secret and Redirect URIs.", {
+                    duration: 6000,
+                });
             } else {
-                toast.error("An error occurred while connecting your account. Please try again.");
+                toast.error(`Connection error: ${error}`, { duration: 6000 });
             }
             router.replace(pathname);
         }
