@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import { addDays, format, isSameDay, parseISO, startOfWeek } from 'date-fns';
-import { CheckCircle2, Copy, Layers, PenSquare, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Copy, Layers, PenSquare, Pencil, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useCalendar } from './calendar-context';
@@ -183,6 +183,12 @@ export function ListView() {
                                             </div>
                                             <p className="mt-2 line-clamp-2 text-[15px] font-extrabold leading-snug text-zinc-900">{event.title || 'Untitled post'}</p>
                                             {event.description && <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-zinc-500">{event.description}</p>}
+                                            {statusOf(event) === 'failed' && event.error_message && (
+                                                <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-medium leading-relaxed text-red-700 ring-1 ring-red-100">
+                                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                                    {event.error_message}
+                                                </p>
+                                            )}
                                             <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                                                 <EventApprovalBadge event={event} />
                                                 {event.is_recurring && (

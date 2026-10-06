@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil, Sparkles, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Loader2, Youtube, Instagram, Video, Bell, Calendar as CalendarIcon, Flag, Megaphone, Trash2, Image as ImageIcon, Linkedin, Facebook, FileVideo, Upload, ChevronRight, ArrowUp, Folder, Search, LayoutGrid, List, FileText, Tags, Plus, Pencil, Sparkles, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -599,6 +599,17 @@ export function CalendarModal() {
                                             })}
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {formType === 'post' && editingEvent?.status === 'failed' && (
+                                <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                                    <div>
+                                        <p className="font-bold">This post was not published</p>
+                                        <p className="mt-0.5 leading-relaxed">{editingEvent.error_message || 'No reason was recorded for this failure.'}</p>
+                                        <p className="mt-1 text-xs text-red-600">Fix the issue, pick a new time, set the status to Scheduled and save to try again.</p>
+                                    </div>
                                 </div>
                             )}
 

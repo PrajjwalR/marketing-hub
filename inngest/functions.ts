@@ -391,7 +391,10 @@ export const processScheduledPosts = inngest.createFunction(
             // Case B: PENDING_ sentinel -> mark failed (ambiguous)
             await supabaseAdmin
                 .from('calendar_events')
-                .update({ status: 'failed' })
+                .update({
+                    status: 'failed',
+                    error_message: 'Publishing was interrupted before Instagram confirmed the post. Check your Instagram profile; if the post is not there, reschedule it.',
+                })
                 .eq('status', 'processing')
                 .eq('type', 'post')
                 .lte('scheduled_at', fiveMinAgo)
@@ -481,7 +484,7 @@ export const processScheduledPosts = inngest.createFunction(
                     if (!post.account_id) throw new Error("Missing account_id for Instagram post");
                     if (!post.media_url) throw new Error("Media URL is required for Instagram");
 
-                    await step.run(`publish-instagram-${post.id}`, async () => {
+                    const igResult = await step.run(`publish-instagram-${post.id}`, async () => {
                         // ATOMIC RESERVATION.
                         // The previous "check platform_post_id, then publish, then save" pattern
                         // had a race window between check and save where two concurrent
@@ -551,6 +554,13 @@ export const processScheduledPosts = inngest.createFunction(
 
                         return { postId: result.postId };
                     });
+
+                    // A row that was already reserved means an earlier attempt was in flight
+                    // and never confirmed. Falling through to mark-published here used to
+                    // flag posts as published even though nothing reached Instagram.
+                    if ('skipped' in igResult) {
+                        throw new Error('A previous publish attempt for this post was interrupted before Instagram confirmed it. Check your Instagram profile; if the post is not there, reschedule it.');
+                    }
                 } else if (post.platform?.toLowerCase() === 'tiktok') {
                     // TikTok typically expects userId to find connection if account_id isn't directly the connection record ID
                     // But in our social_connections it seems we use account_id for connectionId on other platforms
@@ -573,10 +583,10 @@ export const processScheduledPosts = inngest.createFunction(
                 await step.run(`mark-published-${post.id}`, async () => {
                     await supabaseAdmin
                         .from('calendar_events')
-                        .update({ status: 'published' })
+                        .update({ status: 'published', published_at: new Date().toISOString(), error_message: null })
                         .eq('id', post.id);
                 });
-                
+
                 results.push({ id: post.id, status: 'success' });
             } catch (error: unknown) {
                 console.error(`Failed to process post ${post.id}:`, error);
@@ -586,7 +596,7 @@ export const processScheduledPosts = inngest.createFunction(
                 await step.run(`mark-failed-${post.id}`, async () => {
                     await supabaseAdmin
                         .from('calendar_events')
-                        .update({ status: 'failed' })
+                        .update({ status: 'failed', error_message: errorMessage })
                         .eq('id', post.id);
                 });
                 results.push({ id: post.id, status: 'error', error: errorMessage });

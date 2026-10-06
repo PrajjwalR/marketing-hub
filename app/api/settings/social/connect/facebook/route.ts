@@ -30,12 +30,12 @@ export async function GET(req: Request) {
 
         const clientId = integration.client_id;
 
-        // Dynamically get the current host (works for Vercel, ngrok, or localhost)
+        // Dynamically get the current host (works for Vercel, ngrok, or localhost).
+        // Must match the callback route exactly: Meta rejects the token exchange if
+        // the redirect_uri differs, so don't prefer NEXT_PUBLIC_APP_URL here.
         const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
         const protocol = host?.includes('localhost') ? 'http' : 'https';
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('NEXT_PUBLIC')
-            ? process.env.NEXT_PUBLIC_APP_URL
-            : `${protocol}://${host}`;
+        const baseUrl = `${protocol}://${host}`;
         const redirectUri = `${baseUrl}/api/settings/social/callback/facebook`;
 
         // Requesting pages read and manage posts scopes

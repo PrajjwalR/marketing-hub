@@ -59,11 +59,13 @@ export function PlatformChip({ meta, size = 'md' }: { meta: PlatformMeta; size?:
     );
 }
 
-type StatusKey = 'published' | 'scheduled' | 'cancelled' | 'draft';
+type StatusKey = 'published' | 'scheduled' | 'processing' | 'failed' | 'cancelled' | 'draft';
 
 export function statusOf(event: CalendarEvent): StatusKey {
     if (event.status === 'completed' || event.status === 'published') return 'published';
     if (event.status === 'scheduled') return 'scheduled';
+    if (event.status === 'processing') return 'processing';
+    if (event.status === 'failed') return 'failed';
     if (event.status === 'cancelled') return 'cancelled';
     return 'draft';
 }
@@ -71,14 +73,20 @@ export function statusOf(event: CalendarEvent): StatusKey {
 const STATUS_STYLE: Record<StatusKey, { label: string; pill: string; dot: string }> = {
     published: { label: 'Published', pill: 'bg-brand-50 text-brand-700 ring-brand-100', dot: 'bg-brand-500' },
     scheduled: { label: 'Scheduled', pill: 'bg-gold-50 text-gold-800 ring-gold-200', dot: 'bg-gold-500' },
+    processing: { label: 'Publishing…', pill: 'bg-violet-50 text-violet-700 ring-violet-100', dot: 'bg-violet-500' },
+    failed: { label: 'Failed', pill: 'bg-red-50 text-red-700 ring-red-200', dot: 'bg-red-500' },
     cancelled: { label: 'Cancelled', pill: 'bg-zinc-100 text-zinc-500 ring-zinc-200', dot: 'bg-zinc-400' },
     draft: { label: 'Draft', pill: 'bg-sky-50 text-sky-700 ring-sky-100', dot: 'bg-sky-400' },
 };
 
+function statusTitle(event: CalendarEvent, label: string) {
+    return statusOf(event) === 'failed' && event.error_message ? `${label}: ${event.error_message}` : label;
+}
+
 export function StatusPill({ event, className }: { event: CalendarEvent; className?: string }) {
     const s = STATUS_STYLE[statusOf(event)];
     return (
-        <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1', s.pill, className)}>
+        <span title={statusTitle(event, s.label)} className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1', s.pill, className)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', s.dot)} />
             {s.label}
         </span>
@@ -87,7 +95,7 @@ export function StatusPill({ event, className }: { event: CalendarEvent; classNa
 
 export function StatusDot({ event }: { event: CalendarEvent }) {
     const s = STATUS_STYLE[statusOf(event)];
-    return <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.dot)} title={s.label} />;
+    return <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', s.dot)} title={statusTitle(event, s.label)} />;
 }
 
 export function firstMedia(event: CalendarEvent): string | undefined {

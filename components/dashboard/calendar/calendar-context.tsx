@@ -22,6 +22,8 @@ export interface CalendarEvent {
     approved_at?: string | null;
     submitted_for_approval_at?: string | null;
     published_at?: string | null;
+    /** Why auto-publishing failed (set by the scheduler when status is 'failed'). */
+    error_message?: string | null;
     platforms?: string[];
     created_at: string;
     video_id: string | null;
@@ -78,6 +80,27 @@ interface CalendarContextType {
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
 
+const FAILED_TOAST_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_FAILED_TOASTS = 3;
+const NOTIFIED_FAILURES_KEY = 'ae:notified-failed-posts';
+
+function readNotifiedFailures(): Set<string> {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(NOTIFIED_FAILURES_KEY) || '[]'));
+    } catch {
+        return new Set();
+    }
+}
+
+function writeNotifiedFailures(ids: Set<string>) {
+    try {
+        // Keep the list bounded; only recent failures are ever toasted anyway.
+        localStorage.setItem(NOTIFIED_FAILURES_KEY, JSON.stringify([...ids].slice(-200)));
+    } catch {
+        // Storage unavailable (private mode etc.) — worst case the toast repeats.
+    }
+}
+
 export function CalendarProvider({ children }: { children: ReactNode }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [displayMode, setDisplayMode] = useState<'list' | 'week' | 'month'>('week');
@@ -130,6 +153,42 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Tell the user when a scheduled post didn't go out, and why. Each failure is
+    // toasted once per browser; older failures without a recorded reason are skipped.
+    useEffect(() => {
+        const cutoff = Date.now() - FAILED_TOAST_WINDOW_MS;
+        const failed = events.filter((e) =>
+            e.status === 'failed' &&
+            e.error_message &&
+            new Date(e.scheduled_at).getTime() >= cutoff
+        );
+        if (failed.length === 0) return;
+
+        const notified = readNotifiedFailures();
+        const fresh = failed.filter((e) => !notified.has(e.id));
+        if (fresh.length === 0) return;
+
+        for (const event of fresh.slice(0, MAX_FAILED_TOASTS)) {
+            const platform = event.platform ? event.platform.charAt(0).toUpperCase() + event.platform.slice(1) : 'Post';
+            toast.error(`${platform} post "${event.title || 'Untitled'}" was not published`, {
+                id: `failed-post-${event.id}`,
+                description: event.error_message,
+                duration: 15000,
+                action: { label: 'Open', onClick: () => openEditDialog(event) },
+            });
+        }
+        if (fresh.length > MAX_FAILED_TOASTS) {
+            toast.error(`${fresh.length - MAX_FAILED_TOASTS} more posts failed to publish`, {
+                description: 'Look for posts marked "Failed" in the calendar and hover the badge to see why.',
+                duration: 15000,
+            });
+        }
+
+        fresh.forEach((e) => notified.add(e.id));
+        writeNotifiedFailures(notified);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [events]);
 
     const handleStatusToggle = async (event: CalendarEvent) => {
         const nextStatus = event.status === 'scheduled' ? 'cancelled'

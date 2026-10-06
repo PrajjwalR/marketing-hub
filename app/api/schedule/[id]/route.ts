@@ -54,6 +54,15 @@ export async function PATCH(
             updates.published_at = null;
         }
 
+        // Rescheduling a failed post: drop the old failure reason and any stale
+        // in-flight reservation, otherwise the publisher would skip the row forever.
+        if (updates.status === 'scheduled') {
+            updates.error_message = null;
+            if (typeof existingPost.platform_post_id === 'string' && existingPost.platform_post_id.startsWith('PENDING_')) {
+                updates.platform_post_id = null;
+            }
+        }
+
         const hasCalendarUpdates = Object.keys(updates).length > 0;
         const hasLabelUpdate = Array.isArray(label_ids);
         const hasReviewerUpdate = Array.isArray(reviewer_ids);
