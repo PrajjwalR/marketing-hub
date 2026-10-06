@@ -30,7 +30,13 @@ export async function GET(req: Request) {
 
         const clientId = integration.client_id;
 
-        const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/settings/social/callback/facebook`;
+        // Dynamically get the current host (works for Vercel, ngrok, or localhost)
+        const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+        const protocol = host?.includes('localhost') ? 'http' : 'https';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('NEXT_PUBLIC')
+            ? process.env.NEXT_PUBLIC_APP_URL
+            : `${protocol}://${host}`;
+        const redirectUri = `${baseUrl}/api/settings/social/callback/facebook`;
 
         // Requesting pages read and manage posts scopes
         const scopes = ['public_profile', 'pages_show_list', 'pages_read_engagement', 'pages_manage_posts'];
