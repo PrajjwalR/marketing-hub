@@ -127,7 +127,7 @@ export async function GET(req: Request) {
             .update({ status: 'active', updated_at: new Date().toISOString() })
             .eq('id', integrationId);
 
-        return NextResponse.redirect(new URL('/dashboard/settings?success=facebook_connected', req.url));
+        return NextResponse.redirect(new URL('/dashboard/settings?connected=facebook', req.url));
 
     } catch (error: any) {
         console.error("Facebook Callback Error:", error);
