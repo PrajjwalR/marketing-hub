@@ -5,6 +5,11 @@ import type { NextRequest } from 'next/server';
 const publicRoutes = [
   '/',
   '/docs',
+  '/privacy',
+  '/terms',
+  '/datadeletion',
+  '/data-deletion',
+  '/deletion',
   '/sign-in',
   '/sign-up',
   '/api/inngest',
