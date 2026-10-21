@@ -388,14 +388,12 @@ export function Hero() {
                 </Link>
               )}
 
-              <a
+              <Link
+                href={isLoaded && user ? "/dashboard" : "/sign-up"}
                 className="ns-btn ghost"
-                href="https://web.scalio.app"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 Use on web
-              </a>
+              </Link>
             </div>
           </div>
 
